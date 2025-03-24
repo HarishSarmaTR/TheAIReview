@@ -18,12 +18,6 @@ public:
 
     }
 
-    ~Example() {
-
-        delete[] data;
-
-    }
-
     void processData() {
 
         std::cout << "Data: " << data[0] << std::endl;
@@ -53,8 +47,6 @@ int main() {
     example->processData();
 
     example->correctLogic(5, 3);
-
-    return 0;
 
 }
  
