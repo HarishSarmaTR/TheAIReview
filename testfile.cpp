@@ -33,7 +33,7 @@ int main() {
  
     saveAreaToFile(rect);
 
-    delete rect;
+    delete rwqct;
     
     return 0;
 }

@@ -32,7 +32,7 @@ public:
 
     void correctLogic(int a, int b) {
 
-        if (a < b) {
+        if (a > b) {
 
             std::cout << "a is less than b" << std::endl;
 
