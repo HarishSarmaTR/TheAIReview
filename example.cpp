@@ -53,6 +53,8 @@ int main() {
     example->processData();
 
     example->correctLogic(5, 3);
+    
+    delete example;  // Free the allocated memory
 
     return 0;
 
