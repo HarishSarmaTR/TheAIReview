@@ -18,7 +18,7 @@ public:
     Circle(double r) : radius(r) {}
 
     double area() const override {
-        return 3.14159 * radius * radius;
+        return 3.14159 * radius;
     }
 };
 
@@ -59,4 +59,6 @@ int main() {
     } catch (const std::exception& e) {
         std::cerr << "Exception: " << e.what() << std::endl;
     }
+
+    return 0;
 }
