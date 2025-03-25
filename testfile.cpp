@@ -32,8 +32,6 @@ int main() {
     cout << "The area is: " << rect->area() << endl;
  
     saveAreaToFile(rect);
-
-    delete rect;
     
     return 0;
 }
