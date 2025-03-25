@@ -53,6 +53,9 @@ int main() {
         double area = totalArea(shapes);
         std::cout << "Total area: " << area << std::endl;
 
+        for (Shape* shape : shapes) {
+            delete shape; // Clean up
+        }
     } catch (const std::exception& e) {
         std::cerr << "Exception: " << e.what() << std::endl;
     }
