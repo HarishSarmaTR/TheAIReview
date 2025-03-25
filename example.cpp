@@ -50,8 +50,6 @@ int main() {
 
     Example* example = new Example();
 
-    example->processData();
-
     example->correctLogic(5, 3);
     
     delete example;  // Free the allocated memory
