@@ -40,10 +40,14 @@ pip install PyGithub requests
 ```
 
 
-## 2️⃣ Clone the Repository
+## 2️⃣ Get the Open Arena token
 
-- git clone https://github.com/<your-username>/<your-repo>.git  
-- cd <your-repo>
+- please refer here 👉 https://helix.thomsonreuters.com/static-sites/site-builds/gcs-ml_ai-platform-documentation/ai-platform/09_openarena/api_user_guide.html#step-5-locate-your-esso-token
+
+## Create Github Token
+- create a github hub token from developer settings 
+
+![image](https://github.com/user-attachments/assets/f7eac2cc-b91a-4cf5-b589-5654ee371283)
 
 
 ---
