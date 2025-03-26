@@ -8,23 +8,20 @@
 
 ### 1️⃣ Prerequisites
 
-### Ensure you have the following installed:
+- ### Ensure you have the following installed:
 
-- Python 3.8+
-- pip (Python package manager)
-
-### Install pyinstaller:
+- **Python 3.8+**
+- **pip (Python package manager)**
+- ### Install pyinstaller and run this:
 
 ```
 pip install pyinstaller
 ```
-- and run this:
 ```
 pyinstaller --onefile .\AIReview.py
 ```
-- also install PyGitHub 
 
-### Install PyGitHub 
+- ### Install PyGitHub 
 
 ```
 pip install PyGithub requests
@@ -32,11 +29,11 @@ pip install PyGithub requests
 
 ### 2️⃣ Get the Open Arena token
 
-### Please refer 👉 [Open Arena Link](https://helix.thomsonreuters.com/static-sites/site-builds/gcs-ml_ai-platform-documentation/ai-platform/09_openarena/api_user_guide.html#step-5-locate-your-esso-token)
+- #### Please refer 👉 [Open Arena Link](https://helix.thomsonreuters.com/static-sites/site-builds/gcs-ml_ai-platform-documentation/ai-platform/09_openarena/api_user_guide.html#step-5-locate-your-esso-token)
 
 
 ### 3️⃣ Create Github Token
-### Create a github hub token from developer settings 
+- #### Create a github hub token from developer settings 
 
 ![image](https://github.com/user-attachments/assets/f7eac2cc-b91a-4cf5-b589-5654ee371283)
 
@@ -101,14 +98,13 @@ pip install PyGithub requests
 
 For any issues, feel free to open an issue in the repo.
 
-
 ---
 
 # 🏆 Credits
 
 ## Developed by the Ultratax Team, 2025.
 - **Kalyani, Kandunuri**
-- **Harish sarma, Velavalapalli**
+- **Harish Sarma, Velavalapalli**
 
 - Speacial thanks to **Radhika Ramagiri** and **Prasad Kolaparthi** 💖
 
