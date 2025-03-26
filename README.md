@@ -1,12 +1,12 @@
 # 🚀 AI Code Review Tool
 
-## A Python-based tool that leverages GitHub API and OpenArena AI to automate code reviews on pull requests. This tool extracts modified lines, sends them for AI-based review, and posts comments on GitHub PRs with insights and suggestions.
+### A Python-based tool that leverages GitHub API and OpenArena AI to automate code reviews on pull requests. This tool extracts modified lines, sends them for AI-based review, and posts comments on GitHub PRs with insights and suggestions.
 
 ---
 
 # 🛠 Installation
 
-## 1️⃣ Prerequisites
+### 1️⃣ Prerequisites
 
 ### Ensure you have the following installed:
 
@@ -30,12 +30,12 @@ pyinstaller --onefile .\AIReview.py
 pip install PyGithub requests
 ```
 
-## 2️⃣ Get the Open Arena token
+### 2️⃣ Get the Open Arena token
 
 ### Please refer 👉 [Open Arena Link](https://helix.thomsonreuters.com/static-sites/site-builds/gcs-ml_ai-platform-documentation/ai-platform/09_openarena/api_user_guide.html#step-5-locate-your-esso-token)
 
 
-## 3️⃣ Create Github Token
+### 3️⃣ Create Github Token
 ### Create a github hub token from developer settings 
 
 ![image](https://github.com/user-attachments/assets/f7eac2cc-b91a-4cf5-b589-5654ee371283)
@@ -56,12 +56,12 @@ pip install PyGithub requests
 
 # 🚀 Usage
 
-1. Run the tool:
+## 1. Run the tool:
 
 - python main.py
 
 
-2. Enter the required details in the GUI:
+## 2. Enter the required details in the GUI:
 
 - GitHub Token
 
@@ -72,13 +72,13 @@ pip install PyGithub requests
 - Pull Request Number
 
 
-3. Click "Run Code Review" to initiate the process.
+## 3. Click "Run Code Review" to initiate the process.
 
 
-4. AI-generated comments will be posted directly on the PR.
+## 4. AI-generated comments will be posted directly on the PR.
 
 
-5. Check your PR on GitHub to view the feedback.
+## 5. Check your PR on GitHub to view the feedback.
 
 ---
 
