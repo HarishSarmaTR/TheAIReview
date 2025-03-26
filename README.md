@@ -95,9 +95,9 @@ pip install PyGithub requests
 
 # 🛠 Troubleshooting
 
-🔹 Error: Authentication failed – Ensure your GitHub token has the correct permissions.
-🔹 Error: AI review failed – Check your OpenArena API token and internet connection.
-🔹 Comments not appearing on PR? – Verify that the PR number and repository name are correct.
+- 🔹 Error: Authentication failed – Ensure your GitHub token has the correct permissions.
+- 🔹 Error: AI review failed – Check your OpenArena API token and internet connection.
+- 🔹 Comments not appearing on PR? – Verify that the PR number and repository name are correct.
 
 For any issues, feel free to open an issue in the repo.
 
