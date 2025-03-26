@@ -1,11 +1,6 @@
-# TheAIReview
-
----
-
 # 🚀 AI Code Review Tool
 
-- A Python-based tool that leverages GitHub API and OpenArena AI to automate code reviews on pull requests. This tool extracts modified lines, sends them for AI-based review, and posts comments on GitHub PRs with insights and suggestions.
-
+## A Python-based tool that leverages GitHub API and OpenArena AI to automate code reviews on pull requests. This tool extracts modified lines, sends them for AI-based review, and posts comments on GitHub PRs with insights and suggestions.
 
 ---
 
@@ -13,48 +8,43 @@
 
 ## 1️⃣ Prerequisites
 
-- Ensure you have the following installed:
+### Ensure you have the following installed:
 
-- - Python 3.8+
+- Python 3.8+
+- pip (Python package manager)
 
-- - pip (Python package manager)
-
-- - GitHub Personal Access Token (with repo access)
-
-- - OpenArena API Token (for AI-based review)
-
-## Install pyinstaller:
+### Install pyinstaller:
 
 ```
 pip install pyinstaller
 ```
-and run this:
+- and run this:
 ```
 pyinstaller --onefile .\AIReview.py
 ```
+- also install PyGitHub 
 
-## Install PyGitHub 
+### Install PyGitHub 
 
 ```
 pip install PyGithub requests
 ```
 
-
 ## 2️⃣ Get the Open Arena token
 
-- please refer here 👉 https://helix.thomsonreuters.com/static-sites/site-builds/gcs-ml_ai-platform-documentation/ai-platform/09_openarena/api_user_guide.html#step-5-locate-your-esso-token
+### Please refer 👉 [Open Arena Link](https://helix.thomsonreuters.com/static-sites/site-builds/gcs-ml_ai-platform-documentation/ai-platform/09_openarena/api_user_guide.html#step-5-locate-your-esso-token)
 
-## Create Github Token
-- create a github hub token from developer settings 
+
+## 3️⃣ Create Github Token
+### Create a github hub token from developer settings 
 
 ![image](https://github.com/user-attachments/assets/f7eac2cc-b91a-4cf5-b589-5654ee371283)
-
 
 ---
 
 # ⚙️ Configuration
 
-- Before running the tool, make sure you have:
+## Before running the tool, make sure you have:
 
 - GitHub Token: For authentication with the GitHub API
 
@@ -117,9 +107,9 @@ For any issues, feel free to open an issue in the repo.
 # 🏆 Credits
 
 ## Developed by the Ultratax Team, 2025.
-- Kalyani, Kandunuri
-- Harish sarma, Velavalapalli
+- **Kalyani, Kandunuri**
+- **Harish sarma, Velavalapalli**
 
-- Speacial thanks to Prasad Kolaparthi
+- Speacial thanks to **Radhika Ramagiri** and **Prasad Kolaparthi** 💖
 
 ---
