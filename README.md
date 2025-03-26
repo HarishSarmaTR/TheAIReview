@@ -23,12 +23,12 @@
 
 - - OpenArena API Token (for AI-based review)
 
-## Install pyinstaller and run
+## Install pyinstaller:
 
 ```
 pip install pyinstaller
 ```
-
+and run this:
 ```
 pyinstaller --onefile .\AIReview.py
 ```
@@ -99,27 +99,6 @@ pip install PyGithub requests
 
 ---
 
-# 🏗️ Contributing
-
-- We welcome contributions! If you’d like to improve the tool:
-
-1. Fork the repository
-
-
-2. Create a new branch (git checkout -b feature-name)
-
-
-3. Make your changes & commit (git commit -m "Your message")
-
-
-4. Push to GitHub (git push origin feature-name)
-
-
-5. Create a pull request 🚀
-
-
----
-
 # 🛠 Troubleshooting
 
 🔹 Error: Authentication failed – Ensure your GitHub token has the correct permissions.
@@ -133,6 +112,10 @@ For any issues, feel free to open an issue in the repo.
 
 # 🏆 Credits
 
-- Developed by the Ultratax Team, 2025.
+## Developed by the Ultratax Team, 2025.
+- Kalyani, Kandunuri
+- Harish sarma, Velavalapalli
+
+- Speacial thanks to Prasad Kolaparthi
 
 ---
