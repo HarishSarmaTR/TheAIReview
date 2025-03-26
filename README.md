@@ -2,71 +2,80 @@
 
 ---
 
-🚀 AI Code Review Tool
+# 🚀 AI Code Review Tool
 
-A Python-based tool that leverages GitHub API and OpenArena AI to automate code reviews on pull requests. This tool extracts modified lines, sends them for AI-based review, and posts comments on GitHub PRs with insights and suggestions.
-
-
----
-
-🛠 Installation
-
-1️⃣ Prerequisites
-
-Ensure you have the following installed:
-
-Python 3.8+
-
-pip (Python package manager)
-
-GitHub Personal Access Token (with repo access)
-
-OpenArena API Token (for AI-based review)
-
-
-2️⃣ Clone the Repository
-
-git clone https://github.com/<your-username>/<your-repo>.git  
-cd <your-repo>
-
-3️⃣ Install Dependencies
-
-pip install -r requirements.txt
+- A Python-based tool that leverages GitHub API and OpenArena AI to automate code reviews on pull requests. This tool extracts modified lines, sends them for AI-based review, and posts comments on GitHub PRs with insights and suggestions.
 
 
 ---
 
-⚙️ Configuration
+# 🛠 Installation
 
-Before running the tool, make sure you have:
+## 1️⃣ Prerequisites
 
-GitHub Token: For authentication with the GitHub API
+- Ensure you have the following installed:
 
-OpenArena Token: To send modified code for AI-based review
+- - Python 3.8+
+
+- - pip (Python package manager)
+
+- - GitHub Personal Access Token (with repo access)
+
+- - OpenArena API Token (for AI-based review)
+
+## Install pyinstaller and run
+
+```
+pip install pyinstaller
+```
+
+```
+pyinstaller --onefile .\AIReview.py
+```
+
+## Install PyGitHub 
+
+```
+pip install PyGithub requests
+```
 
 
-These credentials must be entered when prompted in the GUI.
+## 2️⃣ Clone the Repository
+
+- git clone https://github.com/<your-username>/<your-repo>.git  
+- cd <your-repo>
 
 
 ---
 
-🚀 Usage
+# ⚙️ Configuration
+
+- Before running the tool, make sure you have:
+
+- GitHub Token: For authentication with the GitHub API
+
+- OpenArena Token: To send modified code for AI-based review
+
+- These credentials must be entered when prompted in the GUI.
+
+---
+
+# 🚀 Usage
 
 1. Run the tool:
 
-python main.py
+- python main.py
 
 
 2. Enter the required details in the GUI:
 
-GitHub Token
+- GitHub Token
 
-OpenArena Token
+- OpenArena Token
 
-Repository Name (e.g., username/repo)
+- Repository Name (e.g., username/repo)
 
-Pull Request Number
-
+- Pull Request Number
 
 
 3. Click "Run Code Review" to initiate the process.
@@ -77,12 +86,9 @@ Pull Request Number
 
 5. Check your PR on GitHub to view the feedback.
 
-
-
-
 ---
 
-📌 Features
+# 📌 Features
 
 ✅ Extracts exact modified lines from PR patches
 ✅ Sends changes to OpenArena AI for review
@@ -93,9 +99,9 @@ Pull Request Number
 
 ---
 
-🏗️ Contributing
+# 🏗️ Contributing
 
-We welcome contributions! If you’d like to improve the tool:
+- We welcome contributions! If you’d like to improve the tool:
 
 1. Fork the repository
 
@@ -112,11 +118,9 @@ We welcome contributions! If you’d like to improve the tool:
 5. Create a pull request 🚀
 
 
-
-
 ---
 
-🛠 Troubleshooting
+# 🛠 Troubleshooting
 
 🔹 Error: Authentication failed – Ensure your GitHub token has the correct permissions.
 🔹 Error: AI review failed – Check your OpenArena API token and internet connection.
@@ -127,16 +131,8 @@ For any issues, feel free to open an issue in the repo.
 
 ---
 
-📜 License
+# 🏆 Credits
 
-This project is licensed under the MIT License.
-
-
----
-
-🏆 Credits
-
-Developed by the Ultratax Team, 2025.
-
+- Developed by the Ultratax Team, 2025.
 
 ---
