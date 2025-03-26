@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
+from PIL import Image, ImageTk
+import os
 import re
 import requests
 from github import Github
@@ -7,6 +9,48 @@ from github import Github
 # Global variables to store tokens during the session
 github_token = None
 openarena_token = None
+
+TOKEN_FILE = "tokens.txt"
+
+def load_github_token():
+    """Load GitHub token from a file."""
+    global github_token
+    if os.path.exists(TOKEN_FILE):
+        with open(TOKEN_FILE, 'r') as file:
+            tokens = file.readlines()
+            if tokens:
+                github_token = tokens[0].strip()
+                github_token_entry.insert(0, github_token)
+
+def save_tokens():
+    """Save tokens to a file."""
+    global github_token, openarena_token
+    github_token = github_token_entry.get()
+    openarena_token = openarena_token_entry.get()
+    with open(TOKEN_FILE, 'w') as file:
+        file.write(f"{github_token}\n{openarena_token}\n")
+    messagebox.showinfo("Success", "Tokens saved successfully!")
+
+def clear_tokens():
+    """Clear the token entries."""
+    github_token_entry.delete(0, tk.END)
+    openarena_token_entry.delete(0, tk.END)
+
+def run_code_review():
+    global github_token, openarena_token
+    github_token = github_token_entry.get()
+    openarena_token = openarena_token_entry.get()
+    repo_name = repo_name_entry.get()
+    pr_number = pr_number_entry.get()
+
+    if not (github_token and openarena_token and repo_name and pr_number):
+        messagebox.showerror("Input Error", "Please fill in all fields.")
+        return
+
+    # Example action when running code review
+    status_message.set("Running code review...")
+    root.update_idletasks()
+    main(repo_name, pr_number)
 
 # 🎯 Extract exact modified lines from the patch
 def get_modified_lines_from_patch(patch_text):
@@ -43,7 +87,7 @@ def review_code(diff, openarena_token):
     }
     payload = {
         "query": (
-            "Review the following code from:" +diff+ ", and provide detailed comment for each modified line. " "\n"
+            "Review the following code from:" + diff + ", and provide detailed comment for each modified line. " "\n"
             "For each changed line, consider the following aspects:\n"
             "1. Logic Impact: Does the change alter the program's intended behavior?\n"
             "2. Potential Issues: Identify any syntax errors, typos, or unintended consequences.\n"
@@ -133,7 +177,7 @@ def main(repo_name, pr_number):
         if not github_token or not openarena_token:
             raise ValueError("Tokens must be provided.")
 
-        loading_label.config(text="Processing...", fg="blue")
+        status_message.set("Processing...")
         root.update_idletasks()
 
         g = Github(github_token)
@@ -168,67 +212,92 @@ def main(repo_name, pr_number):
             )
             print(f"\n🚀 Posted an issue comment on PR #{pr.number}.\n")
 
-        loading_label.config(text="Completed", fg="green")
+        status_message.set("Completed")
         print("🎉 Code review by AI has been completed. Check PR for details.")
         messagebox.showinfo("Success", "Code review completed successfully!")
 
     except Exception as e:
-        loading_label.config(text="Error", fg="red")
+        status_message.set("Error")
         print(f"🚨 Error in main function: {e}")
         messagebox.showerror("Error", f"Failed to complete code review: {e}")
-
-def run_code_review():
-    global github_token, openarena_token
-    github_token = github_token_entry.get()
-    openarena_token = openarena_token_entry.get()
-    repo_name = repo_name_entry.get()
-    pr_number = pr_number_entry.get()
-
-    if not (github_token and openarena_token and repo_name and pr_number):
-        messagebox.showerror("Input Error", "Please fill in all fields.")
-        return
-
-    main(repo_name, pr_number)
 
 # Create the main Tkinter window
 root = tk.Tk()
 root.title("Code Review Tool")
-root.geometry("1050x500")  # Set window size
-
-# Set background color and font styles
+root.geometry("850x500")
 root.configure(bg="#f0f0f0")
 
-header_label = tk.Label(root, text="AI Code Review Tool", font=("Helvetica", 16, "bold"), bg="#f0f0f0", fg="#333")
+# Create a frame for the image/design
+image_frame = tk.Frame(root, bg="#f0f0f0", width=350, height=500)
+image_frame.grid(row=0, column=0, sticky="nswe")
+
+# Create a frame for PR details and input fields
+details_frame = tk.Frame(root, bg="#f0f0f0")
+details_frame.grid(row=0, column=1, sticky="nswe")
+
+# Configure grid weights
+root.grid_columnconfigure(0, weight=1)
+root.grid_columnconfigure(1, weight=2)
+
+# Resize image to fit the image frame
+try:
+    logo_image = Image.open(r"C:\Users\6126175\TheAIReview\images\bot.JPG")
+    print("Image opened successfully.")
+    # Resize the image to fill the image_frame
+    logo_image = logo_image.resize((350, 500), Image.Resampling.LANCZOS)
+    logo_photo = ImageTk.PhotoImage(logo_image)
+    logo_label = tk.Label(image_frame, image=logo_photo, bg="#f0f0f0")
+    logo_label.image = logo_photo
+    logo_label.pack(expand=True, fill="both")
+except Exception as e:
+    print(f"Error loading image: {e}")
+
+# Add a header in the details frame
+header_label = tk.Label(details_frame, text="🚀 AI Code Review Tool", font=("Helvetica", 16, "bold"), bg="#f0f0f0", fg="#333")
 header_label.pack(pady=10)
 
-# Create input fields and labels with styling
-tk.Label(root, text="GitHub Token", font=("Helvetica", 12), bg="#f0f0f0").pack()
-github_token_entry = tk.Entry(root, show="*", width=40)
+# Create input fields and labels in the details frame
+tk.Label(details_frame, text="GitHub Token", font=("Helvetica", 12), bg="#f0f0f0").pack()
+github_token_entry = tk.Entry(details_frame, show="*", width=40)
 github_token_entry.pack(pady=5)
 
-tk.Label(root, text="OpenArena Token", font=("Helvetica", 12), bg="#f0f0f0").pack()
-openarena_token_entry = tk.Entry(root, show="*", width=40)
+tk.Label(details_frame, text="OpenArena Token", font=("Helvetica", 12), bg="#f0f0f0").pack()
+openarena_token_entry = tk.Entry(details_frame, show="*", width=40)
 openarena_token_entry.pack(pady=5)
 
-tk.Label(root, text="Repository Name", font=("Helvetica", 12), bg="#f0f0f0").pack()
-repo_name_entry = tk.Entry(root, width=40)
+tk.Label(details_frame, text="Repository Name", font=("Helvetica", 12), bg="#f0f0f0").pack()
+repo_name_entry = tk.Entry(details_frame, width=40)
 repo_name_entry.pack(pady=5)
 
-tk.Label(root, text="Pull Request Number", font=("Helvetica", 12), bg="#f0f0f0").pack()
-pr_number_entry = tk.Entry(root, width=40)
+tk.Label(details_frame, text="Pull Request Number", font=("Helvetica", 12), bg="#f0f0f0").pack()
+pr_number_entry = tk.Entry(details_frame, width=40)
 pr_number_entry.pack(pady=5)
 
-# Create a button with styling
-review_button = tk.Button(root, text="Run Code Review", command=run_code_review, bg="#4CAF50", fg="white", font=("Helvetica", 12), width=20)
+# Create small buttons for saving and clearing tokens
+button_frame = tk.Frame(details_frame, bg="#f0f0f0")
+button_frame.pack(pady=5)
+
+save_button = tk.Button(button_frame, text="Save Tokens", command=save_tokens, bg="#FFFFFF", fg="black", font=("Helvetica", 10))
+save_button.pack(side="left", padx=5)
+
+clear_button = tk.Button(button_frame, text="Clear Tokens", command=clear_tokens, bg="#f44336", fg="white", font=("Helvetica", 10))
+clear_button.pack(side="left", padx=5)
+
+# Create a button to run the code review
+review_button = tk.Button(details_frame, text="Run Code Review", command=run_code_review, bg="#4CAF50", fg="white", font=("Helvetica", 12), width=20)
 review_button.pack(pady=20)
 
-# Create a loading indicator
-loading_label = tk.Label(root, text="", font=("Helvetica", 12), bg="#f0f0f0", fg="blue")
-loading_label.pack(pady=5)
+# Create a message box at the bottom for status updates
+status_message = tk.StringVar()
+status_label = tk.Label(details_frame, textvariable=status_message, font=("Helvetica", 12), bg="#f0f0f0", fg="blue")
+status_label.pack(pady=5)
 
-# Add additional information with styling
-footer_label = tk.Label(root, text="Built by Ultratax Team, 2025", font=("Arial", 10), bg="#f0f0f0")
+# Add additional information in the details frame
+footer_label = tk.Label(details_frame, text="Built by Ultratax Team, 2025", font=("Arial", 10), bg="#f0f0f0")
 footer_label.pack(side="bottom", pady=10)
+
+# Load GitHub token on startup
+load_github_token()
 
 # Run the Tkinter event loop
 root.mainloop()
