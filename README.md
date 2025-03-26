@@ -90,11 +90,11 @@ pip install PyGithub requests
 
 # 📌 Features
 
-✅ Extracts exact modified lines from PR patches
-✅ Sends changes to OpenArena AI for review
-✅ Analyzes logic impact, potential issues, and code consistency
-✅ Posts AI-generated comments on GitHub PR
-✅ Displays progress and results in a simple Tkinter GUI
+- ✅ Extracts exact modified lines from PR patches
+- ✅ Sends changes to OpenArena AI for review
+- ✅ Analyzes logic impact, potential issues, and code consistency
+- ✅ Posts AI-generated comments on GitHub PR
+- ✅ Displays progress and results in a simple Tkinter GUI
 
 
 ---
