@@ -1,6 +1,7 @@
 # 🚀 AI Code Review Tool
 
-### A Python-based tool that leverages GitHub API and OpenArena AI to automate code reviews on pull requests. This tool extracts modified lines, sends them for AI-based review, and posts comments on GitHub PRs with insights and suggestions.
+### This Python-based tool leverages the GitHub API and OpenArena AI to automate code reviews on pull requests. Designed exclusively for Thomson Reuters employees, it enhances the code review process by extracting modified lines, sending them for AI-based analysis, and posting insightful comments and suggestions directly on GitHub PRs.
+
 ![image](https://github.com/user-attachments/assets/c0118111-497b-4fe6-a760-37867832717e)
 
 
