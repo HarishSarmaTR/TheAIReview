@@ -15,11 +15,12 @@
 
 # Windows
 ## Download Python:
-Visit the [official Python website](https://www.python.org/downloads/) and download the latest version of Python 3.8+.
+- Visit the [official Python website](https://www.python.org/downloads/) and download the latest version of Python 3.8+.
 Run the installer. Ensure you check the box that says "Add Python to PATH" during installation.
-Install pip:
 
-Pip is automatically installed with Python 3.8+. You can verify the installation by opening Command Prompt and typing:
+## Install pip:
+
+- Pip is automatically installed with Python 3.8+. You can verify the installation by opening Command Prompt and typing:
 ```
 python --version
 ```
@@ -27,7 +28,7 @@ python --version
 pip --version
 ```
 
-If pip is not installed, you can manually install it by downloading the get-pip.py script from here and running:
+- If pip is not installed, you can manually install it by downloading the get-pip.py script from here and running:
 ```
 python get-pip.py
 ```
@@ -55,12 +56,11 @@ pip install PyGithub requests
 - #### Create a github hub token from developer settings 
 
 ![image](https://github.com/user-attachments/assets/f7eac2cc-b91a-4cf5-b589-5654ee371283)
-
 ---
 
 # ⚙️ Configuration
 
-## Before running the tool, make sure you have:
+### ❗ Before running the tool, make sure you have:
 
 - GitHub Token: For authentication with the GitHub API
 
@@ -69,15 +69,14 @@ pip install PyGithub requests
 - These credentials must be entered when prompted in the GUI.
 
 ---
-
 # 🚀 Usage
 
-## 1. Run the tool:
+### 1. Run the tool:
 
 - python main.py
 
 
-## 2. Enter the required details in the GUI:
+### 2. Enter the required details in the GUI:
 
 - GitHub Token
 
@@ -88,13 +87,13 @@ pip install PyGithub requests
 - Pull Request Number
 
 
-## 3. Click "Run Code Review" to initiate the process.
+### 3. Click "Run Code Review" to initiate the process.
 
 
-## 4. AI-generated comments will be posted directly on the PR.
+### 4. AI-generated comments will be posted directly on the PR.
 
 
-## 5. Check your PR on GitHub to view the feedback.
+### 5. Check your PR on GitHub to view the feedback.
 
 ---
 
@@ -121,10 +120,17 @@ For any issues, feel free to open an issue in the repo.
 
 # 🏆 Credits
 
-## Developed by the Ultratax Team, 2025.
+### Developed by the Ultratax Team, 2025.
 - **Kalyani, Kandunuri**
 - **Harish Sarma, Velavalapalli**
 
 - Speacial thanks to **Radhika Ramagiri** and **Prasad Kolaparthi** 💖
 
 ---
+
+# 📚 Resources Used
+- GitHub API Documentation: For understanding how to interact with GitHub programmatically.
+- OpenArena API Documentation: For integrating AI-based code analysis.
+- Python Official Documentation: For language-specific features and libraries.
+- Tkinter Documentation: For creating the GUI interface.
+- PyGitHub Documentation: For utilizing GitHub API features.
