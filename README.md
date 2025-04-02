@@ -32,7 +32,7 @@ pip --version
 ```
 python get-pip.py
 ```
-- ### ⚠️ NOTE : Install pyinstaller and run this if any changes made in the code logic:
+### ⚠️ NOTE : Install pyinstaller and run this if any changes made in the code logic:
 
 ```
 pip install pyinstaller
