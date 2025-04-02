@@ -12,15 +12,17 @@ openarena_token = None
 
 TOKEN_FILE = "tokens.txt"
 
-def load_github_token():
-    """Load GitHub token from a file."""
-    global github_token
+def load_tokens():
+    """Load GitHub and OpenArena tokens from a file."""
+    global github_token, openarena_token
     if os.path.exists(TOKEN_FILE):
         with open(TOKEN_FILE, 'r') as file:
             tokens = file.readlines()
-            if tokens:
+            if len(tokens) >= 2:
                 github_token = tokens[0].strip()
+                openarena_token = tokens[1].strip()
                 github_token_entry.insert(0, github_token)
+                openarena_token_entry.insert(0, openarena_token)
 
 def save_tokens():
     """Save tokens to a file."""
@@ -47,7 +49,6 @@ def run_code_review():
         messagebox.showerror("Input Error", "Please fill in all fields.")
         return
 
-    # Example action when running code review
     status_message.set("Running code review...")
     root.update_idletasks()
     main(repo_name, pr_number)
@@ -277,10 +278,10 @@ pr_number_entry.pack(pady=5)
 button_frame = tk.Frame(details_frame, bg="#f0f0f0")
 button_frame.pack(pady=5)
 
-save_button = tk.Button(button_frame, text="Save Tokens", command=save_tokens, bg="#FFFFFF", fg="black", font=("Helvetica", 10))
+save_button = tk.Button(button_frame, text="Save", command=save_tokens, bg="#FFFFFF", fg="black", font=("Helvetica", 10))
 save_button.pack(side="left", padx=5)
 
-clear_button = tk.Button(button_frame, text="Clear Tokens", command=clear_tokens, bg="#f44336", fg="white", font=("Helvetica", 10))
+clear_button = tk.Button(button_frame, text="Clear", command=clear_tokens, bg="#f44336", fg="white", font=("Helvetica", 10))
 clear_button.pack(side="left", padx=5)
 
 # Create a button to run the code review
@@ -296,8 +297,8 @@ status_label.pack(pady=5)
 footer_label = tk.Label(details_frame, text="Built by Ultratax Team, 2025", font=("Arial", 10), bg="#f0f0f0")
 footer_label.pack(side="bottom", pady=10)
 
-# Load GitHub token on startup
-load_github_token()
+# Load tokens on startup
+load_tokens()
 
 # Run the Tkinter event loop
 root.mainloop()
