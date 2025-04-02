@@ -13,9 +13,25 @@
 
 - ### Ensure you have the following installed:
 
-- **Python 3.8+**
-- **pip (Python package manager)**
-- ### Install pyinstaller and run this:
+# Windows
+## Download Python:
+Visit the [official Python website](https://www.python.org/downloads/) and download the latest version of Python 3.8+.
+Run the installer. Ensure you check the box that says "Add Python to PATH" during installation.
+Install pip:
+
+Pip is automatically installed with Python 3.8+. You can verify the installation by opening Command Prompt and typing:
+```
+python --version
+```
+```
+pip --version
+```
+
+If pip is not installed, you can manually install it by downloading the get-pip.py script from here and running:
+```
+python get-pip.py
+```
+- ### ⚠️ NOTE : Install pyinstaller and run this if any changes made in the code logic:
 
 ```
 pip install pyinstaller
