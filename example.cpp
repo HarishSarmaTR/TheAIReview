@@ -50,7 +50,7 @@ int main() {
 
     Example* example = new Example();
 
-    example->processData();
+    example->processData(1);
 
     example->correctLogic(5, 3);
     
