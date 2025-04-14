@@ -4,6 +4,7 @@ from PIL import Image, ImageTk
 import os
 import re
 import requests
+import webbrowser
 from github import Github
 
 # Global variables to store tokens during the session
@@ -11,6 +12,23 @@ github_token = None
 openarena_token = None
 
 TOKEN_FILE = "tokens.txt"
+
+
+def open_openarena_link(event):
+    """Open the OpenArena link in the default web browser."""
+    webbrowser.open("https://dataandanalytics.int.thomsonreuters.com/ai-platform/ai-experiences/use/8556ba87-acf8-4049-98a3-fc62a300656c")
+
+def show_info(info_text):
+    """Display information about a section."""
+    messagebox.showinfo("Information", info_text)
+
+def create_round_info_button(parent, row, column, info_text):
+    """Helper function to create a round info button using a Canvas."""
+    canvas = tk.Canvas(parent, width=20, height=20, bg="#f0f0f0", highlightthickness=0)
+    canvas.create_oval(2, 2, 18, 18, fill="#0000FF")
+    canvas.create_text(10, 10, text="i", fill="white", font=("Helvetica", 8, "bold"))
+    canvas.grid(row=row, column=column, padx=5)
+    canvas.bind("<Button-1>", lambda e: show_info(info_text))
 
 def load_tokens():
     """Load GitHub and OpenArena tokens from a file."""
@@ -225,11 +243,14 @@ def main(repo_name, pr_number):
 # Create the main Tkinter window
 root = tk.Tk()
 root.title("Code Review Tool")
-root.geometry("850x500")
+root.geometry("770x450")
 root.configure(bg="#f0f0f0")
 
+# Disable window resizing (remove maximize button)
+root.resizable(False, False)
+
 # Create a frame for the image/design
-image_frame = tk.Frame(root, bg="#f0f0f0", width=350, height=500)
+image_frame = tk.Frame(root, bg="#f0f0f0", width=100, height=200)
 image_frame.grid(row=0, column=0, sticky="nswe")
 
 # Create a frame for PR details and input fields
@@ -253,30 +274,43 @@ try:
 except Exception as e:
     print(f"Error loading image: {e}")
 
+# Create a frame for PR details and input fields
+details_frame = tk.Frame(root, bg="#f0f0f0")
+details_frame.grid(row=0, column=1, padx=20, pady=20, sticky="nsew")
+
 # Add a header in the details frame
-header_label = tk.Label(details_frame, text="🚀 AI Code Review Tool", font=("Helvetica", 16, "bold"), bg="#f0f0f0", fg="#333")
-header_label.pack(pady=10)
+header_label = tk.Label(details_frame, text="🤖 AI Code Review Tool", font=("Helvetica", 16, "bold"), bg="#f0f0f0", fg="#333")
+header_label.grid(row=0, column=0, columnspan=3, pady=(0, 10))
 
-# Create input fields and labels in the details frame
-tk.Label(details_frame, text="GitHub Token", font=("Helvetica", 12), bg="#f0f0f0").pack()
-github_token_entry = tk.Entry(details_frame, show="*", width=40)
-github_token_entry.pack(pady=5)
+# Create input fields and labels with info buttons in the details frame
+tk.Label(details_frame, text="Enter GitHub Token", font=("Helvetica", 10), bg="#f0f0f0").grid(row=1, column=0, sticky='w', padx=10)
+github_token_entry = tk.Entry(details_frame, show="*", width=25)
+github_token_entry.grid(row=1, column=1, pady=5, padx=10)
+create_round_info_button(details_frame, 1, 2, "Enter your GitHub personal access token here. This is required for accessing GitHub APIs.")
 
-tk.Label(details_frame, text="OpenArena Token", font=("Helvetica", 12), bg="#f0f0f0").pack()
-openarena_token_entry = tk.Entry(details_frame, show="*", width=40)
-openarena_token_entry.pack(pady=5)
+tk.Label(details_frame, text="Enter OpenArena Token", font=("Helvetica", 10), bg="#f0f0f0").grid(row=2, column=0, sticky='w', padx=10)
+openarena_token_entry = tk.Entry(details_frame, show="*", width=25)
+openarena_token_entry.grid(row=2, column=1, pady=5, padx=10)
+create_round_info_button(details_frame, 2, 2, "Enter your OpenArena token here. This is used for authenticating AI API requests.")
 
-tk.Label(details_frame, text="Repository Name", font=("Helvetica", 12), bg="#f0f0f0").pack()
-repo_name_entry = tk.Entry(details_frame, width=40)
-repo_name_entry.pack(pady=5)
+# Add the OpenArena link below the OpenArena Token input
+openarena_link = tk.Label(details_frame, text="OpenArena Platform Link", font=("Helvetica", 10, "underline"), bg="#f0f0f0", fg="blue", cursor="hand2")
+openarena_link.grid(row=3, column=0, columnspan=3, pady=(0, 10), padx=10, sticky='w')
+openarena_link.bind("<Button-1>", open_openarena_link)
 
-tk.Label(details_frame, text="Pull Request Number", font=("Helvetica", 12), bg="#f0f0f0").pack()
-pr_number_entry = tk.Entry(details_frame, width=40)
-pr_number_entry.pack(pady=5)
+tk.Label(details_frame, text="Enter Repository Name", font=("Helvetica", 10), bg="#f0f0f0").grid(row=4, column=0, sticky='w', padx=10)
+repo_name_entry = tk.Entry(details_frame, width=25)
+repo_name_entry.grid(row=4, column=1, pady=5, padx=10)
+create_round_info_button(details_frame, 4, 2, "Enter the full repository name in the format 'owner/repo'. This is required to identify the repository on GitHub.")
+
+tk.Label(details_frame, text="Enter PullRequest No.", font=("Helvetica", 10), bg="#f0f0f0").grid(row=5, column=0, sticky='w', padx=10)
+pr_number_entry = tk.Entry(details_frame, width=25)
+pr_number_entry.grid(row=5, column=1, pady=5, padx=10)
+create_round_info_button(details_frame, 5, 2, "Enter the number of the pull request you want to review. This identifies the specific PR on GitHub.")
 
 # Create small buttons for saving and clearing tokens
 button_frame = tk.Frame(details_frame, bg="#f0f0f0")
-button_frame.pack(pady=5)
+button_frame.grid(row=6, column=0, columnspan=3, pady=10, padx=10)
 
 save_button = tk.Button(button_frame, text="Save", command=save_tokens, bg="#FFFFFF", fg="black", font=("Helvetica", 10))
 save_button.pack(side="left", padx=5)
@@ -285,20 +319,25 @@ clear_button = tk.Button(button_frame, text="Clear", command=clear_tokens, bg="#
 clear_button.pack(side="left", padx=5)
 
 # Create a button to run the code review
-review_button = tk.Button(details_frame, text="Run Code Review", command=run_code_review, bg="#4CAF50", fg="white", font=("Helvetica", 12), width=20)
-review_button.pack(pady=20)
+review_button = tk.Button(details_frame, text="Run Code Review", command=run_code_review, bg="#4CAF50", fg="white", font=("Helvetica", 10), width=20)
+review_button.grid(row=7, column=0, columnspan=3, pady=20)
 
 # Create a message box at the bottom for status updates
 status_message = tk.StringVar()
 status_label = tk.Label(details_frame, textvariable=status_message, font=("Helvetica", 12), bg="#f0f0f0", fg="blue")
-status_label.pack(pady=5)
+status_label.grid(row=8, column=0, columnspan=3, pady=5)
 
-# Add additional information in the details frame
+# Add additional information in the details frame at the bottom
 footer_label = tk.Label(details_frame, text="Built by Ultratax Team, 2025", font=("Arial", 10), bg="#f0f0f0")
-footer_label.pack(side="bottom", pady=10)
+footer_label.grid(row=10, column=0, columnspan=3, pady=10, sticky='s')
 
 # Load tokens on startup
 load_tokens()
+
+# Configure grid weights for resizing
+root.grid_columnconfigure(0, weight=1)
+root.grid_columnconfigure(1, weight=2)
+root.grid_rowconfigure(0, weight=1)
 
 # Run the Tkinter event loop
 root.mainloop()
