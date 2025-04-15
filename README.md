@@ -2,8 +2,7 @@
 
 ### This Python-based tool leverages the GitHub API and OpenArena AI to automate code reviews on pull requests. Designed exclusively for Thomson Reuters employees, it enhances the code review process by extracting modified lines, sending them for AI-based analysis, and posting insightful comments and suggestions directly on GitHub PRs.
 
-![image](https://github.com/user-attachments/assets/c0118111-497b-4fe6-a760-37867832717e)
-
+![image](https://github.com/user-attachments/assets/440beffb-aa4b-4593-98b4-e9988e249b20)
 
 ---
 
@@ -53,9 +52,10 @@ pip install PyGithub requests
 
 
 ### 3️⃣ Create Github Token
-- #### Create a github hub token from developer settings 
+- #### Create a github hub token from developer settings (Please choose Classic token) 
 
 ![image](https://github.com/user-attachments/assets/f7eac2cc-b91a-4cf5-b589-5654ee371283)
+# Note **: Will update the token choices which is required.
 ---
 
 # ⚙️ Configuration
