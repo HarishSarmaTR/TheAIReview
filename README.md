@@ -53,9 +53,8 @@ pip install PyGithub requests
 
 ### 3️⃣ Create Github Token
 - #### Create a github hub token from developer settings (Please choose Classic token)
-- **Note**: Will update the token choices which is required.
+- **NOTE**: Will update the token choices which is required.
 
-![image](https://github.com/user-attachments/assets/f7eac2cc-b91a-4cf5-b589-5654ee371283)
 ---
 
 # ⚙️ Configuration
