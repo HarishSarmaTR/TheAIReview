@@ -1,9 +1,8 @@
-# 🚀 AI Code Review Tool
+# 🤖 AI Code Review Tool
 
 ### This Python-based tool leverages the GitHub API and OpenArena AI to automate code reviews on pull requests. Designed exclusively for Thomson Reuters employees, it enhances the code review process by extracting modified lines, sending them for AI-based analysis, and posting insightful comments and suggestions directly on GitHub PRs.
 
-![image](https://github.com/user-attachments/assets/c0118111-497b-4fe6-a760-37867832717e)
-
+![image](https://github.com/user-attachments/assets/440beffb-aa4b-4593-98b4-e9988e249b20)
 
 ---
 
@@ -53,9 +52,14 @@ pip install PyGithub requests
 
 
 ### 3️⃣ Create Github Token
-- #### Create a github hub token from developer settings 
+#### Generate a GitHub Token:
+- Navigate to the developer settings on GitHub and create a token. Please choose the "Classic token" option.
 
-![image](https://github.com/user-attachments/assets/f7eac2cc-b91a-4cf5-b589-5654ee371283)
+#### Ensure the Following Options are Selected:
+![image](https://github.com/user-attachments/assets/c035e1ed-87e5-4a3e-b93c-1472c32559ee)
+![image](https://github.com/user-attachments/assets/7a2c765c-09fd-4d70-b319-67614893f4dd)
+![image](https://github.com/user-attachments/assets/777acef3-f7de-4efa-81e7-337c559bab69)
+
 ---
 
 # ⚙️ Configuration
@@ -71,10 +75,10 @@ pip install PyGithub requests
 ---
 # 🚀 Usage
 
-### 1. Run the tool:
-
-- python main.py
-
+### 1. Running the Tool:
+- You can find the executable (.exe) for the tool in the **dist folder**. See the examples below:
+![image](https://github.com/user-attachments/assets/a3bcf44a-1e95-4ac5-90a9-fee34e2fd8cd)
+![image](https://github.com/user-attachments/assets/b02137ec-c499-43e5-b920-63d0a1aa3d05)
 
 ### 2. Enter the required details in the GUI:
 
