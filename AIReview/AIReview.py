@@ -13,7 +13,6 @@ openarena_token = None
 
 TOKEN_FILE = "tokens.txt"
 
-
 def open_openarena_link(event):
     """Open the OpenArena link in the default web browser."""
     webbrowser.open("https://dataandanalytics.int.thomsonreuters.com/ai-platform/ai-experiences/use/8556ba87-acf8-4049-98a3-fc62a300656c")
@@ -67,7 +66,8 @@ def run_code_review():
         messagebox.showerror("Input Error", "Please fill in all fields.")
         return
 
-    status_message.set("Running code review...")
+    status_message.set("Running code review...🔍")
+    status_label.config(fg="red")
     root.update_idletasks()
     main(repo_name, pr_number)
 
@@ -181,7 +181,7 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
                 commit=latest_commit,
                 path=filename,
                 line=line_position,
-                side="LEFT"
+                side="RIGHT"
             )
             added_comments.add(line_content)
             print(f"✅ Commented on PR #{pr.number}, line {line_position}: {line_content}")
@@ -195,9 +195,6 @@ def main(repo_name, pr_number):
         global github_token, openarena_token
         if not github_token or not openarena_token:
             raise ValueError("Tokens must be provided.")
-
-        status_message.set("Processing...")
-        root.update_idletasks()
 
         g = Github(github_token)
         repo = g.get_repo(repo_name)
@@ -231,7 +228,9 @@ def main(repo_name, pr_number):
             )
             print(f"\n🚀 Posted an issue comment on PR #{pr.number}.\n")
 
-        status_message.set("Completed")
+        status_message.set("Completed ✅")
+        status_label.config(fg="green")
+
         print("🎉 Code review by AI has been completed. Check PR for details.")
         messagebox.showinfo("Success", "Code review completed successfully!")
 
