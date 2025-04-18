@@ -117,10 +117,10 @@ def review_code(diff, openarena_token):
             "Do not include the original or modified lines in the comments. Also update everything in one comment which is related to the issue.\n"
             "Provide the comment in the format 'Line <line_number>: <comment>' with suggestion:.\n\n"
         ),
-        "workflow_id": "80f448d2-fd59-440f-ba24-ebc3014e1fdf",
+        "workflow_id": "0a654593-da34-4dfe-a6ed-9c8506e31b73", # OpenArena Chain workflow ID
         "is_persistence_allowed": False,
         "modelparams": {
-            "openai_gpt-4": {
+            "openai_gpt-4o": { # OpenArena GPT-4o model
                 "system_prompt": (
                     "You are an experienced Software Developer. You have been assigned to review a PR that contains changes to the codebase. "
                     "Analyze the modified lines and give comments for potential issues with exact line numbers. "
@@ -137,7 +137,7 @@ def review_code(diff, openarena_token):
 
         if response.status_code == 200:
             ai_response = response.json()
-            feedback = ai_response.get('result', {}).get('answer', {}).get('openai_gpt-4-turbo', 'system_prompt')
+            feedback = ai_response.get('result', {}).get('answer', {}).get('openai_gpt-4o', '')
             print("💬 AI Code Review Feedback:", feedback)
             return feedback
         else:
