@@ -1,11 +1,13 @@
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
+import sys
 import os
 import re
 import requests
 import webbrowser
 from github import Github
+import fnmatch
 
 # Global variables to store tokens during the session
 github_token = None
@@ -106,7 +108,7 @@ def review_code(diff, openarena_token):
     }
     payload = {
         "query": (
-            "Review the following code from:" + diff + ", and provide detailed comment for each modified line. " "\n"
+            "Review the following code from:" + diff + ", and provide detailed comment for each modified line.\n"
             "For each changed line, consider the following aspects:\n"
             "1. Logic Impact: Does the change alter the program's intended behavior?\n"
             "2. Potential Issues: Identify any syntax errors, typos, or unintended consequences.\n"
@@ -200,8 +202,16 @@ def main(repo_name, pr_number):
         repo = g.get_repo(repo_name)
         pr = repo.get_pull(int(pr_number))
 
+        # Define patterns to ignore
+        ignore_patterns = ["*.vcxproj", "*.vcxproj.filters"]
+
         all_added_comments = set()
         for file in pr.get_files():
+            # Check if the file matches any of the ignore patterns
+            if any(fnmatch.fnmatch(file.filename, pattern) for pattern in ignore_patterns):
+                print(f"🔍 Skipping file: {file.filename} (matches ignore patterns)")
+                continue
+
             diff = file.patch
             print(f"\n🔍 Reviewing the code for file: {file.filename}\n{'-'*60}")
 
@@ -260,11 +270,19 @@ details_frame.grid(row=0, column=1, sticky="nswe")
 root.grid_columnconfigure(0, weight=1)
 root.grid_columnconfigure(1, weight=2)
 
-# Resize image to fit the image frame
+# Load the image using the correct path
+def get_image_path(filename):
+    if hasattr(sys, '_MEIPASS'):
+        # If running as a PyInstaller executable, use the temporary directory
+        return os.path.join(sys._MEIPASS, filename)
+    else:
+        # If running as a script, use the normal path
+        return os.path.join(os.path.dirname(__file__), filename)
+
 try:
-    logo_image = Image.open(r"C:\Users\6126175\TheAIReview\images\bot.JPG")
-    print("Image opened successfully.")
-    # Resize the image to fill the image_frame
+    # Use the helper function to get the correct path
+    image_path = get_image_path('images/bot.JPG')
+    logo_image = Image.open(image_path)
     logo_image = logo_image.resize((350, 500), Image.Resampling.LANCZOS)
     logo_photo = ImageTk.PhotoImage(logo_image)
     logo_label = tk.Label(image_frame, image=logo_photo, bg="#f0f0f0")

@@ -5,7 +5,10 @@ a = Analysis(
     ['AIReview.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[
+    ('C:\Users\6126175\TheAIReview\images\bot.JPG', 'images'),
+    ('C:\Users\6126175\TheAIReview\tokens.txt', '.')
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -35,5 +38,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='Robot.ico'
+    icon='C:\Users\6126175\TheAIReview\images\ai.ico'
 )
