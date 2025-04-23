@@ -15,6 +15,9 @@ openarena_token = None
 
 TOKEN_FILE = "tokens.txt"
 
+# Define the version as a static date-based version
+APP_VERSION = "2025.04.23"  # Example: Year.Month.Day
+
 def open_openarena_link(event):
     """Open the OpenArena link in the default web browser."""
     webbrowser.open("https://dataandanalytics.int.thomsonreuters.com/ai-platform/ai-experiences/use/8556ba87-acf8-4049-98a3-fc62a300656c")
@@ -344,9 +347,13 @@ status_message = tk.StringVar()
 status_label = tk.Label(details_frame, textvariable=status_message, font=("Helvetica", 12), bg="#f0f0f0", fg="blue")
 status_label.grid(row=8, column=0, columnspan=3, pady=5)
 
-# Add additional information in the details frame at the bottom
-footer_label = tk.Label(details_frame, text="Built by Ultratax Team, 2025", font=("Arial", 10), bg="#f0f0f0")
-footer_label.grid(row=10, column=0, columnspan=3, pady=10, sticky='s')
+# Update version label with smaller font size
+version_label_bottom = tk.Label(details_frame, text=f"Version {APP_VERSION}", font=("Helvetica", 8), bg="#f0f0f0", fg="#666")
+version_label_bottom.grid(row=9, column=0, columnspan=3, pady=(5, 0))
+
+# Update footer label with smaller font size
+footer_label = tk.Label(details_frame, text="Built by Ultratax Team, 2025", font=("Arial", 8), bg="#f0f0f0")
+footer_label.grid(row=10, column=0, columnspan=3, pady=5, sticky='s')
 
 # Load tokens on startup
 load_tokens()
