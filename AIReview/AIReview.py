@@ -16,7 +16,11 @@ openarena_token = None
 TOKEN_FILE = "tokens.txt"
 
 # Define the version as a static date-based version
-APP_VERSION = "2025.04.23"  # Example: Year.Month.Day
+APP_VERSION = "1.0.0"   # Example: Semantic Versioning (SemVer)
+                        # Versioning format: Major.Minor.Patch
+                        # Major: Significant changes or new features
+                        # Minor: Backward-compatible changes or improvements
+                        # Patch: Bug fixes or minor changes
 
 def open_openarena_link(event):
     """Open the OpenArena link in the default web browser."""
