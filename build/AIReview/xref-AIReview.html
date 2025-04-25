@@ -28,6 +28,7 @@ imports:
  &#8226;   <a href="#collections">collections</a>
  &#8226;   <a href="#collections.abc">collections.abc</a>
  &#8226;   <a href="#copyreg">copyreg</a>
+ &#8226;   <a href="#cryptography.fernet">cryptography.fernet</a>
  &#8226;   <a href="#encodings">encodings</a>
  &#8226;   <a href="#encodings.aliases">encodings.aliases</a>
  &#8226;   <a href="#encodings.ascii">encodings.ascii</a>
@@ -2676,6 +2677,7 @@ imported by:
  &#8226;   <a href="#cryptography">cryptography</a>
  &#8226;   <a href="#cryptography.__about__">cryptography.__about__</a>
  &#8226;   <a href="#cryptography.exceptions">cryptography.exceptions</a>
+ &#8226;   <a href="#cryptography.fernet">cryptography.fernet</a>
  &#8226;   <a href="#cryptography.hazmat">cryptography.hazmat</a>
  &#8226;   <a href="#cryptography.hazmat._oid">cryptography.hazmat._oid</a>
  &#8226;   <a href="#cryptography.hazmat.backends">cryptography.hazmat.backends</a>
@@ -2706,6 +2708,8 @@ imported by:
  &#8226;   <a href="#cryptography.hazmat.primitives.ciphers.modes">cryptography.hazmat.primitives.ciphers.modes</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.constant_time">cryptography.hazmat.primitives.constant_time</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.hashes">cryptography.hazmat.primitives.hashes</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.hmac">cryptography.hazmat.primitives.hmac</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.padding">cryptography.hazmat.primitives.padding</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.serialization">cryptography.hazmat.primitives.serialization</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.serialization.ssh">cryptography.hazmat.primitives.serialization.ssh</a>
  &#8226;   <a href="#cryptography.utils">cryptography.utils</a>
@@ -4102,6 +4106,7 @@ imported by:
  &#8226;   <a href="#cryptography.hazmat.primitives.ciphers.base">cryptography.hazmat.primitives.ciphers.base</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.ciphers.modes">cryptography.hazmat.primitives.ciphers.modes</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.hashes">cryptography.hazmat.primitives.hashes</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.padding">cryptography.hazmat.primitives.padding</a>
  &#8226;   <a href="#cryptography.x509.base">cryptography.x509.base</a>
  &#8226;   <a href="#cryptography.x509.extensions">cryptography.x509.extensions</a>
  &#8226;   <a href="#cryptography.x509.general_name">cryptography.x509.general_name</a>
@@ -5242,7 +5247,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#cryptography.hazmat.primitives.serialization.ssh">cryptography.hazmat.primitives.serialization.ssh</a>
+    <a href="#cryptography.fernet">cryptography.fernet</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.serialization.ssh">cryptography.hazmat.primitives.serialization.ssh</a>
  &#8226;   <a href="#email._encoded_words">email._encoded_words</a>
  &#8226;   <a href="#email.base64mime">email.base64mime</a>
  &#8226;   <a href="#email.encoders">email.encoders</a>
@@ -5305,6 +5311,7 @@ imported by:
   <tt>binascii</tt> <span class="moduletype"><i>(builtin module)</i></span>  <div class="import">
 imported by:
     <a href="#base64">base64</a>
+ &#8226;   <a href="#cryptography.fernet">cryptography.fernet</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.serialization.ssh">cryptography.hazmat.primitives.serialization.ssh</a>
  &#8226;   <a href="#cryptography.x509.name">cryptography.x509.name</a>
  &#8226;   <a href="#email._encoded_words">email._encoded_words</a>
@@ -6470,6 +6477,7 @@ imported by:
     <a href="#cryptography">cryptography</a>
  &#8226;   <a href="#cryptography.__about__">cryptography.__about__</a>
  &#8226;   <a href="#cryptography.exceptions">cryptography.exceptions</a>
+ &#8226;   <a href="#cryptography.fernet">cryptography.fernet</a>
  &#8226;   <a href="#cryptography.hazmat">cryptography.hazmat</a>
  &#8226;   <a href="#cryptography.hazmat.bindings.openssl.binding">cryptography.hazmat.bindings.openssl.binding</a>
  &#8226;   <a href="#cryptography.hazmat.primitives._cipheralgorithm">cryptography.hazmat.primitives._cipheralgorithm</a>
@@ -6478,6 +6486,7 @@ imported by:
  &#8226;   <a href="#cryptography.hazmat.primitives.asymmetric.types">cryptography.hazmat.primitives.asymmetric.types</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.ciphers.algorithms">cryptography.hazmat.primitives.ciphers.algorithms</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.ciphers.modes">cryptography.hazmat.primitives.ciphers.modes</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.padding">cryptography.hazmat.primitives.padding</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.serialization.ssh">cryptography.hazmat.primitives.serialization.ssh</a>
  &#8226;   <a href="#cryptography.utils">cryptography.utils</a>
  &#8226;   <a href="#cryptography.x509">cryptography.x509</a>
@@ -6522,15 +6531,48 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#cryptography.hazmat.bindings.openssl.binding">cryptography.hazmat.bindings.openssl.binding</a>
+    <a href="#cryptography.fernet">cryptography.fernet</a>
+ &#8226;   <a href="#cryptography.hazmat.bindings.openssl.binding">cryptography.hazmat.bindings.openssl.binding</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.asymmetric.ec">cryptography.hazmat.primitives.asymmetric.ec</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.asymmetric.ed25519">cryptography.hazmat.primitives.asymmetric.ed25519</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.asymmetric.ed448">cryptography.hazmat.primitives.asymmetric.ed448</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.asymmetric.x25519">cryptography.hazmat.primitives.asymmetric.x25519</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.asymmetric.x448">cryptography.hazmat.primitives.asymmetric.x448</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.ciphers.modes">cryptography.hazmat.primitives.ciphers.modes</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.padding">cryptography.hazmat.primitives.padding</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.serialization.ssh">cryptography.hazmat.primitives.serialization.ssh</a>
  &#8226;   <a href="#jwt.algorithms">jwt.algorithms</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="cryptography.fernet"></a>
+  <a target="code" href="///C:/Users/6126175/AppData/Local/Programs/Python/Python312/Lib/site-packages/cryptography/fernet.py" type="text/plain"><tt>cryptography.fernet</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#__future__">__future__</a>
+ &#8226;   <a href="#base64">base64</a>
+ &#8226;   <a href="#binascii">binascii</a>
+ &#8226;   <a href="#cryptography">cryptography</a>
+ &#8226;   <a href="#cryptography.exceptions">cryptography.exceptions</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives">cryptography.hazmat.primitives</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.ciphers">cryptography.hazmat.primitives.ciphers</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.ciphers.algorithms">cryptography.hazmat.primitives.ciphers.algorithms</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.ciphers.modes">cryptography.hazmat.primitives.ciphers.modes</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.hashes">cryptography.hazmat.primitives.hashes</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.hmac">cryptography.hazmat.primitives.hmac</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.padding">cryptography.hazmat.primitives.padding</a>
+ &#8226;   <a href="#cryptography.utils">cryptography.utils</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#time">time</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#AIReview.py">AIReview.py</a>
 
   </div>
 
@@ -6696,6 +6738,8 @@ imported by:
  &#8226;   <a href="#cryptography.hazmat.primitives.asymmetric.x448">cryptography.hazmat.primitives.asymmetric.x448</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.ciphers.base">cryptography.hazmat.primitives.ciphers.base</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.hashes">cryptography.hazmat.primitives.hashes</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.hmac">cryptography.hazmat.primitives.hmac</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.padding">cryptography.hazmat.primitives.padding</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.serialization.base">cryptography.hazmat.primitives.serialization.base</a>
  &#8226;   <a href="#cryptography.x509.base">cryptography.x509.base</a>
  &#8226;   <a href="#cryptography.x509.certificate_transparency">cryptography.x509.certificate_transparency</a>
@@ -6835,12 +6879,14 @@ imports:
  &#8226;   <a href="#cryptography.hazmat.primitives._serialization">cryptography.hazmat.primitives._serialization</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.constant_time">cryptography.hazmat.primitives.constant_time</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.hashes">cryptography.hazmat.primitives.hashes</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.padding">cryptography.hazmat.primitives.padding</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.serialization">cryptography.hazmat.primitives.serialization</a>
 
   </div>
   <div class="import">
 imported by:
-    <a href="#cryptography.hazmat._oid">cryptography.hazmat._oid</a>
+    <a href="#cryptography.fernet">cryptography.fernet</a>
+ &#8226;   <a href="#cryptography.hazmat._oid">cryptography.hazmat._oid</a>
  &#8226;   <a href="#cryptography.hazmat.backends.openssl.backend">cryptography.hazmat.backends.openssl.backend</a>
  &#8226;   <a href="#cryptography.hazmat.primitives._asymmetric">cryptography.hazmat.primitives._asymmetric</a>
  &#8226;   <a href="#cryptography.hazmat.primitives._cipheralgorithm">cryptography.hazmat.primitives._cipheralgorithm</a>
@@ -6859,6 +6905,8 @@ imported by:
  &#8226;   <a href="#cryptography.hazmat.primitives.ciphers">cryptography.hazmat.primitives.ciphers</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.constant_time">cryptography.hazmat.primitives.constant_time</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.hashes">cryptography.hazmat.primitives.hashes</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.hmac">cryptography.hazmat.primitives.hmac</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.padding">cryptography.hazmat.primitives.padding</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.serialization">cryptography.hazmat.primitives.serialization</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.serialization.ssh">cryptography.hazmat.primitives.serialization.ssh</a>
  &#8226;   <a href="#cryptography.x509.base">cryptography.x509.base</a>
@@ -7298,7 +7346,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#cryptography.hazmat.backends.openssl.backend">cryptography.hazmat.backends.openssl.backend</a>
+    <a href="#cryptography.fernet">cryptography.fernet</a>
+ &#8226;   <a href="#cryptography.hazmat.backends.openssl.backend">cryptography.hazmat.backends.openssl.backend</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.ciphers.algorithms">cryptography.hazmat.primitives.ciphers.algorithms</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.ciphers.base">cryptography.hazmat.primitives.ciphers.base</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.ciphers.modes">cryptography.hazmat.primitives.ciphers.modes</a>
@@ -7323,7 +7372,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#cryptography.hazmat.backends.openssl.backend">cryptography.hazmat.backends.openssl.backend</a>
+    <a href="#cryptography.fernet">cryptography.fernet</a>
+ &#8226;   <a href="#cryptography.hazmat.backends.openssl.backend">cryptography.hazmat.backends.openssl.backend</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.ciphers">cryptography.hazmat.primitives.ciphers</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.ciphers.modes">cryptography.hazmat.primitives.ciphers.modes</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.serialization.ssh">cryptography.hazmat.primitives.serialization.ssh</a>
@@ -7371,7 +7421,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#cryptography.hazmat.backends.openssl.backend">cryptography.hazmat.backends.openssl.backend</a>
+    <a href="#cryptography.fernet">cryptography.fernet</a>
+ &#8226;   <a href="#cryptography.hazmat.backends.openssl.backend">cryptography.hazmat.backends.openssl.backend</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.ciphers">cryptography.hazmat.primitives.ciphers</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.ciphers.base">cryptography.hazmat.primitives.ciphers.base</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.serialization.ssh">cryptography.hazmat.primitives.serialization.ssh</a>
@@ -7412,7 +7463,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#cryptography.hazmat._oid">cryptography.hazmat._oid</a>
+    <a href="#cryptography.fernet">cryptography.fernet</a>
+ &#8226;   <a href="#cryptography.hazmat._oid">cryptography.hazmat._oid</a>
  &#8226;   <a href="#cryptography.hazmat.backends.openssl.backend">cryptography.hazmat.backends.openssl.backend</a>
  &#8226;   <a href="#cryptography.hazmat.primitives">cryptography.hazmat.primitives</a>
  &#8226;   <a href="#cryptography.hazmat.primitives._serialization">cryptography.hazmat.primitives._serialization</a>
@@ -7421,9 +7473,53 @@ imported by:
  &#8226;   <a href="#cryptography.hazmat.primitives.asymmetric.padding">cryptography.hazmat.primitives.asymmetric.padding</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.asymmetric.rsa">cryptography.hazmat.primitives.asymmetric.rsa</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.asymmetric.utils">cryptography.hazmat.primitives.asymmetric.utils</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.hmac">cryptography.hazmat.primitives.hmac</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.serialization.ssh">cryptography.hazmat.primitives.serialization.ssh</a>
  &#8226;   <a href="#cryptography.x509.base">cryptography.x509.base</a>
  &#8226;   <a href="#jwt.algorithms">jwt.algorithms</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="cryptography.hazmat.primitives.hmac"></a>
+  <a target="code" href="///C:/Users/6126175/AppData/Local/Programs/Python/Python312/Lib/site-packages/cryptography/hazmat/primitives/hmac.py" type="text/plain"><tt>cryptography.hazmat.primitives.hmac</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#__future__">__future__</a>
+ &#8226;   <a href="#cryptography.hazmat.bindings._rust">cryptography.hazmat.bindings._rust</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives">cryptography.hazmat.primitives</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.hashes">cryptography.hazmat.primitives.hashes</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#cryptography.fernet">cryptography.fernet</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="cryptography.hazmat.primitives.padding"></a>
+  <a target="code" href="///C:/Users/6126175/AppData/Local/Programs/Python/Python312/Lib/site-packages/cryptography/hazmat/primitives/padding.py" type="text/plain"><tt>cryptography.hazmat.primitives.padding</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#__future__">__future__</a>
+ &#8226;   <a href="#abc">abc</a>
+ &#8226;   <a href="#cryptography">cryptography</a>
+ &#8226;   <a href="#cryptography.exceptions">cryptography.exceptions</a>
+ &#8226;   <a href="#cryptography.hazmat.bindings._rust">cryptography.hazmat.bindings._rust</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives">cryptography.hazmat.primitives</a>
+ &#8226;   <a href="#cryptography.utils">cryptography.utils</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#cryptography.fernet">cryptography.fernet</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives">cryptography.hazmat.primitives</a>
 
   </div>
 
@@ -7528,12 +7624,14 @@ imports:
   <div class="import">
 imported by:
     <a href="#cryptography">cryptography</a>
+ &#8226;   <a href="#cryptography.fernet">cryptography.fernet</a>
  &#8226;   <a href="#cryptography.hazmat.primitives._cipheralgorithm">cryptography.hazmat.primitives._cipheralgorithm</a>
  &#8226;   <a href="#cryptography.hazmat.primitives._serialization">cryptography.hazmat.primitives._serialization</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.asymmetric.ec">cryptography.hazmat.primitives.asymmetric.ec</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.asymmetric.types">cryptography.hazmat.primitives.asymmetric.types</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.ciphers.algorithms">cryptography.hazmat.primitives.ciphers.algorithms</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.ciphers.modes">cryptography.hazmat.primitives.ciphers.modes</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.padding">cryptography.hazmat.primitives.padding</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.serialization.ssh">cryptography.hazmat.primitives.serialization.ssh</a>
  &#8226;   <a href="#cryptography.x509.base">cryptography.x509.base</a>
  &#8226;   <a href="#cryptography.x509.certificate_transparency">cryptography.x509.certificate_transparency</a>
@@ -24612,6 +24710,7 @@ imported by:
  &#8226;   <a href="#concurrent.futures.thread">concurrent.futures.thread</a>
  &#8226;   <a href="#configparser">configparser</a>
  &#8226;   <a href="#contextlib">contextlib</a>
+ &#8226;   <a href="#cryptography.fernet">cryptography.fernet</a>
  &#8226;   <a href="#cryptography.hazmat.bindings.openssl.binding">cryptography.hazmat.bindings.openssl.binding</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.serialization.ssh">cryptography.hazmat.primitives.serialization.ssh</a>
  &#8226;   <a href="#cryptography.x509.base">cryptography.x509.base</a>
@@ -32238,6 +32337,7 @@ imported by:
  &#8226;   <a href="#asyncio.base_events">asyncio.base_events</a>
  &#8226;   <a href="#asyncio.windows_events">asyncio.windows_events</a>
  &#8226;   <a href="#concurrent.futures._base">concurrent.futures._base</a>
+ &#8226;   <a href="#cryptography.fernet">cryptography.fernet</a>
  &#8226;   <a href="#datetime">datetime</a>
  &#8226;   <a href="#email._parseaddr">email._parseaddr</a>
  &#8226;   <a href="#email.generator">email.generator</a>
@@ -32783,6 +32883,7 @@ imported by:
  &#8226;   <a href="#charset_normalizer.models">charset_normalizer.models</a>
  &#8226;   <a href="#charset_normalizer.utils">charset_normalizer.utils</a>
  &#8226;   <a href="#cryptography.exceptions">cryptography.exceptions</a>
+ &#8226;   <a href="#cryptography.fernet">cryptography.fernet</a>
  &#8226;   <a href="#cryptography.hazmat.backends">cryptography.hazmat.backends</a>
  &#8226;   <a href="#cryptography.hazmat.bindings.openssl.binding">cryptography.hazmat.bindings.openssl.binding</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.asymmetric.dsa">cryptography.hazmat.primitives.asymmetric.dsa</a>
@@ -32790,6 +32891,7 @@ imported by:
  &#8226;   <a href="#cryptography.hazmat.primitives.asymmetric.rsa">cryptography.hazmat.primitives.asymmetric.rsa</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.asymmetric.types">cryptography.hazmat.primitives.asymmetric.types</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.ciphers.base">cryptography.hazmat.primitives.ciphers.base</a>
+ &#8226;   <a href="#cryptography.hazmat.primitives.padding">cryptography.hazmat.primitives.padding</a>
  &#8226;   <a href="#cryptography.hazmat.primitives.serialization.ssh">cryptography.hazmat.primitives.serialization.ssh</a>
  &#8226;   <a href="#cryptography.utils">cryptography.utils</a>
  &#8226;   <a href="#cryptography.x509.base">cryptography.x509.base</a>

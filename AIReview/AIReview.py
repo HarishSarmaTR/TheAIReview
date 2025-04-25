@@ -8,6 +8,7 @@ import requests
 import webbrowser
 from github import Github
 import fnmatch
+from cryptography.fernet import Fernet
 
 # Global variables to store tokens during the session
 github_token = None
@@ -16,7 +17,7 @@ openarena_token = None
 TOKEN_FILE = "tokens.txt"
 
 # Define the version as a static date-based version
-APP_VERSION = "1.0.0"   # Example: Semantic Versioning (SemVer)
+APP_VERSION = "1.0.1"   # Example: Semantic Versioning (SemVer)
                         # Versioning format: Major.Minor.Patch
                         # Major: Significant changes or new features
                         # Minor: Backward-compatible changes or improvements
@@ -38,6 +39,33 @@ def create_round_info_button(parent, row, column, info_text):
     canvas.grid(row=row, column=column, padx=5)
     canvas.bind("<Button-1>", lambda e: show_info(info_text))
 
+# Generate or load encryption key
+KEY_FILE = "encryption.key"
+
+def generate_key():
+    """Generate and save a key for encryption."""
+    key = Fernet.generate_key()
+    with open(KEY_FILE, 'wb') as key_file:
+        key_file.write(key)
+
+def load_key():
+    """Load the encryption key from the file."""
+    if not os.path.exists(KEY_FILE):
+        generate_key()
+    with open(KEY_FILE, 'rb') as key_file:
+        return key_file.read()
+
+encryption_key = load_key()
+cipher = Fernet(encryption_key)
+
+def encrypt_token(token):
+    """Encrypt a token."""
+    return cipher.encrypt(token.encode()).decode()
+
+def decrypt_token(encrypted_token):
+    """Decrypt a token."""
+    return cipher.decrypt(encrypted_token.encode()).decode()
+
 def load_tokens():
     """Load GitHub and OpenArena tokens from a file."""
     global github_token, openarena_token
@@ -45,8 +73,8 @@ def load_tokens():
         with open(TOKEN_FILE, 'r') as file:
             tokens = file.readlines()
             if len(tokens) >= 2:
-                github_token = tokens[0].strip()
-                openarena_token = tokens[1].strip()
+                github_token = decrypt_token(tokens[0].strip())
+                openarena_token = decrypt_token(tokens[1].strip())
                 github_token_entry.insert(0, github_token)
                 openarena_token_entry.insert(0, openarena_token)
 
@@ -56,7 +84,7 @@ def save_tokens():
     github_token = github_token_entry.get()
     openarena_token = openarena_token_entry.get()
     with open(TOKEN_FILE, 'w') as file:
-        file.write(f"{github_token}\n{openarena_token}\n")
+        file.write(f"{encrypt_token(github_token)}\n{encrypt_token(openarena_token)}\n")
     messagebox.showinfo("Success", "Tokens saved successfully!")
 
 def clear_tokens():
