@@ -53,9 +53,9 @@ jobs:
         # Create a ZIP file with the executable and any necessary files
         cd dist
         Compress-Archive -Path AIReviewTool_V2.0.0.exe -DestinationPath AIReviewTool_V2.0.0.zip -Force
-      
+        
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: AIReviewTool_V2.0.0
         path: dist/AIReviewTool_V2.0.0.zip
