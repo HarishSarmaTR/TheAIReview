@@ -37,30 +37,92 @@ jobs:
             Write-Host "Checking $($_.FullName)"
             python -m py_compile $_.FullName
         }
-      
+        - name: Clean workspace
+      run: |
+        # Remove build artifacts and temporary files
+        Write-Host "Cleaning up workspace..."
+        
+        # Remove PyInstaller artifacts and temporary directories
+        if (Test-Path -Path "dist") {
+            Remove-Item -Path "dist" -Recurse -Force
+        }
+        if (Test-Path -Path "build") {
+            Remove-Item -Path "build" -Recurse -Force
+        }
+        if (Test-Path -Path "__pycache__") {
+            Remove-Item -Path "__pycache__" -Recurse -Force
+        }
+        if (Test-Path -Path "AIReview/__pycache__") {
+            Remove-Item -Path "AIReview/__pycache__" -Recurse -Force
+        }
+        if (Test-Path -Path "AIReview/dist") {
+            Remove-Item -Path "AIReview/dist" -Recurse -Force
+        }
+        if (Test-Path -Path "AIReview/build") {
+            Remove-Item -Path "AIReview/build" -Recurse -Force
+        }
+        
+        # Remove spec files
+        Get-ChildItem -Path "*.spec" | ForEach-Object {
+            Write-Host "Removing $($_.FullName)"
+            Remove-Item -Path $_.FullName -Force
+        }
+        
+        # Remove any test/temporary files
+        if (Test-Path -Path "test_api.bat") {
+            Remove-Item -Path "test_api.bat" -Force
+        }
+        
+        Write-Host "Workspace cleaned!"
+        
     - name: Build executable with PyInstaller
       run: |
-        # Navigate to the application directory
-        cd AIReview
-        # Build the executable with version in filename (V2.0.0)
-        pyinstaller --name "AIReviewTool_V2.0.0" --onefile --windowed --icon="../images/ai.ico" --add-data "../images/TR.png;images" --add-data "../images/logo.png;images" AIReview.py
-        # Check if dist folder exists at root level and create if needed
-        if (-not (Test-Path -Path "../dist")) {
-            New-Item -Path "../dist" -ItemType Directory
+        # Build from the root directory - we'll specify the script path explicitly
+        pyinstaller --name "AIReviewTool_V2.0.0" --onefile --windowed --icon="images/ai.ico" --add-data "images/TR.png;images" --add-data "images/logo.png;images" AIReview/AIReview.py
+        
+        # Verify the executable was created
+        if (Test-Path -Path "dist/AIReviewTool_V2.0.0.exe") {
+            Write-Host "Executable successfully created at dist/AIReviewTool_V2.0.0.exe"
+        } else {
+            Write-Host "ERROR: Executable not found at dist/AIReviewTool_V2.0.0.exe"
+            exit 1
         }
-        # Copy the executable to the dist folder (use Copy instead of Move)
-        Copy-Item -Path "dist/AIReviewTool_V2.0.0.exe" -Destination "../dist/" -Force
-      
-    - name: Zip the executable
+        - name: Zip the executable
       run: |
         # Create a ZIP file with the executable and any necessary files
         cd dist
         if (Test-Path -Path "AIReviewTool_V2.0.0.exe") {
+            # Include any other necessary files in the archive
             Compress-Archive -Path AIReviewTool_V2.0.0.exe -DestinationPath AIReviewTool_V2.0.0.zip -Force
+            
+            # Verify the ZIP file was created
+            if (Test-Path -Path "AIReviewTool_V2.0.0.zip") {
+                Write-Host "ZIP file successfully created"
+            } else {
+                Write-Host "ERROR: Failed to create ZIP file"
+                exit 1
+            }
         } else {
-            Write-Host "Executable not found in dist folder!"
+            Write-Host "ERROR: Executable not found in dist folder!"
             exit 1
         }
+        
+    - name: Post-build cleanup
+      run: |
+        # Remove build artifacts after zipping to reduce storage usage
+        Write-Host "Cleaning up build artifacts..."
+        if (Test-Path -Path "build") {
+            Remove-Item -Path "build" -Recurse -Force
+            Write-Host "Removed build directory"
+        }
+        
+        # Remove PyInstaller temp files
+        Get-ChildItem -Path "." -Filter "*.spec" | ForEach-Object {
+            Remove-Item -Path $_.FullName -Force
+            Write-Host "Removed spec file: $($_.Name)"
+        }
+        
+        # Keep only the dist folder with our final executable and zip
         
     - name: Upload artifact
       uses: actions/upload-artifact@v4

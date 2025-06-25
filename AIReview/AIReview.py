@@ -1037,6 +1037,29 @@ root = customtkinter.CTk() # New CustomTkinter root
 root.title("AI Code Review Tool")
 root.geometry("800x700") # Adjusted initial geometry, will be resizable
 
+# Set application icon
+icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "images", "ai.ico")
+if os.path.exists(icon_path):
+    root.iconbitmap(icon_path)
+    
+    # Additional Windows-specific code to ensure taskbar icon is properly set
+    try:
+        # For Windows OS - explicitly set the taskbar icon
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("AIReviewTool")
+        
+        # Alternative approach to ensure the icon is shown in taskbar
+        from PIL import Image, ImageTk
+        icon_img = Image.open(icon_path)
+        icon_photo = ImageTk.PhotoImage(icon_img)
+        root.iconphoto(True, icon_photo)  # This sets both window and taskbar icon
+        
+        print("✅ Taskbar icon set successfully")
+    except Exception as e:
+        print(f"Note: Could not set taskbar icon: {e}")
+else:
+    print(f"Warning: Icon file not found at {icon_path}")
+
 # Make window resizable
 root.resizable(True, True)
 # Configure root grid for expansion
