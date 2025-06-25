@@ -37,7 +37,8 @@ jobs:
             Write-Host "Checking $($_.FullName)"
             python -m py_compile $_.FullName
         }
-        - name: Clean workspace
+      
+    - name: Clean workspace
       run: |
         # Remove build artifacts and temporary files
         Write-Host "Cleaning up workspace..."
@@ -87,7 +88,8 @@ jobs:
             Write-Host "ERROR: Executable not found at dist/AIReviewTool_V2.0.0.exe"
             exit 1
         }
-        - name: Zip the executable
+      
+    - name: Zip the executable
       run: |
         # Create a ZIP file with the executable and any necessary files
         cd dist

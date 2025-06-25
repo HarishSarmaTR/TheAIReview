@@ -1046,17 +1046,21 @@ if os.path.exists(icon_path):
     try:
         # For Windows OS - explicitly set the taskbar icon
         import ctypes
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("AIReviewTool")
-        
-        # Alternative approach to ensure the icon is shown in taskbar
-        from PIL import Image, ImageTk
-        icon_img = Image.open(icon_path)
-        icon_photo = ImageTk.PhotoImage(icon_img)
-        root.iconphoto(True, icon_photo)  # This sets both window and taskbar icon
-        
-        print("✅ Taskbar icon set successfully")
+        app_id = "TR.AIReviewTool.V2.0.0"  # Unique application ID
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+        print(f"Successfully set taskbar icon with app ID: {app_id}")
     except Exception as e:
-        print(f"Note: Could not set taskbar icon: {e}")
+        print(f"Warning: Could not set taskbar icon with Windows API: {e}")
+        try:
+            # Alternative approach using PIL for cross-platform compatibility
+            from PIL import Image, ImageTk
+            icon_img = Image.open(icon_path)
+            icon_photo = ImageTk.PhotoImage(icon_img)
+            root.iconphoto(True, icon_photo)  # This sets both window and taskbar icon
+            
+            print("✅ Taskbar icon set successfully using PIL")
+        except Exception as e:
+            print(f"Note: Could not set taskbar icon: {e}")
 else:
     print(f"Warning: Icon file not found at {icon_path}")
 
