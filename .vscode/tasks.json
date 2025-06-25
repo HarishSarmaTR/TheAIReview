@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run AI Review App",
+			"type": "shell",
+			"command": "cd ${workspaceFolder} && python AIReview/AIReview.py",
+			"group": "test",
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}
