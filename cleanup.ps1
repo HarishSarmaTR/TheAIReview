@@ -20,8 +20,26 @@ function Remove-ItemSafely {
     }
 }
 
-# Clean up build artifacts
-Remove-ItemSafely -Path "dist" -ItemType "Distribution folder"
+# Clean up build artifacts while preserving backups
+if (Test-Path -Path "dist") {
+    # If there's a backup folder, preserve it
+    if (Test-Path -Path "dist/backup") {
+        Write-Host "Preserving backup folder..." -ForegroundColor Yellow
+        $backupPath = Join-Path (Get-Location) "temp_backup"
+        New-Item -Path $backupPath -ItemType Directory -Force | Out-Null
+        Copy-Item -Path "dist/backup/*" -Destination $backupPath -Recurse -Force
+        Remove-ItemSafely -Path "dist" -ItemType "Distribution folder"
+        New-Item -Path "dist/backup" -ItemType Directory -Force | Out-Null
+        Copy-Item -Path "$backupPath/*" -Destination "dist/backup" -Recurse -Force
+        Remove-ItemSafely -Path "temp_backup" -ItemType "Temporary backup folder"
+        Write-Host "Backup folder preserved!" -ForegroundColor Green
+    } else {
+        Remove-ItemSafely -Path "dist" -ItemType "Distribution folder"
+    }
+} else {
+    Write-Host "Distribution folder does not exist, skipping..." -ForegroundColor Gray
+}
+
 Remove-ItemSafely -Path "build" -ItemType "Build folder"
 Remove-ItemSafely -Path "AIReview/dist" -ItemType "AIReview distribution folder"
 Remove-ItemSafely -Path "AIReview/build" -ItemType "AIReview build folder"

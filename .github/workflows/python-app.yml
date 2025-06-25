@@ -76,10 +76,52 @@ jobs:
         
         Write-Host "Workspace cleaned!"
         
+    - name: Create backup folder structure
+      run: |
+        # Create dist and backup folders if they don't exist
+        $distFolder = Join-Path (Get-Location) "dist"
+        $backupFolder = Join-Path $distFolder "backup"
+        
+        if (-not (Test-Path -Path $distFolder)) {
+            New-Item -Path $distFolder -ItemType Directory -Force
+        }
+        
+        if (-not (Test-Path -Path $backupFolder)) {
+            New-Item -Path $backupFolder -ItemType Directory -Force
+        }
+      
+    - name: Backup existing executable
+      run: |
+        # Check if there's an existing executable to back up
+        $exePath = "dist/AIReviewTool_V2.0.0.exe"
+        $backupFolder = "dist/backup"
+        
+        if (Test-Path -Path $exePath) {
+            $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+            $backupName = "AIReviewTool_backup_${timestamp}.exe"
+            $backupPath = Join-Path $backupFolder $backupName
+            
+            Write-Host "Backing up existing executable to $backupPath"
+            Copy-Item -Path $exePath -Destination $backupPath -Force
+            Write-Host "Backup successful!"
+            
+            # Only keep the most recent backup
+            $backupFiles = Get-ChildItem -Path $backupFolder -Filter "AIReviewTool_backup_*.exe" | 
+                           Sort-Object LastWriteTime -Descending | 
+                           Select-Object -Skip 1
+            
+            foreach ($file in $backupFiles) {
+                Write-Host "Removing older backup: $($file.Name)"
+                Remove-Item -Path $file.FullName -Force
+            }
+        } else {
+            Write-Host "No existing executable found, skipping backup."
+        }
+    
     - name: Build executable with PyInstaller
       run: |
         # Build from the root directory - we'll specify the script path explicitly
-        pyinstaller --name "AIReviewTool_V2.0.0" --onefile --windowed --icon="images/ai.ico" --add-data "images/TR.png;images" --add-data "images/logo.png;images" AIReview/AIReview.py
+        pyinstaller --name "AIReviewTool_V2.0.0" --onefile --windowed --icon="images/ai.ico" --add-data "images/TR.png;images" --add-data "images/logo.png;images" --add-data "AIReview/blue.json;AIReview" AIReview/AIReview.py
         
         # Verify the executable was created
         if (Test-Path -Path "dist/AIReviewTool_V2.0.0.exe") {

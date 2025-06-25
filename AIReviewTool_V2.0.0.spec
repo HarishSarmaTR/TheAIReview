@@ -5,7 +5,7 @@ a = Analysis(
     ['AIReview\\AIReview.py'],
     pathex=[],
     binaries=[],
-    datas=[('images/TR.png', 'images'), ('images/logo.png', 'images')],
+    datas=[('images/TR.png', 'images'), ('images/logo.png', 'images'), ('AIReview/blue.json', 'AIReview')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
