@@ -4,6 +4,20 @@
 
 ![image](https://github.com/user-attachments/assets/440beffb-aa4b-4593-98b4-e9988e249b20)
 
+## Available Versions
+
+The tool is available in multiple versions:
+
+- **V2.0.0 (Latest)** - Modern UI with improved features and Claude 4 cost calculation
+- **v1.0.1** - Original stable version with core functionality
+
+You can choose which version to run using the version selector script:
+```powershell
+.\run_ai_review_selector.ps1
+```
+
+> **Note:** For detailed documentation, please see the files in the `docs` folder.
+
 ---
 
 # 🛠 Installation

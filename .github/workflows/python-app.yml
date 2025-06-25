@@ -136,14 +136,15 @@ jobs:
             Write-Host "Copied icon file to root directory"
         }
     
-    - name: Build executable with PyInstaller
+    - name: Build executables with PyInstaller
       run: |
-        # Build from the root directory - we'll specify the script path explicitly
+        # Build the latest version (V2.0.0)
+        Write-Host "Building AIReviewTool_V2.0.0.exe..."
         pyinstaller --name "AIReviewTool_V2.0.0" --onefile --windowed --icon="ai.ico" --add-data "images/ai.ico;images" --add-data "ai.ico;." --add-data "images/TR.png;images" --add-data "images/logo.png;images" --add-data "AIReview/blue.json;AIReview" --add-data "AIReview/blue.json;." AIReview/AIReview.py
         
-        # Verify the executable was created
+        # Verify the V2.0.0 executable was created
         if (Test-Path -Path "dist/AIReviewTool_V2.0.0.exe") {
-            Write-Host "Executable successfully created at dist/AIReviewTool_V2.0.0.exe"
+            Write-Host "V2.0.0 executable successfully created at dist/AIReviewTool_V2.0.0.exe"
             
             # Ensure theme file is also in the dist folder
             if (-not (Test-Path -Path "dist/blue.json")) {
@@ -151,14 +152,28 @@ jobs:
                 Write-Host "Copied theme file to dist directory"
             }
         } else {
-            Write-Host "ERROR: Executable not found at dist/AIReviewTool_V2.0.0.exe"
+            Write-Host "ERROR: V2.0.0 executable not found at dist/AIReviewTool_V2.0.0.exe"
+            exit 1
+        }
+        
+        # Build the v1.0.1 version
+        Write-Host "Building AIReviewTool_v1.0.1.exe..."
+        pyinstaller --name "AIReviewTool_v1.0.1" --onefile --windowed --icon="ai.ico" --add-data "images/ai.ico;images" --add-data "ai.ico;." --add-data "images/TR.png;images" --add-data "images/logo.png;images" --add-data "images/bot.JPG;images" AIReview/AIReview_v1.0.1.py
+        
+        # Verify the v1.0.1 executable was created
+        if (Test-Path -Path "dist/AIReviewTool_v1.0.1.exe") {
+            Write-Host "v1.0.1 executable successfully created at dist/AIReviewTool_v1.0.1.exe"
+        } else {
+            Write-Host "ERROR: v1.0.1 executable not found at dist/AIReviewTool_v1.0.1.exe"
             exit 1
         }
       
-    - name: Zip the executable
+    - name: Zip the executables
       run: |
-        # Create a ZIP file with the executable and any necessary files
+        # Create ZIP files with the executables and any necessary files
         cd dist
+        
+        # Zip V2.0.0 (latest version)
         if (Test-Path -Path "AIReviewTool_V2.0.0.exe") {
             # Include the exe and theme file in the archive
             Copy-Item -Path "..\AIReview\blue.json" -Destination "blue.json" -Force -ErrorAction SilentlyContinue
@@ -166,13 +181,29 @@ jobs:
             
             # Verify the ZIP file was created
             if (Test-Path -Path "AIReviewTool_V2.0.0.zip") {
-                Write-Host "ZIP file successfully created"
+                Write-Host "V2.0.0 ZIP file successfully created"
             } else {
-                Write-Host "ERROR: Failed to create ZIP file"
+                Write-Host "ERROR: Failed to create V2.0.0 ZIP file"
                 exit 1
             }
         } else {
-            Write-Host "ERROR: Executable not found in dist folder!"
+            Write-Host "ERROR: V2.0.0 executable not found in dist folder!"
+            exit 1
+        }
+        
+        # Zip v1.0.1 (older version)
+        if (Test-Path -Path "AIReviewTool_v1.0.1.exe") {
+            Compress-Archive -Path "AIReviewTool_v1.0.1.exe" -DestinationPath AIReviewTool_v1.0.1.zip -Force
+            
+            # Verify the ZIP file was created
+            if (Test-Path -Path "AIReviewTool_v1.0.1.zip") {
+                Write-Host "v1.0.1 ZIP file successfully created"
+            } else {
+                Write-Host "ERROR: Failed to create v1.0.1 ZIP file"
+                exit 1
+            }
+        } else {
+            Write-Host "ERROR: v1.0.1 executable not found in dist folder!"
             exit 1
         }
         
@@ -193,19 +224,27 @@ jobs:
         
         # Keep only the dist folder with our final executable and zip
         
-    - name: Upload artifact
+    - name: Upload V2.0.0 artifact
       uses: actions/upload-artifact@v4
       with:
         name: AIReviewTool_V2.0.0
         path: dist/AIReviewTool_V2.0.0.zip
+        
+    - name: Upload v1.0.1 artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: AIReviewTool_v1.0.1
+        path: dist/AIReviewTool_v1.0.1.zip
         
     - name: Create Release
       id: create_release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: dist/AIReviewTool_V2.0.0.zip
-        name: "AI Review Tool V2.0.0"
+        files: |
+          dist/AIReviewTool_V2.0.0.zip
+          dist/AIReviewTool_v1.0.1.zip
+        name: "AI Review Tool Release"
         draft: false
         prerelease: false
         generate_release_notes: true
