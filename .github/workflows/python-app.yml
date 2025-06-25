@@ -44,15 +44,23 @@ jobs:
         cd AIReview
         # Build the executable with version in filename (V2.0.0)
         pyinstaller --name "AIReviewTool_V2.0.0" --onefile --windowed --icon="../images/ai.ico" --add-data "../images/TR.png;images" --add-data "../images/logo.png;images" AIReview.py
-        # Move the executable to a dist folder at the root
-        mkdir -p ../dist
-        Move-Item -Path "dist/AIReviewTool_V2.0.0.exe" -Destination ../dist/
+        # Check if dist folder exists at root level and create if needed
+        if (-not (Test-Path -Path "../dist")) {
+            New-Item -Path "../dist" -ItemType Directory
+        }
+        # Copy the executable to the dist folder (use Copy instead of Move)
+        Copy-Item -Path "dist/AIReviewTool_V2.0.0.exe" -Destination "../dist/" -Force
       
     - name: Zip the executable
       run: |
         # Create a ZIP file with the executable and any necessary files
         cd dist
-        Compress-Archive -Path AIReviewTool_V2.0.0.exe -DestinationPath AIReviewTool_V2.0.0.zip -Force
+        if (Test-Path -Path "AIReviewTool_V2.0.0.exe") {
+            Compress-Archive -Path AIReviewTool_V2.0.0.exe -DestinationPath AIReviewTool_V2.0.0.zip -Force
+        } else {
+            Write-Host "Executable not found in dist folder!"
+            exit 1
+        }
         
     - name: Upload artifact
       uses: actions/upload-artifact@v4
