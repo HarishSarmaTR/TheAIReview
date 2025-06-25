@@ -15,16 +15,33 @@ Write-Host "Backing up existing executable (if present)..." -ForegroundColor Yel
 & .\backup_executable.ps1 -BuildVersion $Version -LocalBuild
 Write-Host "Backup completed!" -ForegroundColor Green
 
+# Copy theme file to current directory for PyInstaller to find it more easily
+Write-Host "Ensuring theme file is accessible..." -ForegroundColor Yellow
+if (-not (Test-Path -Path "blue.json")) {
+    Copy-Item -Path "AIReview/blue.json" -Destination "blue.json" -Force
+    Write-Host "Copied theme file to root directory" -ForegroundColor Green
+}
+
 # Build the executable with PyInstaller
 Write-Host "Building executable with PyInstaller..." -ForegroundColor Yellow
+
+# First, copy the icon to the root directory for easier access
+if (-not (Test-Path -Path "ai.ico")) {
+    Copy-Item -Path "images/ai.ico" -Destination "ai.ico" -Force
+    Write-Host "Copied icon file to root directory for easier access" -ForegroundColor Green
+}
+
 $pyinstallerArgs = @(
     "--name", "AIReviewTool_$Version",
     "--onefile",
     "--windowed",
-    "--icon=images/ai.ico",
+    "--icon=ai.ico",  # Use the copied icon in root for better reliability
+    "--add-data", "images/ai.ico;images",  # Include the icon in the images folder
+    "--add-data", "ai.ico;.",  # Also include at root
     "--add-data", "images/TR.png;images",
     "--add-data", "images/logo.png;images",
-    "--add-data", "AIReview/blue.json;AIReview",
+    "--add-data", "AIReview/blue.json;AIReview", 
+    "--add-data", "AIReview/blue.json;.",  # Also include at the root level for compatibility
     "AIReview/AIReview.py"
 )
 
@@ -37,10 +54,17 @@ Try {
     if (Test-Path -Path $exePath) {
         Write-Host "Executable successfully created at $exePath" -ForegroundColor Green
         
+        # Manually ensure theme file is in the right location in the dist folder
+        if (-not (Test-Path -Path "dist/blue.json")) {
+            Copy-Item -Path "AIReview/blue.json" -Destination "dist/blue.json" -Force
+            Write-Host "Copied theme file to dist directory" -ForegroundColor Green
+        }
+        
         # Create a ZIP file of the executable
         $zipPath = "dist/AIReviewTool_$Version.zip"
         Write-Host "Creating ZIP archive..." -ForegroundColor Yellow
-        Compress-Archive -Path $exePath -DestinationPath $zipPath -Force
+        # Include both the executable and the theme file in the ZIP
+        Compress-Archive -Path @("$exePath", "dist/blue.json") -DestinationPath $zipPath -Force
         Write-Host "ZIP archive created at $zipPath" -ForegroundColor Green
     } else {
         Write-Host "ERROR: Executable was not created at $exePath" -ForegroundColor Red

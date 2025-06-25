@@ -1031,38 +1031,118 @@ def change_appearance_mode_event(new_mode=None):
             print(f"Error updating mode switch: {e}")
 
 customtkinter.set_appearance_mode("Dark")  # Default to Dark mode
-customtkinter.set_default_color_theme(os.path.join(os.path.dirname(__file__), "blue.json"))  # Use custom blue theme for professional look
+
+# Try to load the custom theme file, fall back to built-in theme if not found
+try:
+    # Check multiple possible theme file locations (for development and PyInstaller)
+    theme_locations = [
+        os.path.join(os.path.dirname(__file__), "blue.json"),  # Development environment
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "AIReview", "blue.json"),  # Relative to root
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "blue.json"),  # Root directory
+    ]
+    
+    # If running from PyInstaller bundle, add those paths too
+    if hasattr(sys, '_MEIPASS'):
+        bundle_dir = sys._MEIPASS
+        theme_locations.extend([
+            os.path.join(bundle_dir, "AIReview", "blue.json"),  # PyInstaller bundle AIReview folder
+            os.path.join(bundle_dir, "blue.json"),  # PyInstaller bundle root
+        ])
+    
+    # Try each location until we find a valid theme file
+    theme_found = False
+    for theme_path in theme_locations:
+        if os.path.exists(theme_path):
+            print(f"Found theme file at: {theme_path}")
+            customtkinter.set_default_color_theme(theme_path)
+            theme_found = True
+            break
+    
+    if not theme_found:
+        print(f"Theme file not found in any expected locations, using default theme.")
+        customtkinter.set_default_color_theme("blue")  # Fall back to built-in blue theme
+except Exception as e:
+    print(f"Error loading theme: {e}, falling back to default theme")
+    customtkinter.set_default_color_theme("blue")  # Fall back to built-in blue theme
 
 root = customtkinter.CTk() # New CustomTkinter root
 root.title("AI Code Review Tool")
 root.geometry("800x700") # Adjusted initial geometry, will be resizable
 
-# Set application icon
-icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "images", "ai.ico")
-if os.path.exists(icon_path):
-    root.iconbitmap(icon_path)
+# Set application icon - search for it in various possible locations
+def find_resource_path(resource_name):
+    """Find a resource file in various possible locations including PyInstaller bundles"""
+    # Define potential locations to check
+    locations = []
     
-    # Additional Windows-specific code to ensure taskbar icon is properly set
+    # Development environment locations
+    app_dir = os.path.dirname(__file__)
+    root_dir = os.path.dirname(os.path.dirname(__file__))
+    
+    locations.extend([
+        os.path.join(app_dir, "images", resource_name),  # AIReview/images/
+        os.path.join(root_dir, "images", resource_name),  # /images/
+    ])
+    
+    # If running from PyInstaller bundle
+    if hasattr(sys, '_MEIPASS'):
+        bundle_dir = sys._MEIPASS
+        locations.extend([
+            os.path.join(bundle_dir, "images", resource_name),  # /images/ in bundle
+            os.path.join(bundle_dir, resource_name),  # / in bundle
+        ])
+    
+    # Check each location
+    for location in locations:
+        if os.path.exists(location):
+            print(f"Found resource '{resource_name}' at: {location}")
+            return location
+            
+    print(f"Warning: Resource '{resource_name}' not found in any expected location")
+    return None
+
+# Find the icon file
+icon_path = find_resource_path("ai.ico")
+
+if icon_path:
     try:
-        # For Windows OS - explicitly set the taskbar icon
-        import ctypes
-        app_id = "TR.AIReviewTool.V2.0.0"  # Unique application ID
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
-        print(f"Successfully set taskbar icon with app ID: {app_id}")
-    except Exception as e:
-        print(f"Warning: Could not set taskbar icon with Windows API: {e}")
+        root.iconbitmap(icon_path)
+        print(f"Icon set with iconbitmap from {icon_path}")
+        
+        # Additional Windows-specific code to ensure taskbar icon is properly set
         try:
-            # Alternative approach using PIL for cross-platform compatibility
+            # For Windows OS - explicitly set the taskbar icon
+            import ctypes
+            app_id = "TR.AIReviewTool.V2.0.0"  # Unique application ID
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+            print(f"Successfully set taskbar icon with app ID: {app_id}")
+        except Exception as e:
+            print(f"Warning: Could not set taskbar icon with Windows API: {e}")
+            
+            # Try PIL approach as backup
+            try:
+                # Alternative approach using PIL for cross-platform compatibility
+                from PIL import Image, ImageTk
+                icon_img = Image.open(icon_path)
+                icon_photo = ImageTk.PhotoImage(icon_img)
+                root.iconphoto(True, icon_photo)  # This sets both window and taskbar icon
+                print("✅ Taskbar icon set successfully using PIL")
+            except Exception as pil_error:
+                print(f"Note: Could not set taskbar icon with PIL: {pil_error}")
+    except Exception as icon_error:
+        print(f"Error setting icon with iconbitmap: {icon_error}")
+        
+        # Try PIL approach as fallback
+        try:
             from PIL import Image, ImageTk
             icon_img = Image.open(icon_path)
             icon_photo = ImageTk.PhotoImage(icon_img)
-            root.iconphoto(True, icon_photo)  # This sets both window and taskbar icon
-            
-            print("✅ Taskbar icon set successfully using PIL")
-        except Exception as e:
-            print(f"Note: Could not set taskbar icon: {e}")
+            root.iconphoto(True, icon_photo)
+            print("✅ Icon set with PIL as fallback")
+        except Exception as fallback_error:
+            print(f"Failed to set icon with fallback method: {fallback_error}")
 else:
-    print(f"Warning: Icon file not found at {icon_path}")
+    print("No suitable icon file found in any location")
 
 # Make window resizable
 root.resizable(True, True)
@@ -1177,7 +1257,7 @@ root.configure(menu=menu_bar)
 
 # File menu
 file_menu = tk.Menu(menu_bar, tearoff=0)
-menu_bar.add_cascade(label="File", menu=file_menu)
+menu_bar.add_cascade(label="Menu", menu=file_menu)
 file_menu.add_command(label="New Review", command=lambda: file_menu_callback("New Review"))
 file_menu.add_command(label="View Latest Report", command=lambda: open_latest_report())
 file_menu.add_separator()

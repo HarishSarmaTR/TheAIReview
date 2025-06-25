@@ -5,7 +5,7 @@ a = Analysis(
     ['AIReview\\AIReview.py'],
     pathex=[],
     binaries=[],
-    datas=[('images/TR.png', 'images'), ('images/logo.png', 'images'), ('AIReview/blue.json', 'AIReview')],
+    datas=[('images/ai.ico', 'images'), ('ai.ico', '.'), ('images/TR.png', 'images'), ('images/logo.png', 'images'), ('AIReview/blue.json', 'AIReview'), ('AIReview/blue.json', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -35,5 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['images\\ai.ico'],
+    icon=['ai.ico'],
 )

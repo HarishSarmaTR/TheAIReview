@@ -118,14 +118,38 @@ jobs:
             Write-Host "No existing executable found, skipping backup."
         }
     
+    - name: Prepare theme files
+      run: |
+        # Ensure theme file is copied to all necessary locations
+        Write-Host "Ensuring theme files are accessible..."
+        if (-not (Test-Path -Path "blue.json")) {
+            Copy-Item -Path "AIReview/blue.json" -Destination "blue.json" -Force
+            Write-Host "Copied theme file to root directory"
+        }
+    
+    - name: Prepare resources
+      run: |
+        # Copy the icon to the root directory for easier access
+        Write-Host "Copying icon file to root directory..."
+        if (-not (Test-Path -Path "ai.ico")) {
+            Copy-Item -Path "images/ai.ico" -Destination "ai.ico" -Force
+            Write-Host "Copied icon file to root directory"
+        }
+    
     - name: Build executable with PyInstaller
       run: |
         # Build from the root directory - we'll specify the script path explicitly
-        pyinstaller --name "AIReviewTool_V2.0.0" --onefile --windowed --icon="images/ai.ico" --add-data "images/TR.png;images" --add-data "images/logo.png;images" --add-data "AIReview/blue.json;AIReview" AIReview/AIReview.py
+        pyinstaller --name "AIReviewTool_V2.0.0" --onefile --windowed --icon="ai.ico" --add-data "images/ai.ico;images" --add-data "ai.ico;." --add-data "images/TR.png;images" --add-data "images/logo.png;images" --add-data "AIReview/blue.json;AIReview" --add-data "AIReview/blue.json;." AIReview/AIReview.py
         
         # Verify the executable was created
         if (Test-Path -Path "dist/AIReviewTool_V2.0.0.exe") {
             Write-Host "Executable successfully created at dist/AIReviewTool_V2.0.0.exe"
+            
+            # Ensure theme file is also in the dist folder
+            if (-not (Test-Path -Path "dist/blue.json")) {
+                Copy-Item -Path "AIReview/blue.json" -Destination "dist/blue.json" -Force
+                Write-Host "Copied theme file to dist directory"
+            }
         } else {
             Write-Host "ERROR: Executable not found at dist/AIReviewTool_V2.0.0.exe"
             exit 1
@@ -136,8 +160,9 @@ jobs:
         # Create a ZIP file with the executable and any necessary files
         cd dist
         if (Test-Path -Path "AIReviewTool_V2.0.0.exe") {
-            # Include any other necessary files in the archive
-            Compress-Archive -Path AIReviewTool_V2.0.0.exe -DestinationPath AIReviewTool_V2.0.0.zip -Force
+            # Include the exe and theme file in the archive
+            Copy-Item -Path "..\AIReview\blue.json" -Destination "blue.json" -Force -ErrorAction SilentlyContinue
+            Compress-Archive -Path @("AIReviewTool_V2.0.0.exe", "blue.json") -DestinationPath AIReviewTool_V2.0.0.zip -Force
             
             # Verify the ZIP file was created
             if (Test-Path -Path "AIReviewTool_V2.0.0.zip") {
