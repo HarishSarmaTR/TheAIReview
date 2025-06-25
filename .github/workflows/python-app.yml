@@ -1,0 +1,74 @@
+name: Build AI Review Tool
+
+on:
+  push:
+    branches: [ "main" ]
+    tags:
+      - 'v*'  # Push events to matching v*, i.e. v1.0, v20.15.10
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install requests cryptography pillow PyGithub customtkinter
+        # Install any other required packages
+        if (Test-Path requirements.txt) {
+          pip install -r requirements.txt
+        }
+      
+    - name: Basic syntax check
+      run: |
+        # Run a basic syntax check on all Python files
+        Get-ChildItem -Path AIReview -Filter "*.py" -Recurse | ForEach-Object {
+            Write-Host "Checking $($_.FullName)"
+            python -m py_compile $_.FullName
+        }
+      
+    - name: Build executable with PyInstaller
+      run: |
+        # Navigate to the application directory
+        cd AIReview
+        # Build the executable with version in filename (V2.0.0)
+        pyinstaller --name "AIReviewTool_V2.0.0" --onefile --windowed --icon="../images/ai.ico" --add-data "../images/TR.png;images" --add-data "../images/logo.png;images" AIReview.py
+        # Move the executable to a dist folder at the root
+        mkdir -p ../dist
+        Move-Item -Path "dist/AIReviewTool_V2.0.0.exe" -Destination ../dist/
+      
+    - name: Zip the executable
+      run: |
+        # Create a ZIP file with the executable and any necessary files
+        cd dist
+        Compress-Archive -Path AIReviewTool_V2.0.0.exe -DestinationPath AIReviewTool_V2.0.0.zip -Force
+      
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: AIReviewTool_V2.0.0
+        path: dist/AIReviewTool_V2.0.0.zip
+        
+    - name: Create Release
+      id: create_release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/AIReviewTool_V2.0.0.zip
+        name: "AI Review Tool V2.0.0"
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
