@@ -38,10 +38,10 @@ $pyinstallerArgs = @(
     "--icon=ai.ico",  # Use the copied icon in root for better reliability
     "--add-data", "images/ai.ico;images",  # Include the icon in the images folder
     "--add-data", "ai.ico;.",  # Also include at root
-    "--add-data", "images/TR.png;images",
-    "--add-data", "images/logo.png;images",
+    "--add-data", "images;images",  # Include ALL image files and subdirectories
     "--add-data", "AIReview/blue.json;AIReview", 
     "--add-data", "AIReview/blue.json;.",  # Also include at the root level for compatibility
+    "--add-data", "docs;docs",  # Include ALL files in the docs directory
     "AIReview/AIReview.py"
 )
 

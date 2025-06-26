@@ -150,5 +150,5 @@ For any issues, feel free to open an issue in the repo.
 - GitHub API Documentation: For understanding how to interact with GitHub programmatically.
 - OpenArena API Documentation: For integrating AI-based code analysis.
 - Python Official Documentation: For language-specific features and libraries.
-- Tkinter Documentation: For creating the GUI interface.
+- Custom Tkinter Documentation: For creating the GUI interface.
 - PyGitHub Documentation: For utilizing GitHub API features.

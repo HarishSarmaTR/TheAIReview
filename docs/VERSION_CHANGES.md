@@ -28,11 +28,17 @@
 
 1. **V2.0.0 (Latest)**
    - Modern UI with customtkinter components
-   - Improved activity log with scrollable text widget
-   - "Clear" button for convenience
-   - Fixed Claude 4 Sonnet cost calculation
+   - Enhanced background image and visual aesthetics
+   - Improved activity log with timestamped entries and scrollable text widget
+   - Progress bar with percentage display for better user feedback
+   - "Clear" button that resets both activity log and review metrics
+   - Fixed Claude 4 Sonnet cost calculation with detailed token tracking
    - Enhanced AI review prompt for more relevant feedback
-   - Better error handling and UI experience
+   - Better error handling and improved UI experience
+   - Comprehensive HTML user guide with screenshots
+   - Recent repositories dropdown for quick access
+   - Real-time review metrics (time taken and cost estimation)
+   - Professional blue theme with dark/light mode support
 
 2. **v1.0.1**
    - Original stable version with basic UI

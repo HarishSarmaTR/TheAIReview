@@ -47,6 +47,7 @@ openarena_token = None
 # Add a global variable for the activity log textbox
 activity_log_textbox = None
 progress_bar = None
+progress_percentage_label = None  # Add progress percentage label
 time_taken_label = None
 cost_label = None
 last_pr_url = None  # Store the last reviewed PR URL for the View PR button
@@ -256,6 +257,8 @@ def run_code_review():
     status_message.set("Running code review...🔍")
     if progress_bar:
         progress_bar.set(0)
+        if progress_percentage_label:
+            progress_percentage_label.configure(text="0%")
     if time_taken_label:
         time_taken_label.configure(text="Time Taken: -")
     if cost_label:
@@ -327,8 +330,12 @@ def log_activity(message):
     print(formatted_message) # Keep console logging with proper newlines
     
     if activity_log_textbox:
+        # Add timestamp with date to the message for GUI display
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamped_message = f"[{timestamp}] {message}"
         # For the GUI, we add a proper newline character
-        activity_log_textbox.insert(tk.END, message + "\n")
+        activity_log_textbox.insert(tk.END, timestamped_message + "\n")
         activity_log_textbox.see(tk.END) # Scroll to the end
     root.update_idletasks()
 
@@ -878,6 +885,8 @@ def main(repo_name, pr_number, post_comments=True):
         
         if progress_bar:
             progress_bar.set(0) # Initialize progress bar
+            if progress_percentage_label:
+                progress_percentage_label.configure(text="0%")
 
         current_file_num = 0
         for file in files_to_review:
@@ -885,7 +894,11 @@ def main(repo_name, pr_number, post_comments=True):
             log_activity(f"Processing file {current_file_num}/{total_files_in_pr}: {file.filename}")
             
             if progress_bar:
-                progress_bar.set(float(current_file_num) / total_files_in_pr)
+                progress_value = float(current_file_num) / total_files_in_pr
+                progress_bar.set(progress_value)
+                if progress_percentage_label:
+                    percentage = int(progress_value * 100)
+                    progress_percentage_label.configure(text=f"{percentage}%")
                 root.update_idletasks()
 
             # Check if the file matches any of the ignore patterns
@@ -1163,23 +1176,31 @@ content_frame.grid_rowconfigure(0, weight=1)
 def show_release_notes():
     notes = (
         "✨ Release Notes (v2.0.0) ✨\n\n"
-        "🎨 Modern UI\n"
+        "🎨 Modern UI Enhancements\n"
         "   • Sleek customtkinter interface with professional blue theme\n"
-        "   • Improved layout and enhanced visual elements\n"
-        "   • Added background image for improved aesthetics\n\n"
-        "📊 Enhanced Features\n"
-        "   • Detailed activity logging with real-time updates\n"
-        "   • Progress tracking with visual indicators\n"
-        "   • Performance metrics and cost estimation\n\n"
-        "🔧 Usability Improvements\n"
-        "   • Dark/Light mode toggle switch\n"
+        "   • Enhanced layout with improved visual elements\n"
+        "   • Added Dark/Light mode button with instant switching\n\n"
+        "📊 Advanced Activity Tracking\n"
+        "   • Real-time activity log with timestamps for every action\n"
+        "   • Progress bar with percentage display for better feedback\n"
+        "   • Clear button that resets both log and review metrics\n"
+        "   • Detailed performance metrics and cost estimation\n\n"
+        "🔧 Enhanced Usability Features\n"
+        "   • Recent repositories dropdown for quick access\n"
+        "   • Comprehensive HTML user guide with screenshots\n"
         "   • One-click PR viewing on GitHub\n"
-        "   • Streamlined menu organization\n\n"
+        "   • Improved token management with secure encryption\n"
+        "   • Streamlined menu organization with user guide documentation\n\n"
+        "🤖 AI Review Improvements\n"
+        "   • Enhanced Open Arena AI chain with Claude 4 Sonnet integration\n"
+        "   • Accurate token tracking and cost calculation\n"
+        "   • Smarter review prompts for more relevant feedback\n"
+        "   • Better error handling and retry mechanisms\n\n"
         "🚀 Ready to transform your code review process!"
     )
     dialog = customtkinter.CTkToplevel(root)
     dialog.title("Release Notes")
-    dialog.geometry("450x400")  # Increased size to fit enhanced content
+    dialog.geometry("500x500")  # Increased size to fit enhanced content
     dialog.resizable(False, False)
     dialog.grab_set()
     
@@ -1192,7 +1213,7 @@ def show_release_notes():
     content_frame.pack(fill="both", expand=True, padx=20, pady=20)
     
     # Notes text - using a text widget instead of label for better text handling
-    notes_text = customtkinter.CTkTextbox(content_frame, height=300, width=400)
+    notes_text = customtkinter.CTkTextbox(content_frame, height=400, width=450)
     notes_text.pack(pady=10, padx=10, fill="both", expand=True)
     notes_text.insert("1.0", notes)
     notes_text.configure(state="disabled")  # Make it read-only
@@ -1251,6 +1272,126 @@ def show_contact():
     import webbrowser
     webbrowser.open('mailto:velavalapalli.harishsarma@thomsonreuters.com')
 
+def open_user_guide():
+    """Open the user guide HTML file in the default browser"""
+    import webbrowser
+    import os
+    import sys
+    import tempfile
+    import shutil
+    import re
+    
+    try:
+        # Handle both development environment and PyInstaller frozen environment
+        if getattr(sys, 'frozen', False):
+            # If the application is run as a bundle (compiled with PyInstaller)
+            base_path = sys._MEIPASS if hasattr(sys, '_MEIPASS') else os.path.dirname(sys.executable)
+            log_activity(f"📂 Base path: {base_path}")
+            
+            # List files in the base path to debug
+            try:
+                log_activity("📂 Available files in base directory:")
+                for item in os.listdir(base_path):
+                    log_activity(f" - {item}")
+                    
+                # Check if docs directory exists
+                docs_path = os.path.join(base_path, "docs")
+                if os.path.exists(docs_path) and os.path.isdir(docs_path):
+                    log_activity("📂 Docs directory found, listing contents:")
+                    for item in os.listdir(docs_path):
+                        log_activity(f" - {item}")
+                else:
+                    log_activity("❌ Docs directory not found")
+            except Exception as e:
+                log_activity(f"❌ Error listing files: {str(e)}")
+                
+            original_guide_path = os.path.join(base_path, "docs", "user_guide.html")
+            
+            # Check if the user guide file exists
+            if not os.path.exists(original_guide_path):
+                log_activity(f"❌ User guide not found at {original_guide_path}")
+                messagebox.showerror("Error", 
+                                "User guide file not found. Please ensure the documentation is properly installed.")
+                return
+                
+            log_activity(f"✅ Found user guide at {original_guide_path}")
+            
+            # Create a temp directory to hold a modified copy of the guide with correct image paths
+            # Use a unique name to avoid conflicts with other instances
+            temp_dir = os.path.join(tempfile.gettempdir(), f"AIReviewTool_docs_{os.getpid()}")
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            # Create images directory structure in the temp folder
+            temp_images = os.path.join(temp_dir, "images")
+            temp_images_docs = os.path.join(temp_dir, "images", "docs")
+            os.makedirs(temp_images, exist_ok=True)
+            os.makedirs(temp_images_docs, exist_ok=True)
+            
+            log_activity(f"🔧 Preparing user guide with images in temp directory: {temp_dir}")
+            
+            # Copy images to the temp location and track which ones we actually found
+            found_images = []
+            for img_file in ["TR.png", "logo.png", "bot.JPG"]:
+                src = os.path.join(base_path, "images", img_file)
+                dest = os.path.join(temp_images, img_file)
+                if os.path.exists(src):
+                    shutil.copy(src, dest)
+                    found_images.append(("../images/" + img_file, "images/" + img_file))
+                    log_activity(f"📷 Copied image: {img_file} to temp directory")
+                else:
+                    log_activity(f"⚠️ Image file not found: {src}")
+            
+            found_doc_images = []
+            for img_file in ["AIR.png", "AIR_2.png", "Gt_1.png", "Gt_2.png", "Gt_3.png"]:
+                src = os.path.join(base_path, "images", "docs", img_file)
+                dest = os.path.join(temp_images_docs, img_file)
+                if os.path.exists(src):
+                    shutil.copy(src, dest)
+                    found_doc_images.append(("../images/docs/" + img_file, "images/docs/" + img_file))
+                    log_activity(f"📷 Copied doc image: {img_file} to temp directory")
+                else:
+                    log_activity(f"⚠️ Doc image file not found: {src}")
+            
+            # Read the original HTML content
+            with open(original_guide_path, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+            
+            # Replace the image paths in the HTML content
+            for old_path, new_path in found_images + found_doc_images:
+                html_content = html_content.replace(old_path, new_path)
+            
+            # Also replace any url('../images/... references in CSS
+            html_content = re.sub(r"url\(['\"]?\.\.\/images\/", r"url('images/", html_content)
+            log_activity("✅ Updated image paths in HTML content")
+            
+            # Write the modified HTML to the temp directory
+            temp_guide_path = os.path.join(temp_dir, "user_guide.html")
+            with open(temp_guide_path, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+                
+            guide_path = temp_guide_path
+            log_activity(f"📄 Created modified user guide at: {temp_guide_path}")
+        else:
+            # Standard development environment - no path modification needed
+            guide_path = os.path.join(os.path.dirname(__file__), "..", "docs", "user_guide.html")
+            log_activity("📁 Using standard development path for user guide")
+            
+            # Check if the user guide file exists in development mode
+            if not os.path.exists(guide_path):
+                log_activity(f"❌ User guide not found at {guide_path}")
+                messagebox.showerror("Error", 
+                                "User guide file not found. Please ensure the documentation is properly installed.")
+                return
+        
+        guide_path = os.path.abspath(guide_path)
+        
+        # At this point we've already verified the guide exists, so just open it
+        webbrowser.open(f"file://{guide_path}")
+        log_activity("📖 User guide opened in browser")
+    except Exception as e:
+        log_activity(f"❌ Error opening user guide: {str(e)}")
+        messagebox.showerror("Error", f"Failed to open user guide: {str(e)}")
+
 # Create standard menu bar (like in the second image)
 menu_bar = tk.Menu(root)
 root.configure(menu=menu_bar)
@@ -1268,15 +1409,30 @@ file_menu.add_command(label="Exit", command=root.quit)
 # Help menu
 help_menu = tk.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Help", menu=help_menu)
+help_menu.add_command(label="User Guide", command=lambda: open_user_guide())
+help_menu.add_separator()
 help_menu.add_command(label="About", command=show_about)
 help_menu.add_command(label="Support", command=show_contact)
 
 # File Menu callback function (used in lambda above)
 def clear_activity_log():
-    """Clear the content of the activity log textbox"""
+    """Clear the content of the activity log textbox and reset review metrics"""
     if activity_log_textbox:
         activity_log_textbox.delete("1.0", tk.END)
         log_activity("Activity log cleared")
+    
+    # Reset review metrics
+    if time_taken_label:
+        time_taken_label.configure(text="-")
+    if cost_label:
+        cost_label.configure(text="-")
+    
+    # Reset progress bar
+    if progress_bar:
+        progress_bar.set(0)
+        # Clear progress percentage if it exists
+        if progress_percentage_label:
+            progress_percentage_label.configure(text="0%")
 
 def file_menu_callback(choice):
     if choice == "New Review":
@@ -1288,6 +1444,8 @@ def file_menu_callback(choice):
             activity_log_textbox.delete("1.0", tk.END)
         if progress_bar:
             progress_bar.set(0)
+            if progress_percentage_label:
+                progress_percentage_label.configure(text="0%")
         status_message.set("")
         if time_taken_label:
             time_taken_label.configure(text="Time Taken: -")
@@ -1441,9 +1599,23 @@ progress_frame = customtkinter.CTkFrame(left_frame)
 progress_frame.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
 progress_frame.grid_columnconfigure(0, weight=1)
 
-progress_bar = customtkinter.CTkProgressBar(progress_frame)
-progress_bar.grid(row=0, column=0, pady=(0,10), padx=10, sticky="ew")
+# Progress bar with percentage display
+progress_container = customtkinter.CTkFrame(progress_frame, fg_color="transparent")
+progress_container.grid(row=0, column=0, pady=(0,10), padx=10, sticky="ew")
+progress_container.grid_columnconfigure(0, weight=1)
+
+progress_bar = customtkinter.CTkProgressBar(progress_container)
+progress_bar.grid(row=0, column=0, sticky="ew", pady=(0,5))
 progress_bar.set(0)
+
+# Progress percentage label
+progress_percentage_label = customtkinter.CTkLabel(
+    progress_container, 
+    text="0%", 
+    font=customtkinter.CTkFont(size=11, weight="bold"),
+    text_color="#FF6F00"
+)
+progress_percentage_label.grid(row=1, column=0, sticky="ew")
 
 
 # View buttons frame
