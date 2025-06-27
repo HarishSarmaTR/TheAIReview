@@ -319,9 +319,9 @@ def run_code_review():
         if progress_percentage_label:
             progress_percentage_label.configure(text="0%")
     if time_taken_label:
-        time_taken_label.configure(text="Time Taken: -")
+        time_taken_label.configure(text="-")
     if cost_label:
-        cost_label.configure(text="Est. Cost: -")
+        cost_label.configure(text="-")
     if view_pr_button:
         view_pr_button.configure(state="disabled")
     if view_report_button:
@@ -342,7 +342,10 @@ def run_code_review():
     duration = end_time - start_time
     
     if time_taken_label:
-        time_taken_label.configure(text=f"Time Taken: {duration:.2f}s")
+        # Format time as mm:ss min for clarity
+        minutes = int(duration // 60)
+        seconds = int(duration % 60)
+        time_taken_label.configure(text=f"{minutes:02d}:{seconds:02d} min")
     if cost_label:
         if total_cost > 0:
             cost_label.configure(text=f"Est. Cost: ${total_cost:.4f} ({total_tokens} tokens)")
@@ -1353,7 +1356,27 @@ def show_about():
 
 def show_contact():
     import webbrowser
-    webbrowser.open('mailto:velavalapalli.harishsarma@thomsonreuters.com')
+    import urllib.parse
+    
+    # Define email addresses
+    to_addresses = [
+        "Velavalapalli.HarishSarma@thomsonreuters.com",
+        "KALYANI.KANDUNURI@thomsonreuters.com", 
+        "Ravi.Bitra@thomsonreuters.com"
+    ]
+    cc_addresses = [
+        "Radhika.Ramagiri@thomsonreuters.com"
+    ]
+    
+    # Create mailto URL with multiple recipients and CC
+    to_list = ";".join(to_addresses)
+    cc_list = ";".join(cc_addresses)
+    subject = "AI Code Review Tool - Feedback"
+    
+    # URL encode the parameters
+    mailto_url = f"mailto:{to_list}?cc={cc_list}&subject={urllib.parse.quote(subject)}"
+    
+    webbrowser.open(mailto_url)
 
 def open_user_guide():
     """Open the user guide HTML file in the default browser"""
@@ -1500,11 +1523,11 @@ def open_user_guide():
         messagebox.showerror("Error", f"Failed to open user guide: {str(e)}")
 
 # Create standard menu bar (like in the second image)
-menu_bar = tk.Menu(root)
+menu_bar = tk.Menu(root, font=("Arial", 9, "bold"))
 root.configure(menu=menu_bar)
 
 # File menu
-file_menu = tk.Menu(menu_bar, tearoff=0)
+file_menu = tk.Menu(menu_bar, tearoff=0, font=("Arial", 9, "normal"))
 menu_bar.add_cascade(label="Menu", menu=file_menu)
 file_menu.add_command(label="New Review", command=lambda: file_menu_callback("New Review"))
 file_menu.add_command(label="View Latest Report", command=lambda: open_latest_report())
@@ -1514,12 +1537,12 @@ file_menu.add_separator()
 file_menu.add_command(label="Exit", command=root.quit)
 
 # Help menu
-help_menu = tk.Menu(menu_bar, tearoff=0)
+help_menu = tk.Menu(menu_bar, tearoff=0, font=("Arial", 9, "normal"))
 menu_bar.add_cascade(label="Help", menu=help_menu)
 help_menu.add_command(label="User Guide", command=lambda: open_user_guide())
 help_menu.add_separator()
 help_menu.add_command(label="About", command=show_about)
-help_menu.add_command(label="Support", command=show_contact)
+help_menu.add_command(label="Feedback", command=show_contact)
 
 # File Menu callback function (used in lambda above)
 def clear_activity_log():
@@ -1555,9 +1578,9 @@ def file_menu_callback(choice):
                 progress_percentage_label.configure(text="0%")
         status_message.set("")
         if time_taken_label:
-            time_taken_label.configure(text="Time Taken: -")
+            time_taken_label.configure(text="-")
         if cost_label:
-            cost_label.configure(text="Est. Cost: -")
+            cost_label.configure(text="-")
         if view_pr_button:
             view_pr_button.configure(state="disabled")
 
@@ -1573,12 +1596,9 @@ settings_frame.grid(row=0, column=0, padx=10, pady=(0,10), sticky="ew")
 settings_frame.grid_columnconfigure(0, weight=1)
 settings_frame.grid_columnconfigure(1, weight=0)
 
-app_info_label = customtkinter.CTkLabel(
-    settings_frame, 
-    text=f"AI Code Review Tool v{APP_VERSION}", 
-    font=customtkinter.CTkFont(size=14, weight="bold")
-)
-app_info_label.grid(row=0, column=0, padx=10, pady=5)
+# Add header label to settings frame
+header_label = customtkinter.CTkLabel(settings_frame, text="🤖 AI Code Review Tool", font=customtkinter.CTkFont(size=20, weight="bold"))
+header_label.grid(row=0, column=0, pady=5, padx=10, sticky="w")
 
 # Theme selector with a toggle switch
 theme_frame = customtkinter.CTkFrame(settings_frame)
@@ -1600,8 +1620,6 @@ mode_switch.pack(side="right", padx=5)
 input_frame = customtkinter.CTkFrame(left_frame)
 input_frame.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
 input_frame.grid_columnconfigure(1, weight=1)
-header_label = customtkinter.CTkLabel(input_frame, text="🤖 AI Code Review Tool", font=customtkinter.CTkFont(size=20, weight="bold"))
-header_label.grid(row=0, column=0, columnspan=3, pady=(0, 20), padx=10)
 
 # --- Updated Info Button ---
 def create_ctk_info_button(parent, row, column, info_text):
@@ -1615,39 +1633,39 @@ def create_ctk_info_button(parent, row, column, info_text):
     btn.grid(row=row, column=column, padx=5)
 
 # GitHub Token
-gh_token_label = customtkinter.CTkLabel(input_frame, text="GitHub Token:")
-gh_token_label.grid(row=1, column=0, sticky='w', padx=10, pady=5)
+gh_token_label = customtkinter.CTkLabel(input_frame, text="GitHub Token:", font=customtkinter.CTkFont(weight="bold"))
+gh_token_label.grid(row=0, column=0, sticky='w', padx=10, pady=5)
 github_token_entry = customtkinter.CTkEntry(input_frame, show="*", placeholder_text="Enter GitHub PAT")
-github_token_entry.grid(row=1, column=1, pady=5, padx=10, sticky="ew")
-create_ctk_info_button(input_frame, 1, 2, "Enter your GitHub personal access token. Required for GitHub API access.")
+github_token_entry.grid(row=0, column=1, pady=5, padx=10, sticky="ew")
+create_ctk_info_button(input_frame, 0, 2, "Enter your GitHub personal access token. Required for GitHub API access.")
 
 # OpenArena Token
-oa_token_label = customtkinter.CTkLabel(input_frame, text="OpenArena Token:")
-oa_token_label.grid(row=2, column=0, sticky='w', padx=10, pady=5)
+oa_token_label = customtkinter.CTkLabel(input_frame, text="OpenArena Token:", font=customtkinter.CTkFont(weight="bold"))
+oa_token_label.grid(row=1, column=0, sticky='w', padx=10, pady=5)
 openarena_token_entry = customtkinter.CTkEntry(input_frame, show="*", placeholder_text="Enter OpenArena API Token")
-openarena_token_entry.grid(row=2, column=1, pady=5, padx=10, sticky="ew")
-create_ctk_info_button(input_frame, 2, 2, "Enter your OpenArena token for AI API authentication.")
+openarena_token_entry.grid(row=1, column=1, pady=5, padx=10, sticky="ew")
+create_ctk_info_button(input_frame, 1, 2, "Enter your OpenArena token for AI API authentication.")
 
 # OpenArena Link
 openarena_link_label = customtkinter.CTkLabel(input_frame, text="OpenArena Platform Link", text_color="blue", cursor="hand2", font=customtkinter.CTkFont(underline=True))
-openarena_link_label.grid(row=3, column=0, columnspan=3, pady=(0, 10), padx=10, sticky='w')
+openarena_link_label.grid(row=2, column=0, columnspan=3, pady=(0, 10), padx=10, sticky='w')
 openarena_link_label.bind("<Button-1>", open_openarena_link)
 
 # Repository Name
-repo_label = customtkinter.CTkLabel(input_frame, text="Repository Name:")
-repo_label.grid(row=4, column=0, sticky='w', padx=10, pady=5)
+repo_label = customtkinter.CTkLabel(input_frame, text="Repository Name:", font=customtkinter.CTkFont(weight="bold"))
+repo_label.grid(row=3, column=0, sticky='w', padx=10, pady=5)
 
 # Create a frame to hold the combobox and integrate it with customtkinter
 repo_frame = customtkinter.CTkFrame(input_frame, fg_color="transparent")
-repo_frame.grid(row=4, column=1, pady=5, padx=10, sticky="ew")
+repo_frame.grid(row=3, column=1, pady=5, padx=10, sticky="ew")
 repo_frame.grid_columnconfigure(0, weight=1)  # Make the combobox expand
 
 # Load recent repositories
 recent_repos = load_recent_repos()
 
-# Create a standard ttk Combobox for repository selection
-repo_combobox = ttk.Combobox(repo_frame, values=recent_repos)
-repo_combobox.pack(fill='x', expand=True)
+# Create a standard ttk Combobox for repository selection with improved sizing
+repo_combobox = ttk.Combobox(repo_frame, values=recent_repos, height=10)  # Increased dropdown height for better visibility
+repo_combobox.pack(fill='x', expand=True, pady=4)  # Increased vertical padding to match PR entry box
 
 # Set placeholder text if no repos exist
 if recent_repos:
@@ -1658,14 +1676,14 @@ else:
 # For compatibility with existing code
 repo_name_entry = repo_combobox
 
-create_ctk_info_button(input_frame, 4, 2, "Select or enter repository name (e.g., 'owner/repo').")
+create_ctk_info_button(input_frame, 3, 2, "Select or enter repository name (e.g., 'owner/repo').")
 
 # Pull Request Number
-pr_label = customtkinter.CTkLabel(input_frame, text="Pull Request No.:")
-pr_label.grid(row=5, column=0, sticky='w', padx=10, pady=5)
+pr_label = customtkinter.CTkLabel(input_frame, text="Pull Request No.:", font=customtkinter.CTkFont(weight="bold"))
+pr_label.grid(row=4, column=0, sticky='w', padx=10, pady=5)
 pr_number_entry = customtkinter.CTkEntry(input_frame, placeholder_text="Enter PR number")
-pr_number_entry.grid(row=5, column=1, pady=5, padx=10, sticky="ew")
-create_ctk_info_button(input_frame, 5, 2, "Enter the pull request number.")
+pr_number_entry.grid(row=4, column=1, pady=5, padx=10, sticky="ew")
+create_ctk_info_button(input_frame, 4, 2, "Enter the pull request number.")
 
 # Add a checkbox for posting comments option
 post_comments_var = tk.BooleanVar(value=True)
@@ -1676,8 +1694,8 @@ post_comments_checkbox = customtkinter.CTkCheckBox(
     onvalue=True, 
     offvalue=False
 )
-post_comments_checkbox.grid(row=6, column=0, columnspan=2, sticky='w', padx=10, pady=5)
-create_ctk_info_button(input_frame, 6, 2, "When unchecked, comments will be shown in the log but not posted to GitHub PR.")
+post_comments_checkbox.grid(row=5, column=0, columnspan=2, sticky='w', padx=10, pady=5)
+create_ctk_info_button(input_frame, 5, 2, "When unchecked, comments will be shown in the log but not posted to GitHub PR.")
 
 
 # --- Control Buttons Frame ---
@@ -1808,7 +1826,7 @@ status_message = tk.StringVar()
 status_label = customtkinter.CTkLabel(status_footer_frame, textvariable=status_message, font=customtkinter.CTkFont(size=12))
 status_label.grid(row=0, column=0, columnspan=2, pady=(0,5))
 
-version_label_bottom = customtkinter.CTkLabel(status_footer_frame, text=f"Version {APP_VERSION}", font=customtkinter.CTkFont(size=10))
+version_label_bottom = customtkinter.CTkLabel(status_footer_frame, text=f"AI Code Review Tool v{APP_VERSION}", font=customtkinter.CTkFont(size=10, weight="bold"))
 version_label_bottom.grid(row=1, column=0, sticky="w", padx=5)
 
 footer_label = customtkinter.CTkLabel(status_footer_frame, text="Built by Ultratax Team, 2025", font=customtkinter.CTkFont(size=10))
