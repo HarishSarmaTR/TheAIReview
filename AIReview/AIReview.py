@@ -911,8 +911,32 @@ def create_comments_html_report(comments, pr_url, repo_name, pr_number):
         view_report_button.configure(state="normal")
     
     # Open the report in the browser
-    webbrowser.open(f"file://{report_file}")
-    log_activity(f"🌐 Opening review report in browser...")
+    try:
+        if os.name == 'nt':  # Windows
+            log_activity(f"🌐 Opening review report using os.startfile: {report_file}")
+            os.startfile(report_file)
+        else:  # Unix/Linux/Mac
+            # For non-Windows systems, use webbrowser with proper file URL
+            file_url = f"file://{os.path.abspath(report_file)}"
+            log_activity(f"🌐 Opening review report URL: {file_url}")
+            webbrowser.open(file_url)
+        log_activity(f"🌐 Review report opened in browser")
+    except Exception as open_error:
+        log_activity(f"❌ Failed to open report with primary method: {open_error}")
+        # Fallback: try using webbrowser with different URL formats
+        try:
+            # Convert backslashes to forward slashes for URL
+            abs_path = os.path.abspath(report_file)
+            url_path = abs_path.replace('\\', '/')
+            if not url_path.startswith('/'):
+                url_path = '/' + url_path
+            file_url = f"file://{url_path}"
+            log_activity(f"🌐 Fallback: Opening report URL: {file_url}")
+            webbrowser.open(file_url)
+            log_activity(f"🌐 Review report opened in browser (fallback method)")
+        except Exception as fallback_error:
+            log_activity(f"❌ Report opening fallback also failed: {fallback_error}")
+            # Don't raise exception here as this is not critical to the main functionality
 
 def main(repo_name, pr_number, post_comments=True):
     total_files_in_pr = 0
@@ -1445,8 +1469,32 @@ def open_user_guide():
         guide_path = os.path.abspath(guide_path)
         
         # At this point we've already verified the guide exists, so just open it
-        webbrowser.open(f"file://{guide_path}")
-        log_activity("📖 User guide opened in browser")
+        # Use os.startfile for Windows to ensure it opens in the default browser
+        try:
+            if os.name == 'nt':  # Windows
+                log_activity(f"🔗 Opening user guide using os.startfile: {guide_path}")
+                os.startfile(guide_path)
+            else:  # Unix/Linux/Mac
+                # For non-Windows systems, use webbrowser with proper file URL
+                file_url = f"file://{guide_path}"
+                log_activity(f"🔗 Opening user guide URL: {file_url}")
+                webbrowser.open(file_url)
+            log_activity("📖 User guide opened in browser")
+        except Exception as open_error:
+            log_activity(f"❌ Failed to open with primary method: {open_error}")
+            # Fallback: try using webbrowser with different URL formats
+            try:
+                # Convert backslashes to forward slashes for URL
+                url_path = guide_path.replace('\\', '/')
+                if not url_path.startswith('/'):
+                    url_path = '/' + url_path
+                file_url = f"file://{url_path}"
+                log_activity(f"🔗 Fallback: Opening user guide URL: {file_url}")
+                webbrowser.open(file_url)
+                log_activity("📖 User guide opened in browser (fallback method)")
+            except Exception as fallback_error:
+                log_activity(f"❌ Fallback also failed: {fallback_error}")
+                raise Exception(f"Could not open user guide. Primary error: {open_error}, Fallback error: {fallback_error}")
     except Exception as e:
         log_activity(f"❌ Error opening user guide: {str(e)}")
         messagebox.showerror("Error", f"Failed to open user guide: {str(e)}")
@@ -1698,7 +1746,23 @@ latest_report_path = None
 def open_latest_report():
     global latest_report_path
     if latest_report_path and os.path.exists(latest_report_path):
-        webbrowser.open(f"file://{latest_report_path}")
+        try:
+            if os.name == 'nt':  # Windows
+                os.startfile(latest_report_path)
+            else:  # Unix/Linux/Mac
+                file_url = f"file://{os.path.abspath(latest_report_path)}"
+                webbrowser.open(file_url)
+        except Exception as e:
+            # Fallback method
+            try:
+                abs_path = os.path.abspath(latest_report_path)
+                url_path = abs_path.replace('\\', '/')
+                if not url_path.startswith('/'):
+                    url_path = '/' + url_path
+                file_url = f"file://{url_path}"
+                webbrowser.open(file_url)
+            except Exception as fallback_error:
+                messagebox.showerror("Error", f"Failed to open report: {e}")
     else:
         # Look for most recent report in the reports directory
         reports_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "reports")
@@ -1706,7 +1770,23 @@ def open_latest_report():
             reports = [os.path.join(reports_dir, f) for f in os.listdir(reports_dir) if f.startswith("review_report_") and f.endswith(".html")]
             if reports:
                 latest_report = max(reports, key=os.path.getmtime)
-                webbrowser.open(f"file://{latest_report}")
+                try:
+                    if os.name == 'nt':  # Windows
+                        os.startfile(latest_report)
+                    else:  # Unix/Linux/Mac
+                        file_url = f"file://{os.path.abspath(latest_report)}"
+                        webbrowser.open(file_url)
+                except Exception as e:
+                    # Fallback method
+                    try:
+                        abs_path = os.path.abspath(latest_report)
+                        url_path = abs_path.replace('\\', '/')
+                        if not url_path.startswith('/'):
+                            url_path = '/' + url_path
+                        file_url = f"file://{url_path}"
+                        webbrowser.open(file_url)
+                    except Exception as fallback_error:
+                        messagebox.showerror("Error", f"Failed to open report: {e}")
                 return
         messagebox.showinfo("No Report", "No review report found. Run a code review without posting comments to generate a report.")
 
