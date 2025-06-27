@@ -71,10 +71,10 @@ def review_code_with_ai(diff, openarena_token, log_activity_fn=None):
             "Line 42: Logical error: The loop condition 'i <= array.size()' will cause out-of-bounds access on the last iteration. Should be 'i < array.size()' instead.\n\n"
             "Line 78: Potential null pointer dereference: 'ptr' is not checked for nullptr before being accessed.\n\n"
         ),
-        "workflow_id": "0a654593-da34-4dfe-a6ed-9c8506e31b73",  # OpenArena Chain workflow ID
+        "workflow_id": "7c41c3ab-c214-4394-ba38-9da289975d85",  # OpenArena Chain workflow ID
         "is_persistence_allowed": False,
         "modelparams": {
-            "openai_gpt-4o": {
+            "anthropic_direct.claude-v4-sonnet": {
                 "temperature": "0.7",
                 "top_p": "1", 
                 "max_tokens": "16384",

@@ -1,4 +1,4 @@
-import tkinter as tk
+﻿import tkinter as tk
 from tkinter import messagebox, Toplevel, Label, Button
 import customtkinter # Added customtkinter
 import sys
@@ -250,6 +250,65 @@ def run_code_review():
     if not (github_token and openarena_token and repo_name and pr_number):
         messagebox.showerror("Input Error", "Please fill in all fields.")
         return
+    
+    # Validate OpenArena token format and show specific error if invalid
+    if not openarena_token or len(openarena_token.strip()) < 10:
+        messagebox.showerror(
+            "OpenArena Token Error", 
+            "Invalid OpenArena token detected!\n\n"
+            "Please ensure you have entered a valid OpenArena API token.\n"
+            "The token should be obtained from the OpenArena platform.\n\n"
+            "If you don't have a token, please visit the OpenArena platform link above to get one."
+        )
+        return
+    
+    # Test OpenArena token by making a simple API call
+    try:
+        test_headers = {
+            'Authorization': f'Bearer {openarena_token}',
+            'Content-Type': 'application/json'
+        }
+        test_payload = {
+            "query": "test",
+            "workflow_id": "7c41c3ab-c214-4394-ba38-9da289975d85",
+            "is_persistence_allowed": False,
+            "modelparams": {
+                "anthropic_direct.claude-v4-sonnet": {
+                    "temperature": "0.7",
+                    "max_tokens": "10"
+                }
+            }
+        }
+        
+        log_activity("Validating OpenArena token...")
+        test_response = requests.post(
+            "https://aiopenarena.gcs.int.thomsonreuters.com/v1/inference",
+            headers=test_headers, 
+            json=test_payload, 
+            timeout=10
+        )
+        
+        if test_response.status_code == 401:
+            messagebox.showerror(
+                "OpenArena Token Authentication Failed", 
+                "The OpenArena token you provided is invalid or expired.\n\n"
+                "Please check your token and try again.\n"
+                "You can get a valid token from the OpenArena platform."
+            )
+            return
+        elif test_response.status_code >= 400:
+            log_activity(f"⚠️ OpenArena API test returned status {test_response.status_code}, but proceeding with review...")
+        else:
+            log_activity("✅ OpenArena token validation successful")
+            
+    except Exception as e:
+        log_activity(f"⚠️ Could not validate OpenArena token (network issue?): {e}")
+        # Don't stop the process for network issues, just warn
+        messagebox.showwarning(
+            "Token Validation Warning", 
+            "Could not validate OpenArena token due to network issues.\n\n"
+            "Proceeding with code review. If the token is invalid, the review will fail."
+        )
         
     log_activity(f"Post comments to PR: {'Yes' if post_comments else 'No - comments will be shown only in log'}")
     # Update status via activity log and status label
@@ -445,7 +504,7 @@ def review_code(diff, openarena_token):
         import requests
         import time
         
-        # Basic API request with Claude v4 parameters
+        # Basic API request with Claude 4 Sonnet parameters
         headers = {
             'Authorization': f'Bearer {openarena_token}',
             'Content-Type': 'application/json'
@@ -497,14 +556,14 @@ def review_code(diff, openarena_token):
                 "Line 42: Logical error: The loop condition 'i <= array.size()' will cause out-of-bounds access on the last iteration. Should be 'i < array.size()' instead.\n\n"
                 "Line 78: Potential null pointer dereference: 'ptr' is not checked for nullptr before being accessed.\n\n"
             ),
-            "workflow_id": "0a654593-da34-4dfe-a6ed-9c8506e31b73",  # OpenArena Chain workflow ID
+            "workflow_id": "7c41c3ab-c214-4394-ba38-9da289975d85",  # OpenArena Chain workflow ID
             "is_persistence_allowed": False,
             "modelparams": {
-                "openai_gpt-4o": {
+                "anthropic_direct.claude-v4-sonnet": {
                     "temperature": "0.7",
                     "top_p": "1",
                     "max_tokens": "16384",
-                    "enable_reasoning": "true",                    "system_prompt": (
+                    "system_prompt": (
                         "You are a senior Software Developer with 20+ years of experience reviewing code changes for a team of skilled professionals. "
                         "You understand that over-commenting on trivial matters is counter-productive. "
                         "Focus ONLY on significant issues in the code that could cause actual bugs, serious performance problems, or major maintainability challenges. "
@@ -532,7 +591,7 @@ def review_code(diff, openarena_token):
                     log_activity(f"Retry attempt {retry_count}/{max_retries} for OpenArena API call...")
                     
                 # Make the API request
-                log_activity("Sending request to OpenArena API...")
+                log_activity("Sending request to OpenArena API (Claude 4 Sonnet)...")
                 response = requests.post(
                     "https://aiopenarena.gcs.int.thomsonreuters.com/v1/inference",
                     headers=headers, 
@@ -547,9 +606,9 @@ def review_code(diff, openarena_token):
                       # Try to get the answer from multiple possible model names
                     model_answer = ai_response.get('result', {}).get('answer', {})
                     feedback = (
+                        model_answer.get('anthropic_direct.claude-v4-sonnet', '') or
                         model_answer.get('openai_gpt-4o', '') or
                         model_answer.get('vertexai_gemini-2.5-pro', '') or
-                        model_answer.get('anthropic_direct.claude-v4-sonnet', '') or
                         model_answer.get('vertexai_palm-2', '')
                     )
                     

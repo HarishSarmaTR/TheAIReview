@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Code Review Tool - User Guide</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.7;
+            color: #333;
+            min-height: 100vh;
+            /* AI/tech background image from Unsplash, with gradient overlay */
+            background: 
+                linear-gradient(135deg, rgba(102,126,234,0.85) 0%, rgba(118,75,162,0.85) 50%, rgba(102,126,234,0.85) 100%),
+                url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2340&q=80') no-repeat center center fixed;
+            background-size: cover, cover;
+            animation: gradientShift 15s ease infinite;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%, center; }
+            50% { background-position: 100% 50%, center; }
+            100% { background-position: 0% 50%, center; }
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            animation: slideUp 0.8s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2196F3 0%, #21CBF3 50%, #00BCD4 100%);
+            color: white;
+            padding: 60px 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .header h1 {
+            font-size: 3.5em;
+            font-weight: 300;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header p {
+            font-size: 1.4em;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+            font-weight: 300;
+        }
+        
+        .nav-bar {
+            background: rgba(33, 150, 243, 0.9);
+            padding: 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .nav-list {
+            display: flex;
+            list-style: none;
+            overflow-x: auto;
+            scrollbar-width: thin;
+            white-space: nowrap;
+            padding: 0 20px;
+        }
+        
+        .nav-list li {
+            margin: 0;
+            padding: 0;
+        }
+        
+        .nav-list a {
+            display: inline-block;
+            color: white;
+            text-decoration: none;
+            padding: 15px 20px;
+            font-weight: 500;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-list a:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .nav-list a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 3px;
+            background: white;
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+        
+        .nav-list a:hover::after, .nav-list a.current::after {
+            width: 80%;
+        }
+        
+        .nav-list a.current {
+            background: rgba(255,255,255,0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+        }
+        
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .nav-links li {
+            margin: 0;
+        }
+        
+        .nav-links a {
+            display: block;
+            padding: 15px 25px;
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-bottom-color: #FFD700;
+            transform: translateY(-2px);
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border-left: 4px solid #2196F3;
+            background: #f8f9fa;
+            border-radius: 5px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.5s ease;
+            scroll-margin-top: 70px; /* Ensures the section starts below the sticky navigation */
+        }
+        
+        .section.active {
+            background: #e3f2fd;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transform: translateY(-5px);
+        }
+        
+        .section:target {
+            animation: highlight 1.5s ease;
+        }
+        
+        @keyframes highlight {
+            0% { background-color: #e3f2fd; }
+            50% { background-color: #e3f2fd; }
+            100% { background-color: #f8f9fa; }
+        }
+        
+        .section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .section h2 {
+            color: #2196F3;
+            margin-top: 0;
+            font-size: 1.5em;
+        }
+        
+        .step {
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border-left: 3px solid #4CAF50;
+        }
+        
+        .step-number {
+            background: #4CAF50;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .tip {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .code {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            border-left: 3px solid #FF6F00;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .feature-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #2196F3;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 24px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+            z-index: 1000;
+        }
+        
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(33, 150, 243, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(33, 150, 243, 0); }
+        }
+        
+        .back-to-top:hover {
+            background: #0b7dda;
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            animation: none;
+        }
+        
+        .team-members {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+        
+        @media (max-width: 600px) {
+            .team-members {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .team-member {
+                width: 100%;
+                max-width: 250px;
+            }
+        }
+        
+        .team-member {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            flex: 1;
+            min-width: 200px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .team-member:hover {
+            transform: translateY(-5px);
+        }
+        
+        .team-member h4 {
+            color: #2196F3;
+            margin-bottom: 5px;
+        }
+        
+        .team-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+            border: 2px solid #2196F3;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #6676ea 0%, #764ba2 100%);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .tr-branded {
+            background: #FF8F00;
+            background: linear-gradient(145deg, #FF8F00, #FF6F00);
+            border-color: #FF6F00;
+        }
+        
+        .team-avatar .initials {
+            font-size: 36px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            letter-spacing: 1px;
+        }
+        
+        .team-avatar:after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+            width: 30px;
+            height: 30px;
+            background-image: url('../images/TR.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            transform: rotate(10deg);
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
+        }
+        
+        .team-member:hover .team-avatar {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+        
+        .resource-list {
+            list-style: none;
+            margin: 15px 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .resource-list li {
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .resource-list li:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .resource-list li:last-child {
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .resource-list strong {
+            color: #2196F3;
+        }
+        
+        .resource-link {
+            display: inline-block;
+            color: #0D47A1;
+            text-decoration: none;
+            margin: 10px 0 5px 0;
+            padding: 8px 15px;
+            background: rgba(33, 150, 243, 0.1);
+            border-radius: 20px;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            word-break: break-all;
+        }
+        
+        .resource-link:hover {
+            background: rgba(33, 150, 243, 0.2);
+            color: #0b7dda;
+            transform: translateX(3px);
+        }
+        
+        .resource-list p {
+            margin: 8px 0;
+            color: #666;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        /* Responsive design for resources */
+        @media (max-width: 768px) {
+            .resource-list {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .resource-list li {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI Code Review Tool</h1>
+            <p>Intelligent Code Analysis for GitHub Pull Requests</p>
+        </div>
+        
+        <div class="nav-bar">
+            <ul class="nav-list">
+                <li><a href="#getting-started">Getting Started</a></li>
+                <li><a href="#setup">Setup</a></li>
+                <li><a href="#how-to-use">How to Use</a></li>
+                <li><a href="#interface-guide">Interface Guide</a></li>
+                <li><a href="#review-results">Review Results</a></li>
+                <li><a href="#troubleshooting">Troubleshooting</a></li>
+                <li><a href="#advanced-features">Advanced Features</a></li>
+                <li><a href="#credits">Credits</a></li>
+                <li><a href="#resources">Resources</a></li>
+            </ul>
+        </div>
+        
+        <div class="content">
+            <div id="getting-started" class="section">
+                <h2>🚀 Getting Started</h2>
+                <p>Welcome to the AI Code Review Tool! This application uses advanced AI to automatically review your GitHub pull requests, providing intelligent feedback and suggestions.</p>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3>Fast Reviews</h3>
+                        <p>Get instant AI-powered code reviews in seconds</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🎯</div>
+                        <h3>Accurate Analysis</h3>
+                        <p>Identifies real issues, not just style preferences</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <h3>Review Metrics</h3>
+                        <p>Track time taken and estimated costs</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="setup" class="section">
+                <h2>🔧 Setup Instructions</h2>
+                
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <strong>GitHub Token Setup</strong><br>
+                    Create a personal access token at GitHub Settings > Developer settings > Personal access tokens
+                    <div class="tip">
+                        <strong>Required permissions:</strong> repo, read:user, user:email
+                    </div>
+                    
+                    <h4>Step-by-step with screenshots:</h4>
+                    <div style="margin: 15px 0;">
+                        <img src="../images/docs/Gt_1.png" alt="GitHub Settings" style="max-width: 100%; border: 1px solid #ddd; border-radius: 5px; margin: 5px 0;">
+                        <p><em>Navigate to GitHub Settings > Developer settings</em></p>
+                    </div>
+                    
+                    <div style="margin: 15px 0;">
+                        <img src="../images/docs/Gt_2.png" alt="Personal Access Tokens" style="max-width: 100%; border: 1px solid #ddd; border-radius: 5px; margin: 5px 0;">
+                        <p><em>Select Personal access tokens > Tokens (classic)</em></p>
+                    </div>
+                    
+                    <div style="margin: 15px 0;">
+                        <img src="../images/docs/Gt_3.png" alt="Generate Token" style="max-width: 100%; border: 1px solid #ddd; border-radius: 5px; margin: 5px 0;">
+                        <p><em>Generate new token with required permissions</em></p>
+                    </div>
+                    
+                    <div class="warning">
+                        <strong>Important:</strong> After selecting the required permissions (repo, read:user, user:email), you must also configure SSO (Single Sign-On) authorization for your organization.
+                        <br><br>
+                        Look for the "Configure SSO" button next to your organization name and authorize the token for use with your Thomson Reuters organization.
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <strong>OpenArena Token Setup</strong><br>
+                    Get your OpenArena API token from the Thomson Reuters AI platform
+                    <div class="code">
+                        https://dataandanalytics.int.thomsonreuters.com/ai-platform/
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <strong>Save Tokens</strong><br>
+                    Enter both tokens in the application and click "Save Tokens" to securely store them
+                    <div class="warning">
+                        <strong>Security:</strong> Tokens are encrypted and stored locally on your machine
+                    </div>
+                </div>
+            </div>
+
+            <div id="how-to-use" class="section">
+                <h2>📝 How to Use</h2>
+                
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <strong>Enter Repository Information</strong><br>
+                    Type the repository name in format: <code>owner/repository-name</code><br>
+                    Example: <code>microsoft/vscode</code>
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <strong>Enter Pull Request Number</strong><br>
+                    Enter the PR number (just the number, e.g., <code>1234</code>)
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <strong>Start Review</strong><br>
+                    Click "Start AI Review" to begin the analysis process
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">4</span>
+                    <strong>Monitor Progress</strong><br>
+                    Watch the progress bar and activity log for real-time updates
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">5</span>
+                    <strong>View Results</strong><br>
+                    Check the generated report and view metrics in the right panel
+                </div>
+            </div>
+
+            <div id="interface-guide" class="section">
+                <h2>🎛️ Interface Guide</h2>
+                
+                <div style="margin: 20px 0;">
+                    <h3>Application Interface Overview</h3>
+                    <img src="../images/docs/AIR.png" alt="AI Review Tool Interface" style="max-width: 100%; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;">
+                    <p><em>Main interface showing token management, repository selection, and progress tracking</em></p>
+                </div>
+                
+
+                
+                <h3>Left Panel - Controls</h3>
+                <ul>
+                    <li><strong>Token Management:</strong> Secure storage of your API tokens</li>
+                    <li><strong>Repository Selection:</strong> Recent repositories dropdown for quick access</li>
+                    <li><strong>Progress Tracking:</strong> Real-time progress bar with percentage display</li>
+                    <li><strong>Action Buttons:</strong> Start review, view PR, open reports</li>
+                </ul>
+                
+                <h3>Right Panel - Activity & Metrics</h3>
+                <ul>
+                    <li><strong>Activity Log:</strong> Real-time updates with timestamps</li>
+                    <li><strong>Clear Function:</strong> Reset log and metrics with one click</li>
+                    <li><strong>Review Metrics:</strong> Time taken and estimated cost tracking</li>
+                    <li><strong>Report Access:</strong> Quick links to generated HTML reports</li>
+                </ul>
+            </div>
+
+            <div id="review-results" class="section">
+                <h2>📊 Understanding Review Results</h2>
+                
+                <h3>What the AI Reviews</h3>
+                <ul>
+                    <li><strong>Logic Errors:</strong> Faulty logic that could cause bugs</li>
+                    <li><strong>Security Issues:</strong> Potential vulnerabilities</li>
+                    <li><strong>Performance Problems:</strong> Significant performance impacts</li>
+                    <li><strong>Runtime Errors:</strong> Code that might crash or behave unexpectedly</li>
+                    <li><strong>Maintainability:</strong> Major readability and maintenance concerns</li>
+                </ul>
+                
+                <h3>What the AI Ignores</h3>
+                <ul>
+                    <li>Trivial style issues</li>
+                    <li>Code that already follows best practices</li>
+                    <li>Working test code and fixtures</li>
+                    <li>Minor optimizations that would be premature</li>
+                </ul>
+                
+                <div class="tip">
+                    <strong>Pro Tip:</strong> The AI focuses on meaningful issues that matter for code quality and reliability
+                </div>
+            </div>
+
+            <div id="troubleshooting" class="section">
+                <h2>🔍 Troubleshooting</h2>
+                
+                <h3>Common Issues</h3>
+                
+                <div class="warning">
+                    <strong>Token Errors:</strong> Ensure your GitHub token has the correct permissions.
+                </div>
+                
+                <div class="warning">
+                    <strong>AI Review Failed:</strong> Check your OpenArena API token and internet connection.
+                </div>
+                
+                <div class="warning">
+                    <strong>Comments Not Appearing on PR?</strong> Verify that the PR number and repository name are correct.
+                </div>
+                
+                <h3>Getting Help</h3>
+                <ul>
+                    <li>Check the Activity Log for detailed error messages</li>
+                    <li>Use the Help menu in the application</li>
+                    <li>For any issues, feel free to open an issue in the repo</li>
+                    <li>Contact the Ultratax Team for support</li>
+                </ul>
+            </div>
+
+            <div id="advanced-features" class="section">
+                <h2>⚡ Advanced Features</h2>
+                
+                <h3>Recent Repositories</h3>
+                <p>The application remembers your recently used repositories for quick access via the dropdown menu.</p>
+                
+                <h3>Report Management</h3>
+                <p>All review reports are saved in the <code>reports/</code> folder with timestamped filenames for easy tracking.</p>
+                
+                <h3>Cost Tracking</h3>
+                <p>Monitor your AI usage costs with real-time estimates based on Claude 4 Sonnet pricing.</p>
+                
+                <h3>Batch Processing</h3>
+                <p>The tool processes multiple files in a PR sequentially, providing comprehensive coverage.</p>
+            </div>
+            
+            <div id="credits" class="section">
+                <h2>🏆 Credits</h2>
+                
+                <h3>Developed by the Ultratax Team, 2025</h3>
+                <div class="team-members">
+                    <div class="team-member">
+                        <div class="team-avatar tr-branded">
+                            <span class="initials">KK</span>
+                        </div>
+                        <h4>Kalyani Kandunuri</h4>
+                        <p>Senior Software Engineer</p>
+                    </div>
+                    <div class="team-member">
+                        <div class="team-avatar tr-branded">
+                            <span class="initials">HV</span>
+                        </div>
+                        <h4>Harish Sarma Velavalapalli</h4>
+                        <p>Software Engineer</p>
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 20px;">Special Thanks</h3>
+                <div class="team-members">
+                    <div class="team-member">
+                        <div class="team-avatar tr-branded">
+                            <span class="initials">RR</span>
+                        </div>
+                        <h4>Radhika Ramagiri</h4>
+                        <p>Technology Manager</p>
+                    </div>
+                    <div class="team-member">
+                        <div class="team-avatar tr-branded">
+                            <span class="initials">PK</span>
+                        </div>
+                        <h4>Prasad Kolaparthi</h4>
+                        <p>Lead Software Engineer</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="resources" class="section">
+                <h2>📚 Resources Used</h2>
+                
+                <ul class="resource-list">
+                    <li>
+                        <strong>GitHub API Documentation:</strong>
+                        <p>For understanding how to interact with GitHub programmatically</p>
+                        <a href="https://docs.github.com/en/rest" target="_blank" class="resource-link">https://docs.github.com/en/rest</a>
+                    </li>
+                    <li>
+                        <strong>OpenArena API Documentation:</strong>
+                        <p>For integrating AI-based code analysis</p>
+                        <a href="https://dataandanalytics.int.thomsonreuters.com/ai-platform/" target="_blank" class="resource-link">Thomson Reuters AI Platform</a>
+                    </li>
+                    <li>
+                        <strong>Python Official Documentation:</strong>
+                        <p>For language-specific features and libraries</p>
+                        <a href="https://docs.python.org/3/" target="_blank" class="resource-link">https://docs.python.org/3/</a>
+                    </li>
+                    <li>
+                        <strong>Custom Tkinter Documentation:</strong>
+                        <p>For creating the GUI interface</p>
+                        <a href="https://github.com/TomSchimansky/CustomTkinter" target="_blank" class="resource-link">https://github.com/TomSchimansky/CustomTkinter</a>
+                    </li>
+                    <li>
+                        <strong>PyGitHub Documentation:</strong>
+                        <p>For utilizing GitHub API features</p>
+                        <a href="https://github.com/PyGithub/PyGithub" target="_blank" class="resource-link">https://github.com/PyGithub/PyGithub</a>
+                    </li>
+                    <li>
+                        <strong>HTML5 & CSS3:</strong>
+                        <p>For creating this user guide</p>
+                        <a href="https://developer.mozilla.org/en-US/docs/Web" target="_blank" class="resource-link">MDN Web Docs</a>
+                    </li>
+                    <li>
+                        <strong>Unsplash:</strong>
+                        <p>For background image (royalty-free)</p>
+                        <a href="https://unsplash.com/" target="_blank" class="resource-link">https://unsplash.com/</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Built with ❤️ by the Ultratax Team | Version 2.0.0 | 2025</p>
+        </div>
+    </div>
+    
+    <a href="#" class="back-to-top"><i class="fas fa-arrow-up"></i></a>
+
+    <script>
+        // Back to top button functionality with smooth scroll
+        const backToTopButton = document.querySelector('.back-to-top');
+        
+        // Show/hide back to top button
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                backToTopButton.classList.add('visible');
+            } else {
+                backToTopButton.classList.remove('visible');
+            }
+        });
+        
+        // Add smooth scroll to top functionality
+        backToTopButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Smooth scroll to top
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+        
+        // Active navigation highlighting with enhanced visual feedback
+        const sections = document.querySelectorAll('.section');
+        const navLinks = document.querySelectorAll('.nav-list a');
+        
+        // Add smooth scrolling to all navigation links
+        navLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Get the target section
+                const targetId = this.getAttribute('href');
+                const targetSection = document.querySelector(targetId);
+                
+                // Smooth scroll to the section
+                targetSection.scrollIntoView({
+                    behavior: 'smooth'
+                });
+                
+                // Update URL without page jump
+                history.pushState(null, null, targetId);
+                
+                // Highlight the section temporarily
+                targetSection.classList.add('active');
+                setTimeout(() => {
+                    targetSection.classList.remove('active');
+                }, 1500);
+            });
+        });
+        
+        // Handle scroll events for navigation highlighting
+        window.addEventListener('scroll', () => {
+            let current = '';
+            
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                
+                if (scrollY >= (sectionTop - 200)) {
+                    current = section.getAttribute('id');
+                }
+            });
+            
+            // Remove all active classes first
+            sections.forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Add active class to current section
+            if (current) {
+                document.getElementById(current).classList.add('active');
+            }
+            
+            // Update navigation links
+            navLinks.forEach(link => {
+                link.style.fontWeight = '500';
+                link.style.color = 'white';
+                link.classList.remove('current');
+                
+                if (link.getAttribute('href').substring(1) === current) {
+                    link.style.fontWeight = '700';
+                    link.style.color = '#ffeb3b';
+                    link.classList.add('current');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
