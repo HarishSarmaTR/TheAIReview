@@ -25,7 +25,7 @@ def simple_review_code(diff, openarena_token, log_fn=None):
         'Authorization': f'Bearer {openarena_token}',
         'Content-Type': 'application/json'
     }
-      payload = {
+    payload = {
         "workflow_id": "0a654593-da34-4dfe-a6ed-9c8506e31b73",
         "query": f"""Review the following code changes: {diff}
 
@@ -74,7 +74,7 @@ If a file contains no significant issues, DO NOT add any comments for that file.
         
         if response.status_code == 200:
             ai_response = response.json()
-              # Try to get the answer from multiple possible model names
+            # Try to get the answer from multiple possible model names
             model_answer = ai_response.get('result', {}).get('answer', {})
             feedback = (
                 model_answer.get('openai_gpt-4o', '') or
