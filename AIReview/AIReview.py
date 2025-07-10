@@ -1,4 +1,7 @@
-﻿import tkinter as tk
+﻿#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import tkinter as tk
 from tkinter import messagebox, Toplevel, Label, Button
 import customtkinter # Added customtkinter
 import sys
@@ -54,14 +57,23 @@ last_pr_url = None  # Store the last reviewed PR URL for the View PR button
 view_pr_button = None
 repo_combobox = None  # Combobox for repository selection
 
+# Global variables for AI settings UI elements
+temperature_entry = None
+top_p_entry = None
+max_tokens_entry = None
+system_prompt_textbox = None
+workflow_entry = None
+filter_comments_var = None
+
 
 TOKEN_FILE = "tokens.txt"
 
 # Define the version as a static date-based version
-APP_VERSION = "2.0.0" # Incremented patch version for UI enhancements
+APP_VERSION = "2.0.1" # Incremented patch version for UI enhancements
                       # Versioning format: Major.Minor.Patch
                       # Major: Significant changes or new features
                       # Minor: Backward-compatible changes or improvements
+                      # Patch: Bug fixes or minor changes
                       
 # File to store recently used repositories
 RECENT_REPOS_FILE = "recent_repos.json"
@@ -297,12 +309,12 @@ def run_code_review():
             )
             return
         elif test_response.status_code >= 400:
-            log_activity(f"⚠️ OpenArena API test returned status {test_response.status_code}, but proceeding with review...")
+            log_activity(f"[INFO] OpenArena API test returned status {test_response.status_code}, but proceeding with review...")
         else:
-            log_activity("✅ OpenArena token validation successful")
+            log_activity("[SUCCESS] OpenArena token validation successful")
             
     except Exception as e:
-        log_activity(f"⚠️ Could not validate OpenArena token (network issue?): {e}")
+        log_activity(f"[WARNING] Could not validate OpenArena token (network issue?): {e}")
         # Don't stop the process for network issues, just warn
         messagebox.showwarning(
             "Token Validation Warning", 
@@ -311,9 +323,19 @@ def run_code_review():
         )
         
     log_activity(f"Post comments to PR: {'Yes' if post_comments else 'No - comments will be shown only in log'}")
+    
+    # Log current AI settings
+    if 'temperature_entry' in globals() and temperature_entry:
+        temp = temperature_entry.get() or "0.7"
+        top_p = top_p_entry.get() or "1.0"
+        max_tok = max_tokens_entry.get() or "16384"
+        workflow = workflow_entry.get() or "default"
+        filtering = ai_settings.get("filter_comments", True)
+        log_activity(f"[CONFIG] AI Settings: Temp={temp}, Top-P={top_p}, Max-Tokens={max_tok}, Filtering={'On' if filtering else 'Off'}")
+    
     # Update status via activity log and status label
-    log_activity("Starting code review...🔍")
-    status_message.set("Running code review...🔍")
+    log_activity("Starting code review...")
+    status_message.set("Running code review...")
     if progress_bar:
         progress_bar.set(0)
         if progress_percentage_label:
@@ -402,7 +424,7 @@ def log_activity(message):
     root.update_idletasks()
 
 
-# 🎯 Extract exact modified lines from the patch
+# Extract exact modified lines from the patch
 def get_modified_lines_from_patch(patch_text):
     """
     Parse a git diff patch to extract added and removed lines.
@@ -462,23 +484,47 @@ def get_modified_lines_from_patch(patch_text):
             
     return modified_lines
 
-# 🚀 Send modified lines to AI for review
+# Send modified lines to AI for review
 def filter_review_comments(comments, filename):
     """
     Filter review comments based on specified rules.
     
     Rules:
-    1. Skip stdafx.h inclusion comments
-    2. Skip macro definition comments in certain contexts
-    3. Skip carry value comments
-    4. Add recommendations for non-const variables that could be const
-    5. Add recommendations against char* usage in favor of std::string/CString
+    1. Skip comments about CCMMDDYY date format (8-digit dates)
+    2. Skip comments about date arithmetic or Base_Date calculations
+    3. Skip comments about date constants and thresholds
     """
     if not comments:
         return comments
+    
+    filtered_comments = []
+    
+    # Keywords that indicate date-related comments to filter out
+    date_keywords = [
+        'date format', 'date calculation', 'ccmmddyy', 'yyyymmdd', 
+        'base_date', 'base date', 'date arithmetic', '20123100',
+        'invalid date', 'malformed date', 'date value', 'date functions',
+        'gadateannual', 'gadateext', 'dateext', 'datethresholds',
+        'iga::thresholds', 'extension due date', 'year-end calculations'
+    ]
+    
+    for comment in comments:
+        comment_lower = comment.lower()
         
-    # Simplified: No more filtering here since it's now part of the AI query
-    return comments
+        # Check if this comment is about dates (which we want to filter out)
+        is_date_comment = any(keyword in comment_lower for keyword in date_keywords)
+        
+        # Also check for 8-digit number patterns that might be dates
+        import re
+        has_8_digit_pattern = bool(re.search(r'\b\d{8}\b', comment))
+        
+        if is_date_comment or has_8_digit_pattern:
+            log_activity(f"[FILTER] Filtered out date-related comment: {comment[:100]}...")
+            continue
+            
+        filtered_comments.append(comment)
+    
+    return filtered_comments
 
 # Enhancement logic is now directly included in the AI query
 # No separate function needed for enhancing review comments
@@ -500,7 +546,7 @@ def review_code(diff, openarena_token):
                 return simple_review_code(diff, openarena_token, log_activity)
             except ImportError:
                 # If both imports fail, use the basic implementation
-                log_activity("⚠️ External reviewers not available. Using basic review function.")
+                log_activity("[WARNING] External reviewers not available. Using basic review function.")
                 pass
                 
         # Basic fallback implementation
@@ -512,76 +558,84 @@ def review_code(diff, openarena_token):
             'Authorization': f'Bearer {openarena_token}',
             'Content-Type': 'application/json'
         }        # Full payload with detailed prompt        
+        
+        # Get AI settings from global configuration
+        try:
+            # Use global AI settings with validation
+            workflow_id = ai_settings.get("workflow_id", "7c41c3ab-c214-4394-ba38-9da289975d85")
+            
+            # Validate and get temperature
+            temp_str = ai_settings.get("temperature", "0.7")
+            try:
+                temp_float = float(temp_str)
+                if 0.0 <= temp_float <= 2.0:
+                    temperature = temp_str
+                else:
+                    log_activity(f"[ERROR] Invalid temperature {temp_str}, using default 0.7")
+                    temperature = "0.7"
+            except ValueError:
+                log_activity(f"[ERROR] Invalid temperature format {temp_str}, using default 0.7")
+                temperature = "0.7"
+            
+            # Validate and get top_p
+            top_p_str = ai_settings.get("top_p", "1.0")
+            try:
+                top_p_float = float(top_p_str)
+                if 0.0 <= top_p_float <= 1.0:
+                    top_p = top_p_str
+                else:
+                    log_activity(f"[ERROR] Invalid top_p {top_p_str}, using default 1.0")
+                    top_p = "1.0"
+            except ValueError:
+                log_activity(f"[ERROR] Invalid top_p format {top_p_str}, using default 1.0")
+                top_p = "1.0"
+            
+            # Validate and get max_tokens
+            max_tokens_str = ai_settings.get("max_tokens", "16384")
+            try:
+                max_tokens_int = int(max_tokens_str)
+                if 1 <= max_tokens_int <= 200000:
+                    max_tokens = max_tokens_str
+                else:
+                    log_activity(f"[ERROR] Invalid max_tokens {max_tokens_str}, using default 16384")
+                    max_tokens = "16384"
+            except ValueError:
+                log_activity(f"[ERROR] Invalid max_tokens format {max_tokens_str}, using default 16384")
+                max_tokens = "16384"
+            
+            # Get system prompt from global settings
+            system_prompt = ai_settings.get("system_prompt", default_system_prompt)
+            if not system_prompt.strip():  # If empty, use default
+                system_prompt = default_system_prompt
+            
+            # Log the configuration being used
+            log_activity(f"[CONFIG] Using AI configuration: Workflow={workflow_id[:12]}..., Temp={temperature}, TopP={top_p}, MaxTokens={max_tokens}")
+            
+        except Exception as e:
+            log_activity(f"[ERROR] Error getting AI settings, using defaults: {e}")
+            workflow_id = "7c41c3ab-c214-4394-ba38-9da289975d85"
+            temperature = "0.7"
+            top_p = "1.0"
+            max_tokens = "16384"
+            system_prompt = default_system_prompt
+        
         payload = {
-            "query": (
-                "Review the following code from:" + diff + ", and provide SEPARATE COMMENTS FOR EACH MODIFIED LINE or logical block from the pull request ONLY where there are actual issues or improvements needed. DO NOT combine all comments into a single block.\n"
-                "Focus ONLY on the following aspects that require attention and don't comment on code that already follows best practices:\n"
-                "1. ACTUAL Logic Errors: Identify faulty logic that could lead to incorrect behavior or bugs\n"
-                "2. Syntax Errors: Point out syntax issues that would cause compilation failures\n"
-                "3. Potential Runtime Errors: Flag operations that could lead to crashes, memory leaks, or unexpected behavior\n"
-                "4. Security Vulnerabilities: Highlight code that could introduce security risks\n"
-                "5. Performance Issues: Identify ONLY SIGNIFICANT performance issues that would impact execution speed\n"
-                "6. Serious Maintainability Issues: Comment ONLY on MAJOR readability or maintainability concerns\n"
-                  "DO NOT COMMENT ON:\n"
-                "1. Code that already follows best practices (like already using const)\n"
-                "2. Trivial stylistic issues\n"
-                "3. Include statements or namespaces unless they cause actual issues\n"
-                "4. Variable names unless they are misleading or confusing\n"
-                "5. Test fixtures or macro definitions in test files unless they're broken\n"
-                "6. Issues already addressed in other parts of the code\n"
-                "7. Things that are just working as expected and don't need improvement\n"
-                "8. Common test patterns like try-catch blocks in test code\n"
-                "9. Performance micro-optimizations that would be premature optimization\n"
-                "10. Assume macros like NLTZ, WD, LO, _IDExtsnRulePct_ are well-tested utility functions or threshold variables\n"
-                "11. Do not comment on code in test files unless there's a critical issue\n"
-                "12. Functions like AssignCharToInSh or AssignLongToInSh that are for test data setup\n"
-                "13. Standard test expectations and assertions like EXPECT_EQ statements in tests\n"
-                "14. Try-catch blocks that wrap test function calls, especially in Google Test framework\n"
-                "15. Functions that begin with 'test' as they are test functions\n"
-                "16. Form reference checks using R() function with EXPECT_EQ statements\n"
-                "17. Any EXPECT_EQ assertions comparing calculated values with form references like R(311), R(313), etc.\n"                "IMPORTANT CONTEXT:\n"
-                "1. The code is written by experienced developers - only point out non-trivial issues\n"
-                "2. For test files (containing 'test' in the name), assume test methodologies are intentional\n"
-                "3. Honor defined patterns and conventions already established in the code\n"
-                "4. If you're uncertain if something is an issue, DO NOT comment on it\n"
-                "5. The codebase uses Google Test framework - test functions and assertions are intentionally structured\n"
-                "6. Threshold variables like _IDExtsnRulePct_ are defined elsewhere and should not be questioned\n"
-                "7. Functions that begin with 'test' or have names like 'testDoEXTWKS' are intentionally designed test functions\n"
-                "8. EXPECT_EQ and similar assertions are standard test patterns and should not be questioned\n"
-                "9. When a test function fails, the FAIL() << fail_message pattern is standard and intentional\n"
-                "10. Form reference checks using R() function (e.g., R(311), R(313)) in EXPECT_EQ statements are verifying that calculated values match values in form references, which is correct methodology\n"
-                "11. Try-catch blocks that call test functions are standard test patterns and not an issue\n"
-                
-                "IMPORTANT FORMATTING: For each ACTUAL issue found, write a separate paragraph starting with 'Line <line_number>: ' followed by your comment.\n"
-                "MAKE SEPARATE COMMENTS for different issues - DO NOT combine multiple issues into one comment.\n"
-                "If a file contains no significant issues, DO NOT add any comments for that file.\n"
-                "Example format for issues:\n"
-                "Line 42: Logical error: The loop condition 'i <= array.size()' will cause out-of-bounds access on the last iteration. Should be 'i < array.size()' instead.\n\n"
-                "Line 78: Potential null pointer dereference: 'ptr' is not checked for nullptr before being accessed.\n\n"
-            ),
-            "workflow_id": "7c41c3ab-c214-4394-ba38-9da289975d85",  # OpenArena Chain workflow ID
+            "query": f"Review the following code changes and provide feedback only for actual issues:\n{diff}",
+            "workflow_id": workflow_id,
             "is_persistence_allowed": False,
             "modelparams": {
                 "anthropic_direct.claude-v4-sonnet": {
-                    "temperature": "0.7",
-                    "top_p": "1",
-                    "max_tokens": "16384",
-                    "system_prompt": (
-                        "You are a senior Software Developer with 20+ years of experience reviewing code changes for a team of skilled professionals. "
-                        "You understand that over-commenting on trivial matters is counter-productive. "
-                        "Focus ONLY on significant issues in the code that could cause actual bugs, serious performance problems, or major maintainability challenges. "
-                        "Do not comment on code that already follows best practices or working code that doesn't need improvements. "
-                        "For test files, assume the testing methodology is intentional unless there's a critical flaw. "
-                        "When reviewing code with macros (like NLTZ, WD, LO, _IDExtsnRulePct_), assume these are well-tested utility functions or defined thresholds. "
-                        "Do not comment on Google Test framework patterns like try-catch blocks with FAIL() statements, EXPECT_EQ assertions, or test data setup functions. "
-                        "Assume all functions that begin with 'test' or have 'test' in their name are properly designed test functions. "
-                        "If you find no substantial issues, it is perfectly acceptable and preferable to provide NO comments. "
-                        "Only flag issues that experienced developers would truly need help spotting. "
-                        "When in doubt, assume the code is correct rather than making a potentially incorrect or trivial comment."
-                    )
+                    "temperature": temperature,
+                    "top_p": top_p, 
+                    "max_tokens": max_tokens,
+                    "system_prompt": system_prompt
                 }
             }
         }
+        
+        # Log payload preview for transparency (excluding the full system prompt to keep log clean)
+        log_activity(f"[API] API Payload: Workflow={workflow_id}, Temp={temperature}, TopP={top_p}, MaxTokens={max_tokens}")
+        log_activity(f"[API] System Prompt: {system_prompt[:100]}..." if len(system_prompt) > 100 else f"[API] System Prompt: {system_prompt}")
         
         # Add retry logic for API timeouts
         max_retries = 2
@@ -616,16 +670,16 @@ def review_code(diff, openarena_token):
                     )
                     
                     if not feedback:
-                        log_activity("⚠️ Received empty feedback despite 200 status")
+                        log_activity("[WARNING] Received empty feedback despite 200 status")
                         if retry_count < max_retries:
                             retry_count += 1
                             time.sleep(retry_delay)
                             continue
                         else:
-                            log_activity("⚠️ Empty response received after all retries.")
+                            log_activity("[WARNING] Empty response received after all retries.")
                             return "Line 1: No specific issues detected in the code changes.", 0.0, 0
                     
-                    log_activity("💬 AI Code Review Feedback received.")
+                    log_activity("[SUCCESS] AI Code Review Feedback received.")
                       # Extract cost information from the response
                     cost_info = ai_response.get('result', {}).get('cost', {})
                     token_usage = cost_info.get('token_usage', {})
@@ -642,44 +696,44 @@ def review_code(diff, openarena_token):
                     
                     cost_usd = calculate_claude_cost(prompt_tokens, completion_tokens)
                     
-                    log_activity(f"📊 Token usage: {total_tokens} tokens (Prompt: {prompt_tokens}, Completion: {completion_tokens})")
-                    log_activity(f"💰 Est. cost: ${cost_usd:.5f} (Input: ${(prompt_tokens/1000)*0.003:.5f}, Output: ${(completion_tokens/1000)*0.015:.5f})")
+                    log_activity(f"[TOKENS] Token usage: {total_tokens} tokens (Prompt: {prompt_tokens}, Completion: {completion_tokens})")
+                    log_activity(f"[COST] Est. cost: ${cost_usd:.5f} (Input: ${(prompt_tokens/1000)*0.003:.5f}, Output: ${(completion_tokens/1000)*0.015:.5f})")
                     return feedback, cost_usd, total_tokens
                 
                 elif response.status_code in [504, 408, 502, 503]:  # Timeout and server errors
                     if retry_count < max_retries:
-                        log_activity(f"⚠️ OpenArena API timeout/error: {response.status_code}, {response.text}")
+                        log_activity(f"[ERROR] OpenArena API timeout/error: {response.status_code}, {response.text}")
                         log_activity(f"Waiting {retry_delay} seconds before retry...")
                         retry_count += 1
                         time.sleep(retry_delay)
                         retry_delay *= 2  # Exponential backoff
                     else:
-                        log_activity(f"❌ Maximum retries reached. Could not get response from OpenArena API.")
+                        log_activity(f"[ERROR] Maximum retries reached. Could not get response from OpenArena API.")
                         return f"API Error ({response.status_code}): Could not process review after {max_retries} retries.", 0.0, 0
                         
                 else:
-                    log_activity(f"⚠️ OpenArena API Error: {response.status_code}, {response.text}")
+                    log_activity(f"[ERROR] OpenArena API Error: {response.status_code}, {response.text}")
                     return f"API Error ({response.status_code}): Could not process review.", 0.0, 0
                     
             except Exception as e:
                 if retry_count < max_retries:
-                    log_activity(f"🚨 API call failed with error: {e}. Retrying in {retry_delay} seconds...")
+                    log_activity(f"[RETRY] API call failed with error: {e}. Retrying in {retry_delay} seconds...")
                     retry_count += 1
                     time.sleep(retry_delay)
                     retry_delay *= 2
                 else:
-                    log_activity(f"🚨 Failed to review code after {max_retries} retries: {e}")
+                    log_activity(f"[ERROR] Failed to review code after {max_retries} retries: {e}")
                     return f"Error: {str(e)}", 0.0, 0
         
         return "Error: Failed to get a response from the API after multiple attempts", 0.0, 0
     
     except Exception as e:
-        log_activity(f"❌ Unexpected error in review_code function: {str(e)}")
+        log_activity(f"[ERROR] Unexpected error in review_code function: {str(e)}")
         return f"Error: {str(e)}", 0.0, 0
     
     return ""  # Fallback return if all retries fail
 
-# 💬 Post comments on GitHub PR
+# Post comments on GitHub PR
 def post_comments_on_pr(pr, comments, filename, modified_lines):
     """
     Post comments on a GitHub PR with improved line detection and comment parsing.
@@ -711,12 +765,12 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
             comment_content = f"Line {line_num}: {content.strip()}"
             parsed_comments.append((line_number, comment_content))
         except ValueError:
-            log_activity(f"⚠️ Invalid line number format: {line_num}")
+            log_activity(f"[ERROR] Invalid line number format: {line_num}")
             continue
     
     # If no matches were found, try alternative parsing approaches
     if not parsed_comments and all_comments_text:
-        log_activity("⚠️ Could not parse individual line comments. Trying alternative parsing...")
+        log_activity("[WARNING] Could not parse individual line comments. Trying alternative parsing...")
         
         # Try splitting by double newlines which often separate comments
         comment_blocks = re.split(r'\n\s*\n', all_comments_text)
@@ -733,12 +787,12 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
                     parsed_comments.append((line_number, comment_content))
                 except ValueError:
                     continue
-        
+    
         log_activity(f"Found {len(parsed_comments)} parsed comments using alternative pattern")
         
         # If still no parsed comments, try processing each original comment individually
         if not parsed_comments:
-            log_activity("⚠️ Still no structured comments. Checking each line individually...")
+            log_activity("[WARNING] Still no structured comments. Checking each line individually...")
             for line_content in comments:
                 line_content = line_content.strip()
                 if not line_content:
@@ -753,19 +807,28 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
                     except ValueError:
                         continue
     
-    log_activity(f"Final count: {len(parsed_comments)} parsed comments ready to post")
+    log_activity(f"[COMMENT] Starting comment posting for {len(parsed_comments)} comments")
+    log_activity(f"[COMMENT] Modified lines detected: {len(modified_lines)} total")
+    
+    # Debug: Show what lines are available
+    positive_lines = [l for l in modified_lines.keys() if l > 0]
+    negative_lines = [l for l in modified_lines.keys() if l < 0]
+    log_activity(f"[COMMENT] Available modified lines: {sorted(positive_lines)}")
     
     # Sort comments by line number for more organized posting
     parsed_comments.sort(key=lambda x: x[0])
     
-    # Post each comment to GitHub
+    # Post each comment to GitHub (always on RIGHT side)
     for line_position, line_content in parsed_comments:
+        log_activity(f"[COMMENT] Processing comment for line {line_position}...")
+        
         # Check if this is a modified line in the PR
         # For added/modified lines, line_position is positive
         # For removed lines, we'd use negative line numbers in our modified_lines dictionary
         
         # First check if this exact line number is in the modified lines
         line_exists = line_position in modified_lines
+        original_line = line_position
         
         # If not found, try to find the nearest modified line
         if not line_exists:
@@ -776,52 +839,103 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
                 closest_lines = sorted(positive_lines, key=lambda l: abs(l - line_position))
                 if closest_lines:
                     closest_line = closest_lines[0]
-                    # Use the closest line if within a reasonable distance (e.g., 5 lines)
-                    if abs(closest_line - line_position) <= 5:
-                        log_activity(f"⚙️ Adjusting comment from line {line_position} to closest modified line {closest_line}")
+                    # Use the closest line if within a reasonable distance (increased to 10 lines)
+                    if abs(closest_line - line_position) <= 10:
+                        log_activity(f"[COMMENT] Adjusting comment from line {line_position} to closest modified line {closest_line}")
                         line_position = closest_line
                         line_exists = True
+                    else:
+                        # If too far, still try to use the closest line but expand range
+                        line_position = closest_line
+                        line_exists = True
+                        log_activity(f"[COMMENT] Line {original_line} distant from modifications, using closest line {closest_line} anyway")
+            else:
+                # No positive lines available, this shouldn't happen but handle it
+                log_activity(f"[COMMENT] No positive lines available for comment placement")
+
+        # If we still can't find a line, try to use any available modified line
+        if not line_exists and modified_lines:
+            available_lines = [l for l in modified_lines.keys() if l > 0]
+            if available_lines:
+                line_position = available_lines[0]  # Use first available line
+                line_exists = True
+                log_activity(f"[COMMENT] Using first available modified line {line_position} as fallback for line {original_line}")
 
         # Skip if we can't find a suitable line to attach the comment to
         if not line_exists:
-            log_activity(f"⚠️ Skipping comment for invalid line {line_position} in {filename}. Not found in diff.")
+            log_activity(f"[COMMENT] Skipping comment for invalid line {original_line} in {filename}. No modified lines available.")
             continue
 
         # Skip duplicate comments
         if line_content in added_comments:
-            log_activity(f"⚠️ Skipping duplicate comment at line {line_position}")
+            log_activity(f"[COMMENT] Skipping duplicate comment at line {line_position}")
             continue
 
         try:
-            pr.create_review_comment(
+            # For GitHub API, we need to be very explicit about the positioning
+            # side="RIGHT" means the new version (right side of diff)
+            # The line number should correspond to the line in the new file
+            log_activity(f"[COMMENT] Posting comment to RIGHT side of diff at line {line_position}")
+            log_activity(f"[COMMENT] Target file: {filename}, Line: {line_position}, Side: RIGHT")
+            
+            comment_result = pr.create_review_comment(
                 body=line_content,
                 commit=latest_commit,
                 path=filename,
                 line=line_position,
-                side="RIGHT"  # Always use RIGHT side to place comments on the new version
+                side="RIGHT"  # Explicitly set to RIGHT for new version
             )
+            
+            # Verify the comment was posted correctly
+            if hasattr(comment_result, 'side'):
+                actual_side = getattr(comment_result, 'side', 'unknown')
+                log_activity(f"[SUCCESS] Comment posted! Confirmed side: {actual_side}")
+            else:
+                log_activity(f"[SUCCESS] Comment posted successfully (side verification unavailable)")
+            
             added_comments.add(line_content)
-            log_activity(f"✅ Commented on PR #{pr.number}, file {filename}, line {line_position}: {line_content[:50]}...")
+            log_activity(f"[SUCCESS] Comment posted successfully")
+            
         except Exception as e:
-            log_activity(f"🚨 Error posting comment on PR #{pr.number}, file {filename}, line {line_position}: {e}")
-            # Try with default line if there was an error
-            try:
-                # Fall back to the first line if we can't post to the specific line
-                if modified_lines:
-                    default_line = next((l for l in modified_lines.keys() if l > 0), None)
-                    if default_line and default_line != line_position:
-                        log_activity(f"⚠️ Retrying comment on fallback line {default_line}")
-                        pr.create_review_comment(
-                            body=f"[Originally for line {line_position}] {line_content}",
-                            commit=latest_commit,
-                            path=filename,
-                            line=default_line,
-                            side="RIGHT"
-                        )
-                        added_comments.add(line_content)
-                        log_activity(f"✅ Posted comment to fallback line {default_line}")
-            except Exception as fallback_error:
-                log_activity(f"🚨 Fallback also failed: {fallback_error}")
+            error_msg = str(e).lower()
+            log_activity(f"[ERROR] Error posting comment on PR #{pr.number}, file {filename}, line {line_position}: {e}")
+            
+            # If the error is about line position, try alternative approaches
+            if "line" in error_msg or "position" in error_msg or "diff" in error_msg:
+                try:
+                    # Try posting to the first available modified line
+                    if modified_lines:
+                        available_lines = [l for l in modified_lines.keys() if l > 0]
+                        if available_lines:
+                            fallback_line = min(available_lines)  # Use the first modified line
+                            log_activity(f"[FALLBACK] Retrying comment on first available line {fallback_line} (RIGHT side)")
+                            
+                            fallback_result = pr.create_review_comment(
+                                body=f"[AI REVIEW] **AI Review Comment** (originally for line {line_position}):\n\n{line_content}",
+                                commit=latest_commit,
+                                path=filename,
+                                line=fallback_line,
+                                side="RIGHT"  # Still use RIGHT side
+                            )
+                            
+                            added_comments.add(line_content)
+                            log_activity(f"[SUCCESS] Posted comment to fallback line {fallback_line} on RIGHT side")
+                        else:
+                            log_activity(f"[FALLBACK] No available lines found for comment posting")
+                            
+                except Exception as fallback_error:
+                    log_activity(f"[FALLBACK] Fallback posting also failed: {fallback_error}")
+                    
+                    # Last resort: try posting as a general PR comment (not line-specific)
+                    try:
+                        log_activity(f"[FALLBACK] Attempting to post as general PR comment")
+                        general_comment = f"**AI Review for {filename} (line {line_position}):**\n\n{line_content}"
+                        pr.create_issue_comment(body=general_comment)
+                        log_activity(f"[SUCCESS] Posted as general PR comment")
+                    except Exception as general_error:
+                        log_activity(f"[ERROR] General comment posting also failed: {general_error}")
+            else:
+                log_activity(f"[ERROR] Non-positioning error, skipping fallback attempts")
 
     return added_comments
 
@@ -835,6 +949,10 @@ def create_comments_html_report(comments, pr_url, repo_name, pr_number):
         if filename not in comments_by_file:
             comments_by_file[filename] = []
         comments_by_file[filename].append(comment)
+    
+    # Create timestamps for filename and display
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    review_datetime = time.strftime("%B %d, %Y at %I:%M:%S %p")
     
     html_content = f"""
     <!DOCTYPE html>
@@ -853,10 +971,17 @@ def create_comments_html_report(comments, pr_url, repo_name, pr_number):
             .pr-link a {{ color: #0078D7; text-decoration: none; }}
             .pr-link a:hover {{ text-decoration: underline; }}
             .summary {{ margin-top: 20px; padding: 15px; background: #e6f3ff; border-radius: 5px; }}
+            .review-info {{ margin-bottom: 25px; padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #28a745; }}
+            .timestamp {{ color: #666; font-size: 14px; font-style: italic; }}
         </style>
     </head>
     <body>
         <h1>AI Code Review Report</h1>
+        
+        <div class="review-info">
+            <div class="timestamp">Review completed on {review_datetime}</div>
+        </div>
+        
         <div class="pr-link">
             <strong>Repository:</strong> {repo_name} | <strong>PR #:</strong> {pr_number}
             <br>
@@ -897,13 +1022,12 @@ def create_comments_html_report(comments, pr_url, repo_name, pr_number):
     if not os.path.exists(reports_dir):
         os.mkdir(reports_dir)
       # Save the HTML file
-    timestamp = time.strftime("%Y%m%d-%H%M%S")
     report_file = os.path.join(reports_dir, f"review_report_{repo_name.replace('/', '_')}_PR{pr_number}_{timestamp}.html")
     
     with open(report_file, 'w', encoding='utf-8') as f:
         f.write(html_content)
     
-    log_activity(f"💾 HTML report saved to: {report_file}")
+    log_activity(f"[REPORT] HTML report saved to: {report_file}")
     
     # Store the latest report path globally
     global latest_report_path
@@ -913,33 +1037,39 @@ def create_comments_html_report(comments, pr_url, repo_name, pr_number):
     if view_report_button:
         view_report_button.configure(state="normal")
     
-    # Open the report in the browser
-    try:
-        if os.name == 'nt':  # Windows
-            log_activity(f"🌐 Opening review report using os.startfile: {report_file}")
-            os.startfile(report_file)
-        else:  # Unix/Linux/Mac
-            # For non-Windows systems, use webbrowser with proper file URL
-            file_url = f"file://{os.path.abspath(report_file)}"
-            log_activity(f"🌐 Opening review report URL: {file_url}")
-            webbrowser.open(file_url)
-        log_activity(f"🌐 Review report opened in browser")
-    except Exception as open_error:
-        log_activity(f"❌ Failed to open report with primary method: {open_error}")
-        # Fallback: try using webbrowser with different URL formats
+    # Open the report in the browser (use threading to avoid GIL issues)
+    def open_report_safely():
         try:
-            # Convert backslashes to forward slashes for URL
-            abs_path = os.path.abspath(report_file)
-            url_path = abs_path.replace('\\', '/')
-            if not url_path.startswith('/'):
-                url_path = '/' + url_path
-            file_url = f"file://{url_path}"
-            log_activity(f"🌐 Fallback: Opening report URL: {file_url}")
-            webbrowser.open(file_url)
-            log_activity(f"🌐 Review report opened in browser (fallback method)")
-        except Exception as fallback_error:
-            log_activity(f"❌ Report opening fallback also failed: {fallback_error}")
-            # Don't raise exception here as this is not critical to the main functionality
+            if os.name == 'nt':  # Windows
+                log_activity(f"[REPORT] Opening review report using os.startfile: {report_file}")
+                os.startfile(report_file)
+            else:  # Unix/Linux/Mac
+                # For non-Windows systems, use webbrowser with proper file URL
+                file_url = f"file://{os.path.abspath(report_file)}"
+                log_activity(f"[REPORT] Opening review report URL: {file_url}")
+                webbrowser.open(file_url)
+            log_activity(f"[SUCCESS] Review report opened in browser")
+        except Exception as open_error:
+            log_activity(f"? Failed to open report with primary method: {open_error}")
+            # Fallback: try using webbrowser with different URL formats
+            try:
+                # Convert backslashes to forward slashes for URL
+                abs_path = os.path.abspath(report_file)
+                url_path = abs_path.replace('\\', '/')
+                if not url_path.startswith('/'):
+                    url_path = '/' + url_path
+                file_url = f"file://{url_path}"
+                log_activity(f"[FALLBACK] Fallback: Opening report URL: {file_url}")
+                webbrowser.open(file_url)
+                log_activity(f"[SUCCESS] Review report opened in browser (fallback method)")
+            except Exception as fallback_error:
+                log_activity(f"? Report opening fallback also failed: {fallback_error}")
+                # Don't raise exception here as this is not critical to the main functionality
+    
+    # Use threading to avoid GIL issues when opening files from GUI context
+    import threading
+    thread = threading.Thread(target=open_report_safely, daemon=True)
+    thread.start()
 
 def main(repo_name, pr_number, post_comments=True):
     total_files_in_pr = 0
@@ -989,13 +1119,13 @@ def main(repo_name, pr_number, post_comments=True):
 
             # Check if the file matches any of the ignore patterns
             if any(fnmatch.fnmatch(file.filename, pattern) for pattern in ignore_patterns):
-                log_activity(f"🔍 Skipping file: {file.filename} (matches ignore patterns)")
+                log_activity(f"[SKIP] Skipping file: {file.filename} (matches ignore patterns)")
                 continue
             
             reviewed_files_count +=1 # Count as reviewed even if no comments are made, but processing attempted
 
             diff = file.patch
-            log_activity(f"\\n🔍 Reviewing the code for file: {file.filename}\\n{'-'*60}")            # Extract exact modified lines
+            # Extract exact modified lines
             modified_lines = get_modified_lines_from_patch(diff)
             
             # Log raw diff for debugging if needed
@@ -1005,23 +1135,22 @@ def main(repo_name, pr_number, post_comments=True):
             # Convert extracted lines into a formatted string for AI review
             diff_text = "\\n".join([f"{line_num}: {content}" for line_num, content in modified_lines.items()])
             
+            # Debug: Show what line numbers are being sent to AI
+            if modified_lines:
+                line_numbers_sent = [line_num for line_num in modified_lines.keys() if line_num > 0]
+                log_activity(f"[DEBUG] Sending line numbers to AI: {sorted(line_numbers_sent)}")
+            
             # Debug output to see what changes were detected
             if modified_lines:
                 added_count = sum(1 for k in modified_lines.keys() if k > 0)
                 removed_count = sum(1 for k in modified_lines.keys() if k < 0)
                 log_activity(f"Found {len(modified_lines)} modified lines in {file.filename} ({added_count} added/modified, {removed_count} removed)")
-                log_activity(f"Sample of changes (up to 5 lines):")
-                for i, (line_num, content) in enumerate(modified_lines.items()):
-                    if i >= 5: break  # Limit to first 5 lines
-                    line_type = "Added/Modified" if line_num > 0 else "Removed"
-                    line_display = abs(line_num)
-                    log_activity(f"  {line_type} line {line_display}: {content[:50]}{'...' if len(content) > 50 else ''}")
             else:
-                log_activity(f"⚠️ No modified lines detected in {file.filename} patch")
+                log_activity(f"[DEBUG] No modified lines detected in {file.filename} patch")
             
             if not diff_text.strip():
                 log_activity(f"No reviewable changes found in {file.filename} after parsing patch.")
-                continue            # 🚀 Send modified lines to AI
+                continue            # Send modified lines to AI
             review_result = review_code(diff_text, openarena_token)
             
             if isinstance(review_result, tuple) and len(review_result) >= 3:
@@ -1032,11 +1161,11 @@ def main(repo_name, pr_number, post_comments=True):
                 file_tokens = 0
                 
             if not comments_text:
-                log_activity(f"❌ No AI feedback for {file.filename}")
+                log_activity(f"? No AI feedback for {file.filename}")
                 continue
                 
             # If we received valid feedback but no token count (API limitation),
-            # estimate tokens based on the text length (1 token ≈ 4 chars for English text)
+            # estimate tokens based on the text length (1 token ~= 4 chars for English text)
             if file_tokens == 0 and comments_text:
                 # Estimate input tokens from diff size (roughly)
                 estimated_input_tokens = len(diff_text) // 4
@@ -1044,16 +1173,22 @@ def main(repo_name, pr_number, post_comments=True):
                 estimated_output_tokens = len(comments_text) // 4
                 # Calculate estimated cost
                 estimated_cost = calculate_claude_cost(estimated_input_tokens, estimated_output_tokens)
-                log_activity(f"⚠️ No token data from API. Estimating based on text length.")
-                log_activity(f"📊 Estimated tokens - Input: {estimated_input_tokens}, Output: {estimated_output_tokens}")
-                log_activity(f"💰 Estimated cost: ${estimated_cost:.5f}")
+                log_activity(f"[ESTIMATION] No token data from API. Estimating based on text length.")
+                log_activity(f"[ESTIMATION] Estimated tokens - Input: {estimated_input_tokens}, Output: {estimated_output_tokens}")
+                log_activity(f"[ESTIMATION] Estimated cost: ${estimated_cost:.5f}")
                 file_cost = estimated_cost
                 file_tokens = estimated_input_tokens + estimated_output_tokens
                 
             # Track accumulated costs
             total_cost += file_cost
-            total_tokens += file_tokens# 💬 Process AI feedback comments            # No need for separate filtering - filtering is now built into the AI query
+            total_tokens += file_tokens
+
+            # Process AI feedback comments
             comment_lines = comments_text.split('\\n')
+            
+            # Apply additional filtering to catch any date-related comments that slipped through (if enabled)
+            if ai_settings.get("filter_comments", True):
+                comment_lines = filter_review_comments(comment_lines, file.filename)
             
             # Store the comments for this file (for potential browser viewing)
             if comment_lines:
@@ -1067,45 +1202,42 @@ def main(repo_name, pr_number, post_comments=True):
             if post_comments:
                 posted_comments_for_file = post_comments_on_pr(pr, comment_lines, file.filename, modified_lines)
                 all_posted_comments_total_count += len(posted_comments_for_file)
-            else:                # Log the comments without posting
-                log_activity(f"💬 Comments for {file.filename} (not posted to GitHub):")
-                for line in comment_lines:
-                    if line.strip():
-                        log_activity(f"   {line}")
+            else:                # Count the comments without posting but don't log content to keep activity log clean
+                log_activity(f"[SUMMARY] Found {len([line for line in comment_lines if line.strip()])} comments for {file.filename} (not posted to GitHub)")
                 # Count the comments even though they're not posted
                 all_posted_comments_total_count += len([line for line in comment_lines if line.strip()])
         
         if all_posted_comments_total_count > 0: # Check if any comments were found across all files
-            summary_message = f"✅ AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. A total of {all_posted_comments_total_count} comments were generated."
+            summary_message = f"[SUCCESS] AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. A total of {all_posted_comments_total_count} comments were generated."
             
             # Post summary comment only if posting is enabled
             if post_comments:
                 summary_comment = f"{summary_message} Please check and resolve."
                 pr.create_issue_comment(summary_comment)
-                log_activity(f"\\n🚀 Posted summary issue comment on PR #{pr.number}: {summary_comment}")
+                log_activity(f"\\n[SUMMARY] Posted summary issue comment on PR #{pr.number}: {summary_comment}")
             else:
-                log_activity(f"\\n📝 {summary_message} (Comments were not posted to GitHub)")
+                log_activity(f"\\n[SUMMARY] {summary_message} (Comments were not posted to GitHub - see HTML report for details)")
                 
             # Create an HTML report for viewing in browser if not posting to GitHub
             if not post_comments and all_comments:
                 create_comments_html_report(all_comments, pr_url, repo_name, pr_number)
                 
         elif reviewed_files_count > 0: # Files were reviewed but no comments made
-            log_activity(f"\\nℹ️ AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. No specific issues found by AI requiring comments.")
+            log_activity(f"\\n[SUCCESS] AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. No specific issues found by AI requiring comments.")
         else: # No files were reviewed (e.g. all ignored or empty PR)
-            log_activity(f"\\nℹ️ No files were reviewed in PR #{pr.number}.")        # Status update handled by run_code_review after this function returns        log_activity(f"🎉 Code review process by AI has been completed. Check PR for details.")
-        log_activity(f"💰💰 COST SUMMARY 💰💰")
-        log_activity(f"💲 Total estimated cost: ${total_cost:.5f} for {total_tokens} tokens")
+            log_activity(f"\\n[INFO] No files were reviewed in PR #{pr.number}.")        # Status update handled by run_code_review after this function returns        log_activity(f"[SUCCESS] Code review process by AI has been completed. Check PR for details.")
+        log_activity(f"[COST] COST SUMMARY")
+        log_activity(f"[COST] Total estimated cost: ${total_cost:.5f} for {total_tokens} tokens")
         
         # Calculate the input/output cost breakdown (assuming 70/30 split if not detailed)
         input_tokens = int(total_tokens * 0.7)
         output_tokens = total_tokens - input_tokens
         input_cost = (input_tokens / 1000) * 0.003
         output_cost = (output_tokens / 1000) * 0.015
-        log_activity(f"📊 Breakdown: Input ${input_cost:.5f} + Output ${output_cost:.5f}")
-        log_activity(f"📝 Claude 4 Sonnet pricing: $0.003/1K input tokens, $0.015/1K output tokens")
+        log_activity(f"[COST] Breakdown: Input ${input_cost:.5f} + Output ${output_cost:.5f}")
+        log_activity(f"[COST] Claude 4 Sonnet pricing: $0.003/1K input tokens, $0.015/1K output tokens")
     except Exception as e:
-        log_activity(f"🚨 Error in main function: {e}")
+        log_activity(f"[ERROR] Error in main function: {e}")
     return total_files_in_pr, reviewed_files_count, all_posted_comments_total_count, pr_url, total_cost, total_tokens
 
 
@@ -1125,7 +1257,7 @@ def change_appearance_mode_event(new_mode=None):
     # Update the switch text if it exists
     if 'mode_switch' in globals() and mode_switch is not None:
         try:
-            mode_switch.configure(text=f"{'🌙' if new_mode == 'Dark' else '☀️'} {new_mode} Mode")
+            mode_switch.configure(text=f"{new_mode} Mode")
         except Exception as e:
             print(f"Error updating mode switch: {e}")
 
@@ -1212,7 +1344,7 @@ if icon_path:
         try:
             # For Windows OS - explicitly set the taskbar icon
             import ctypes
-            app_id = "TR.AIReviewTool.V2.0.0"  # Unique application ID
+            app_id = "TR.AIReviewTool.V2.0.1"  # Unique application ID
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
             print(f"Successfully set taskbar icon with app ID: {app_id}")
         except Exception as e:
@@ -1225,7 +1357,7 @@ if icon_path:
                 icon_img = Image.open(icon_path)
                 icon_photo = ImageTk.PhotoImage(icon_img)
                 root.iconphoto(True, icon_photo)  # This sets both window and taskbar icon
-                print("✅ Taskbar icon set successfully using PIL")
+                print("? Taskbar icon set successfully using PIL")
             except Exception as pil_error:
                 print(f"Note: Could not set taskbar icon with PIL: {pil_error}")
     except Exception as icon_error:
@@ -1237,7 +1369,7 @@ if icon_path:
             icon_img = Image.open(icon_path)
             icon_photo = ImageTk.PhotoImage(icon_img)
             root.iconphoto(True, icon_photo)
-            print("✅ Icon set with PIL as fallback")
+            print("? Icon set with PIL as fallback")
         except Exception as fallback_error:
             print(f"Failed to set icon with fallback method: {fallback_error}")
 else:
@@ -1261,7 +1393,7 @@ content_frame.grid_rowconfigure(0, weight=1)
 # --- MENU BAR (Menu + Help) with CustomTkinter ---
 def show_release_notes():
     notes = (
-        "✨ Release Notes (v2.0.0) ✨\n\n"
+        "🚀 Release Notes (v2.0.1) 🚀\n\n"
         "🎨 Modern UI Enhancements\n"
         "   • Sleek customtkinter interface with professional blue theme\n"
         "   • Enhanced layout with improved visual elements\n"
@@ -1271,7 +1403,7 @@ def show_release_notes():
         "   • Progress bar with percentage display for better feedback\n"
         "   • Clear button that resets both log and review metrics\n"
         "   • Detailed performance metrics and cost estimation\n\n"
-        "🔧 Enhanced Usability Features\n"
+        "⚡ Enhanced Usability Features\n"
         "   • Recent repositories dropdown for quick access\n"
         "   • Comprehensive HTML user guide with screenshots\n"
         "   • One-click PR viewing on GitHub\n"
@@ -1282,7 +1414,7 @@ def show_release_notes():
         "   • Accurate token tracking and cost calculation\n"
         "   • Smarter review prompts for more relevant feedback\n"
         "   • Better error handling and retry mechanisms\n\n"
-        "🚀 Ready to transform your code review process!"
+        "✨ Ready to transform your code review process!"
     )
     dialog = customtkinter.CTkToplevel(root)
     dialog.title("Release Notes")
@@ -1314,7 +1446,7 @@ def show_release_notes():
 
 def show_about():
     about = (
-        "🤖 AI Code Review Tool 🚀\n\n"
+        "🤖 AI Code Review Tool 🤖\n\n"
         "💡 What it does:\n"
         "This intelligent application leverages advanced AI to automatically review "
         "code changes in GitHub pull requests. It analyzes modifications, posts helpful "
@@ -1324,7 +1456,7 @@ def show_about():
         "• Early detection of potential issues\n"
         "• Improved code standards across your team\n"
         "• Time savings for developers and reviewers\n\n"
-        "🛠️ Built with pride by the Ultratax Team, 2025"
+        "🏆 Built with pride by the Ultratax Team, 2025"
     )
     dialog = customtkinter.CTkToplevel(root)
     dialog.title("About")
@@ -1387,124 +1519,124 @@ def open_user_guide():
     import shutil
     import re
     
-    try:
-        # Handle both development environment and PyInstaller frozen environment
-        if getattr(sys, 'frozen', False):
-            # If the application is run as a bundle (compiled with PyInstaller)
-            base_path = sys._MEIPASS if hasattr(sys, '_MEIPASS') else os.path.dirname(sys.executable)
-            log_activity(f"📂 Base path: {base_path}")
-            
-            # List files in the base path to debug
-            try:
-                log_activity("📂 Available files in base directory:")
-                for item in os.listdir(base_path):
+    # Handle both development environment and PyInstaller frozen environment
+    if getattr(sys, 'frozen', False):
+        # If the application is run as a bundle (compiled with PyInstaller)
+        base_path = sys._MEIPASS if hasattr(sys, '_MEIPASS') else os.path.dirname(sys.executable)
+        log_activity(f"[DEBUG] Base path: {base_path}")
+        
+        # List files in the base path to debug
+        try:
+            log_activity("[DEBUG] Available files in base directory:")
+            for item in os.listdir(base_path):
+                log_activity(f" - {item}")
+                
+            # Check if docs directory exists
+            docs_path = os.path.join(base_path, "docs")
+            if os.path.exists(docs_path) and os.path.isdir(docs_path):
+                log_activity("[DEBUG] Docs directory found, listing contents:")
+                for item in os.listdir(docs_path):
                     log_activity(f" - {item}")
-                    
-                # Check if docs directory exists
-                docs_path = os.path.join(base_path, "docs")
-                if os.path.exists(docs_path) and os.path.isdir(docs_path):
-                    log_activity("📂 Docs directory found, listing contents:")
-                    for item in os.listdir(docs_path):
-                        log_activity(f" - {item}")
-                else:
-                    log_activity("❌ Docs directory not found")
-            except Exception as e:
-                log_activity(f"❌ Error listing files: {str(e)}")
-                
-            original_guide_path = os.path.join(base_path, "docs", "user_guide.html")
+            else:
+                log_activity("? Docs directory not found")
+        except Exception as e:
+            log_activity(f"? Error listing files: {str(e)}")
             
-            # Check if the user guide file exists
-            if not os.path.exists(original_guide_path):
-                log_activity(f"❌ User guide not found at {original_guide_path}")
-                messagebox.showerror("Error", 
-                                "User guide file not found. Please ensure the documentation is properly installed.")
-                return
-                
-            log_activity(f"✅ Found user guide at {original_guide_path}")
-            
-            # Create a temp directory to hold a modified copy of the guide with correct image paths
-            # Use a unique name to avoid conflicts with other instances
-            temp_dir = os.path.join(tempfile.gettempdir(), f"AIReviewTool_docs_{os.getpid()}")
-            os.makedirs(temp_dir, exist_ok=True)
-            
-            # Create images directory structure in the temp folder
-            temp_images = os.path.join(temp_dir, "images")
-            temp_images_docs = os.path.join(temp_dir, "images", "docs")
-            os.makedirs(temp_images, exist_ok=True)
-            os.makedirs(temp_images_docs, exist_ok=True)
-            
-            log_activity(f"🔧 Preparing user guide with images in temp directory: {temp_dir}")
-            
-            # Copy images to the temp location and track which ones we actually found
-            found_images = []
-            for img_file in ["TR.png", "logo.png", "bot.JPG"]:
-                src = os.path.join(base_path, "images", img_file)
-                dest = os.path.join(temp_images, img_file)
-                if os.path.exists(src):
-                    shutil.copy(src, dest)
-                    found_images.append(("../images/" + img_file, "images/" + img_file))
-                    log_activity(f"📷 Copied image: {img_file} to temp directory")
-                else:
-                    log_activity(f"⚠️ Image file not found: {src}")
-            
-            found_doc_images = []
-            for img_file in ["AIR.png", "AIR_2.png", "Gt_1.png", "Gt_2.png", "Gt_3.png"]:
-                src = os.path.join(base_path, "images", "docs", img_file)
-                dest = os.path.join(temp_images_docs, img_file)
-                if os.path.exists(src):
-                    shutil.copy(src, dest)
-                    found_doc_images.append(("../images/docs/" + img_file, "images/docs/" + img_file))
-                    log_activity(f"📷 Copied doc image: {img_file} to temp directory")
-                else:
-                    log_activity(f"⚠️ Doc image file not found: {src}")
-            
-            # Read the original HTML content
-            with open(original_guide_path, 'r', encoding='utf-8') as f:
-                html_content = f.read()
-            
-            # Replace the image paths in the HTML content
-            for old_path, new_path in found_images + found_doc_images:
-                html_content = html_content.replace(old_path, new_path)
-            
-            # Also replace any url('../images/... references in CSS
-            html_content = re.sub(r"url\(['\"]?\.\.\/images\/", r"url('images/", html_content)
-            log_activity("✅ Updated image paths in HTML content")
-            
-            # Write the modified HTML to the temp directory
-            temp_guide_path = os.path.join(temp_dir, "user_guide.html")
-            with open(temp_guide_path, 'w', encoding='utf-8') as f:
-                f.write(html_content)
-                
-            guide_path = temp_guide_path
-            log_activity(f"📄 Created modified user guide at: {temp_guide_path}")
-        else:
-            # Standard development environment - no path modification needed
-            guide_path = os.path.join(os.path.dirname(__file__), "..", "docs", "user_guide.html")
-            log_activity("📁 Using standard development path for user guide")
-            
-            # Check if the user guide file exists in development mode
-            if not os.path.exists(guide_path):
-                log_activity(f"❌ User guide not found at {guide_path}")
-                messagebox.showerror("Error", 
-                                "User guide file not found. Please ensure the documentation is properly installed.")
-                return
+        original_guide_path = os.path.join(base_path, "docs", "user_guide.html")
         
-        guide_path = os.path.abspath(guide_path)
+        # Check if the user guide file exists
+        if not os.path.exists(original_guide_path):
+            log_activity(f"? User guide not found at {original_guide_path}")
+            messagebox.showerror("Error", 
+                            "User guide file not found. Please ensure the documentation is properly installed.")
+            return
+            
+        log_activity(f"? Found user guide at {original_guide_path}")
         
-        # At this point we've already verified the guide exists, so just open it
-        # Use os.startfile for Windows to ensure it opens in the default browser
+        # Create a temp directory to hold a modified copy of the guide with correct image paths
+        # Use a unique name to avoid conflicts with other instances
+        temp_dir = os.path.join(tempfile.gettempdir(), f"AIReviewTool_docs_{os.getpid()}")
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        # Create images directory structure in the temp folder
+        temp_images = os.path.join(temp_dir, "images")
+        temp_images_docs = os.path.join(temp_dir, "images", "docs")
+        os.makedirs(temp_images, exist_ok=True)
+        os.makedirs(temp_images_docs, exist_ok=True)
+        
+        log_activity(f"[DEBUG] Preparing user guide with images in temp directory: {temp_dir}")
+        
+        # Copy images to the temp location and track which ones we actually found
+        found_images = []
+        for img_file in ["TR.png", "logo.png", "bot.JPG"]:
+            src = os.path.join(base_path, "images", img_file)
+            dest = os.path.join(temp_images, img_file)
+            if os.path.exists(src):
+                shutil.copy(src, dest)
+                found_images.append(("../images/" + img_file, "images/" + img_file))
+                log_activity(f"[DEBUG] Copied image: {img_file} to temp directory")
+            else:
+                log_activity(f"[WARNING] Image file not found: {src}")
+        
+        found_doc_images = []
+        for img_file in ["AIR.png", "AIR_2.png", "Gt_1.png", "Gt_2.png", "Gt_3.png"]:
+            src = os.path.join(base_path, "images", "docs", img_file)
+            dest = os.path.join(temp_images_docs, img_file)
+            if os.path.exists(src):
+                shutil.copy(src, dest)
+                found_doc_images.append(("../images/docs/" + img_file, "images/docs/" + img_file))
+                log_activity(f"[DEBUG] Copied doc image: {img_file} to temp directory")
+            else:
+                log_activity(f"[WARNING] Doc image file not found: {src}")
+        
+        # Read the original HTML content
+        with open(original_guide_path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        
+        # Replace the image paths in the HTML content
+        for old_path, new_path in found_images + found_doc_images:
+            html_content = html_content.replace(old_path, new_path)
+        
+        # Also replace any url('../images/... references in CSS
+        html_content = re.sub(r"url\(['\"]?\.\.\/images\/", r"url('images/", html_content)
+        log_activity("[DEBUG] Updated image paths in HTML content")
+        
+        # Write the modified HTML to the temp directory
+        temp_guide_path = os.path.join(temp_dir, "user_guide.html")
+        with open(temp_guide_path, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+            
+        guide_path = temp_guide_path
+        log_activity(f"[DEBUG] Created modified user guide at: {temp_guide_path}")
+    else:
+        # Standard development environment - no path modification needed
+        guide_path = os.path.join(os.path.dirname(__file__), "..", "docs", "user_guide.html")
+        log_activity("[DEBUG] Using standard development path for user guide")
+        
+        # Check if the user guide file exists in development mode
+        if not os.path.exists(guide_path):
+            log_activity(f"? User guide not found at {guide_path}")
+            messagebox.showerror("Error", 
+                            "User guide file not found. Please ensure the documentation is properly installed.")
+            return
+    
+    guide_path = os.path.abspath(guide_path)
+    
+    # At this point we've already verified the guide exists, so just open it
+    # Use threading to avoid GIL issues when opening files from GUI context
+    def open_guide_safely():
         try:
             if os.name == 'nt':  # Windows
-                log_activity(f"🔗 Opening user guide using os.startfile: {guide_path}")
+                log_activity(f"[DEBUG] Opening user guide using os.startfile: {guide_path}")
                 os.startfile(guide_path)
             else:  # Unix/Linux/Mac
                 # For non-Windows systems, use webbrowser with proper file URL
                 file_url = f"file://{guide_path}"
-                log_activity(f"🔗 Opening user guide URL: {file_url}")
+                log_activity(f"[DEBUG] Opening user guide URL: {file_url}")
                 webbrowser.open(file_url)
-            log_activity("📖 User guide opened in browser")
+            log_activity("[SUCCESS] User guide opened in browser")
         except Exception as open_error:
-            log_activity(f"❌ Failed to open with primary method: {open_error}")
+            log_activity(f"? Failed to open with primary method: {open_error}")
             # Fallback: try using webbrowser with different URL formats
             try:
                 # Convert backslashes to forward slashes for URL
@@ -1512,15 +1644,16 @@ def open_user_guide():
                 if not url_path.startswith('/'):
                     url_path = '/' + url_path
                 file_url = f"file://{url_path}"
-                log_activity(f"🔗 Fallback: Opening user guide URL: {file_url}")
                 webbrowser.open(file_url)
-                log_activity("📖 User guide opened in browser (fallback method)")
+                log_activity("[SUCCESS] User guide opened in browser (fallback method)")
             except Exception as fallback_error:
-                log_activity(f"❌ Fallback also failed: {fallback_error}")
-                raise Exception(f"Could not open user guide. Primary error: {open_error}, Fallback error: {fallback_error}")
-    except Exception as e:
-        log_activity(f"❌ Error opening user guide: {str(e)}")
-        messagebox.showerror("Error", f"Failed to open user guide: {str(e)}")
+                log_activity(f"? Fallback also failed: {fallback_error}")
+                # Don't raise exception here as this is not critical to the main functionality
+
+    # Use threading to avoid GIL issues when opening files from GUI context
+    import threading
+    thread = threading.Thread(target=open_guide_safely, daemon=True)
+    thread.start()
 
 # Create standard menu bar (like in the second image)
 menu_bar = tk.Menu(root, font=("Arial", 9, "bold"))
@@ -1535,6 +1668,46 @@ file_menu.add_separator()
 file_menu.add_command(label="Release Notes", command=show_release_notes)
 file_menu.add_separator()
 file_menu.add_command(label="Exit", command=root.quit)
+
+def reset_ai_settings_to_defaults():
+    """Reset AI settings to defaults and save to file"""
+    global ai_settings
+    
+    result = messagebox.askyesno("Reset Settings", 
+                               "Are you sure you want to reset all AI settings to defaults?\n\n"
+                               "This will:\n"
+                               "? Reset Temperature to 0.7\n"
+                               "? Reset Top P to 1.0\n"
+                               "? Reset Max Tokens to 16384\n"
+                               "? Reset System Prompt to default\n"
+                               "? Reset Workflow ID to default\n"
+                               "? Reset filtering to enabled\n\n"
+                               "Your current settings will be lost.")
+    
+    if result:
+        ai_settings = {
+            "temperature": "0.7",
+            "top_p": "1.0", 
+            "max_tokens": "16384",
+            "system_prompt": default_system_prompt,
+            "workflow_id": "7c41c3ab-c214-4394-ba38-9da289975d85",
+            "filter_comments": True
+        }
+        save_ai_settings_to_file()
+        messagebox.showinfo("Success", "All AI settings have been reset to defaults!")
+        
+        if 'log_activity' in globals():
+            log_activity("[SETTINGS] AI Settings reset to defaults from Settings menu")
+
+# Settings menu
+settings_menu = tk.Menu(menu_bar, tearoff=0, font=("Arial", 9, "normal"))
+menu_bar.add_cascade(label="Settings", menu=settings_menu)
+settings_menu.add_command(label="AI Payload Configuration", command=lambda: open_ai_settings_dialog())
+settings_menu.add_separator()
+settings_menu.add_command(label="Save Current Settings", command=lambda: save_ai_settings_to_file())
+settings_menu.add_command(label="Load Saved Settings", command=lambda: load_ai_settings_from_file() and messagebox.showinfo("Success", "AI settings loaded!"))
+settings_menu.add_separator()
+settings_menu.add_command(label="Reset to Defaults", command=lambda: reset_ai_settings_to_defaults())
 
 # Help menu
 help_menu = tk.Menu(menu_bar, tearoff=0, font=("Arial", 9, "normal"))
@@ -1597,7 +1770,7 @@ settings_frame.grid_columnconfigure(0, weight=1)
 settings_frame.grid_columnconfigure(1, weight=0)
 
 # Add header label to settings frame
-header_label = customtkinter.CTkLabel(settings_frame, text="🤖 AI Code Review Tool", font=customtkinter.CTkFont(size=20, weight="bold"))
+header_label = customtkinter.CTkLabel(settings_frame, text="AI Code Review Tool", font=customtkinter.CTkFont(size=20, weight="bold"))
 header_label.grid(row=0, column=0, pady=5, padx=10, sticky="w")
 
 # Theme selector with a toggle switch
@@ -1609,7 +1782,7 @@ theme_frame.grid(row=0, column=1, padx=10, pady=5, sticky="e")
 global mode_switch
 mode_switch = customtkinter.CTkButton(
     theme_frame, 
-    text="🌙 Dark Mode" if customtkinter.get_appearance_mode() == "Dark" else "☀️ Light Mode",
+    text="Dark Mode" if customtkinter.get_appearance_mode() == "Dark" else "Light Mode",
     command=change_appearance_mode_event,
     width=120,
     height=28
@@ -1763,17 +1936,18 @@ latest_report_path = None
 
 def open_latest_report():
     global latest_report_path
-    if latest_report_path and os.path.exists(latest_report_path):
+    
+    def open_report_safely(report_path):
         try:
             if os.name == 'nt':  # Windows
-                os.startfile(latest_report_path)
+                os.startfile(report_path)
             else:  # Unix/Linux/Mac
-                file_url = f"file://{os.path.abspath(latest_report_path)}"
+                file_url = f"file://{os.path.abspath(report_path)}"
                 webbrowser.open(file_url)
         except Exception as e:
             # Fallback method
             try:
-                abs_path = os.path.abspath(latest_report_path)
+                abs_path = os.path.abspath(report_path)
                 url_path = abs_path.replace('\\', '/')
                 if not url_path.startswith('/'):
                     url_path = '/' + url_path
@@ -1781,6 +1955,12 @@ def open_latest_report():
                 webbrowser.open(file_url)
             except Exception as fallback_error:
                 messagebox.showerror("Error", f"Failed to open report: {e}")
+    
+    if latest_report_path and os.path.exists(latest_report_path):
+        # Use threading to avoid GIL issues when opening files from GUI context
+        import threading
+        thread = threading.Thread(target=lambda: open_report_safely(latest_report_path), daemon=True)
+        thread.start()
     else:
         # Look for most recent report in the reports directory
         reports_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "reports")
@@ -1788,25 +1968,14 @@ def open_latest_report():
             reports = [os.path.join(reports_dir, f) for f in os.listdir(reports_dir) if f.startswith("review_report_") and f.endswith(".html")]
             if reports:
                 latest_report = max(reports, key=os.path.getmtime)
-                try:
-                    if os.name == 'nt':  # Windows
-                        os.startfile(latest_report)
-                    else:  # Unix/Linux/Mac
-                        file_url = f"file://{os.path.abspath(latest_report)}"
-                        webbrowser.open(file_url)
-                except Exception as e:
-                    # Fallback method
-                    try:
-                        abs_path = os.path.abspath(latest_report)
-                        url_path = abs_path.replace('\\', '/')
-                        if not url_path.startswith('/'):
-                            url_path = '/' + url_path
-                        file_url = f"file://{url_path}"
-                        webbrowser.open(file_url)
-                    except Exception as fallback_error:
-                        messagebox.showerror("Error", f"Failed to open report: {e}")
-                return
-        messagebox.showinfo("No Report", "No review report found. Run a code review without posting comments to generate a report.")
+                # Use threading to avoid GIL issues when opening files from GUI context
+                import threading
+                thread = threading.Thread(target=lambda: open_report_safely(latest_report), daemon=True)
+                thread.start()
+            else:
+                messagebox.showinfo("No Reports", "No reports found. Please run a review first.")
+        else:
+            messagebox.showinfo("No Reports", "Reports directory not found. Please run a review first.")
 
 view_report_button = customtkinter.CTkButton(
     view_buttons_frame, 
@@ -1931,6 +2100,399 @@ except Exception as e:
                        f"Error details: {str(e)}")
 
 # Theme is now set via customtkinter.set_appearance_mode("Dark") at initialization
+
+# --- AI SETTINGS (Global Variables for Modal Dialog) ---
+# Default system prompt
+default_system_prompt = """You are a senior Software Developer with 20+ years of experience reviewing code changes for a team of skilled professionals. You understand that over-commenting on trivial matters is counter-productive. Focus ONLY on significant issues in the code that could cause actual bugs, serious performance problems, or major maintainability challenges.
+
+*** CRITICAL DATE FORMAT RULE ***
+This codebase uses CCMMDDYY date format (Century, Month, Day, Year) for 8-digit date literals.
+Examples: 20010123 = January 23, 2001 | 20123100 = December 31, 2012
+NEVER flag 8-digit date literals or date arithmetic as issues - they are CORRECT.
+Variables like Base_Date, _GADateExtSnl_, GADateAnnual are CORRECT date constants.
+*** END DATE FORMAT RULE ***
+
+FOCUS ONLY ON:
+1. ACTUAL Logic Errors that could cause bugs
+2. Syntax Errors causing compilation failures  
+3. Potential Runtime Errors (crashes, memory leaks)
+4. Security Vulnerabilities
+5. SIGNIFICANT Performance Issues only
+6. MAJOR Maintainability Issues only
+
+DO NOT COMMENT ON:
+- Code following best practices
+- Trivial stylistic issues
+- Test code patterns (EXPECT_EQ, try-catch in tests, etc.)
+- Date formats or date arithmetic
+- Well-established macros or utility functions
+
+FORMAT: Start each comment with 'Line X:' using exact line numbers from the diff.
+If no substantial issues found, provide NO comments.
+
+NOTE: You can customize this prompt below to change how the AI analyzes your code."""
+
+# Global AI settings variables (to store current values)
+ai_settings = {
+    "temperature": "0.7",
+    "top_p": "1.0", 
+    "max_tokens": "16384",
+    "system_prompt": default_system_prompt,
+    "workflow_id": "7c41c3ab-c214-4394-ba38-9da289975d85",
+    "filter_comments": True
+}
+
+class AISettingsDialog:
+    """Modal dialog for AI settings configuration"""
+    
+    def __init__(self, parent, settings):
+        self.parent = parent
+        self.settings = settings.copy()  # Work with a copy
+        self.result = None
+        
+        try:
+            print("Creating AI Settings dialog...")
+            # Create modal dialog
+            self.dialog = customtkinter.CTkToplevel(parent)
+            self.dialog.title("AI Settings Configuration")
+            
+            # Set proper size and make it resizable  
+            dialog_width = 900
+            dialog_height = 700
+            self.dialog.geometry(f"{dialog_width}x{dialog_height}")
+            self.dialog.minsize(800, 600)
+            self.dialog.resizable(True, True)
+            
+            # Center the dialog on screen
+            self.dialog.update_idletasks()
+            screen_width = self.dialog.winfo_screenwidth()
+            screen_height = self.dialog.winfo_screenheight()
+            x = (screen_width // 2) - (dialog_width // 2)
+            y = (screen_height // 2) - (dialog_height // 2)
+            self.dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+            
+            self.dialog.transient(parent)
+            self.dialog.grab_set()  # Make it modal
+            self.dialog.lift()  # Bring to front
+            self.dialog.focus_force()  # Force focus
+            
+            print("Setting up dialog UI...")
+            self.setup_ui()
+            print("Loading current settings...")
+            self.load_current_settings()
+            print("Dialog initialization complete!")
+            
+            # Wait for dialog to close
+            self.dialog.wait_window()
+            
+        except Exception as e:
+            print(f"Error in AISettingsDialog.__init__: {e}")
+            raise
+    
+    def setup_ui(self):
+        """Setup the UI for the AI settings dialog"""
+        
+        try:
+            print("Creating scrollable main frame...")
+            print("Creating main frame with scrollbar...")
+            # Create a main container frame
+            container = customtkinter.CTkFrame(self.dialog)
+            container.pack(fill="both", expand=True, padx=20, pady=20)
+            
+            # Create canvas and scrollbar for scrolling
+            canvas = tk.Canvas(container, bg='#212121', highlightthickness=0)
+            scrollbar = customtkinter.CTkScrollbar(container, orientation="vertical", command=canvas.yview)
+            
+            # Create the main frame that will contain all content
+            self.main_frame = customtkinter.CTkFrame(canvas)
+            
+            # Configure scrolling
+            canvas.configure(yscrollcommand=scrollbar.set)
+            
+            # Pack the scrollbar and canvas
+            scrollbar.pack(side="right", fill="y")
+            canvas.pack(side="left", fill="both", expand=True)
+            
+            # Create window in canvas for the main frame
+            canvas_frame = canvas.create_window((0, 0), window=self.main_frame, anchor="nw")
+            
+            # Bind canvas resize to update frame width and scroll region
+            def configure_canvas(event):
+                canvas.configure(scrollregion=canvas.bbox("all"))
+                canvas.itemconfig(canvas_frame, width=event.width-20)  # Account for scrollbar
+            
+            canvas.bind('<Configure>', configure_canvas)
+            
+            # Update scroll region when main frame changes
+            def update_scroll_region():
+                self.main_frame.update_idletasks()
+                canvas.configure(scrollregion=canvas.bbox("all"))
+            
+            self.main_frame.bind('<Configure>', lambda e: update_scroll_region())
+            
+            # Add mouse wheel scrolling
+            def on_mousewheel(event):
+                canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+            
+            canvas.bind("<MouseWheel>", on_mousewheel)
+            
+            # Configure main frame
+            self.main_frame.grid_columnconfigure(1, weight=1)
+            
+            print("Adding title...")
+            # Title
+            title_label = customtkinter.CTkLabel(self.main_frame, text="AI Configuration Settings", 
+                                               font=customtkinter.CTkFont(size=20, weight="bold"))
+            title_label.grid(row=0, column=0, columnspan=3, pady=(0, 20), sticky="w")
+            
+            print("Adding model parameters section...")
+            # Model Parameters Section
+            model_section_label = customtkinter.CTkLabel(self.main_frame, text="Model Parameters", 
+                                                        font=customtkinter.CTkFont(size=16, weight="bold"))
+            model_section_label.grid(row=1, column=0, columnspan=3, sticky="w", pady=(10, 5))
+            
+            print("Adding temperature field...")
+            # Temperature
+            temp_label = customtkinter.CTkLabel(self.main_frame, text="Temperature:", font=customtkinter.CTkFont(weight="bold"))
+            temp_label.grid(row=2, column=0, sticky="w", padx=(0, 10), pady=5)
+            self.temperature_entry = customtkinter.CTkEntry(self.main_frame, placeholder_text="0.7")
+            self.temperature_entry.grid(row=2, column=1, pady=5, padx=10, sticky="ew")
+            self.create_info_button(self.main_frame, 2, 2, "Controls AI creativity/randomness (0.0-2.0). Lower values (0.1-0.3) = more focused/deterministic responses. Higher values (0.7-1.0) = more creative/varied responses.")
+            
+            print("Adding top_p field...")
+            # Top P
+            top_p_label = customtkinter.CTkLabel(self.main_frame, text="Top P:", font=customtkinter.CTkFont(weight="bold"))
+            top_p_label.grid(row=3, column=0, sticky="w", padx=(0, 10), pady=5)
+            self.top_p_entry = customtkinter.CTkEntry(self.main_frame, placeholder_text="1.0")
+            self.top_p_entry.grid(row=3, column=1, pady=5, padx=10, sticky="ew")
+            self.create_info_button(self.main_frame, 3, 2, "Nucleus sampling parameter (0.0-1.0). Controls the cumulative probability cutoff for token selection. 1.0 = consider all tokens, 0.9 = only top 90% probable tokens.")
+            
+            print("Adding max tokens field...")
+            # Max Tokens
+            max_tokens_label = customtkinter.CTkLabel(self.main_frame, text="Max Tokens:", font=customtkinter.CTkFont(weight="bold"))
+            max_tokens_label.grid(row=4, column=0, sticky="w", padx=(0, 10), pady=5)
+            self.max_tokens_entry = customtkinter.CTkEntry(self.main_frame, placeholder_text="16384")
+            self.max_tokens_entry.grid(row=4, column=1, pady=5, padx=10, sticky="ew")
+            self.create_info_button(self.main_frame, 4, 2, "Maximum number of tokens the AI can generate in response (1-200000). Claude 4 Sonnet supports up to 64K output tokens.")
+            
+            print("Adding system prompt section...")
+            # System Prompt Section
+            prompt_section_label = customtkinter.CTkLabel(self.main_frame, text="System Prompt", 
+                                                         font=customtkinter.CTkFont(size=16, weight="bold"))
+            prompt_section_label.grid(row=5, column=0, columnspan=3, sticky="w", pady=(20, 5))
+            
+            # System Prompt Text Box
+            self.system_prompt_textbox = customtkinter.CTkTextbox(self.main_frame, height=150, width=600)
+            self.system_prompt_textbox.grid(row=6, column=0, columnspan=3, pady=5, sticky="ew")
+            
+            print("Adding prompt buttons...")
+            # Prompt buttons
+            prompt_buttons_frame = customtkinter.CTkFrame(self.main_frame, fg_color="transparent")
+            prompt_buttons_frame.grid(row=7, column=0, columnspan=3, pady=5, sticky="ew")
+            
+            reset_prompt_button = customtkinter.CTkButton(prompt_buttons_frame, text="Reset to Default", 
+                                                         command=self.reset_prompt, fg_color="#8B4513", hover_color="#A0522D")
+            reset_prompt_button.pack(side="left", padx=5)
+            
+            print("Adding OpenArena section...")
+            # OpenArena Section
+            openarena_section_label = customtkinter.CTkLabel(self.main_frame, text="OpenArena Configuration", 
+                                                            font=customtkinter.CTkFont(size=16, weight="bold"))
+            openarena_section_label.grid(row=8, column=0, columnspan=3, sticky="w", pady=(20, 5))
+            
+            # Workflow ID
+            workflow_label = customtkinter.CTkLabel(self.main_frame, text="Workflow ID:", font=customtkinter.CTkFont(weight="bold"))
+            workflow_label.grid(row=9, column=0, sticky="w", padx=(0, 10), pady=5)
+            self.workflow_entry = customtkinter.CTkEntry(self.main_frame, placeholder_text="Enter OpenArena Workflow ID")
+            self.workflow_entry.grid(row=9, column=1, pady=5, padx=10, sticky="ew")
+            self.create_info_button(self.main_frame, 9, 2, "OpenArena workflow/chain ID for AI processing. This determines which AI model and configuration chain is used for code review.")
+            
+            print("Adding comment filtering...")
+            # Comment filtering
+            self.filter_comments_var = tk.BooleanVar(value=True)
+            filter_comments_checkbox = customtkinter.CTkCheckBox(self.main_frame, text="Enable post-processing comment filtering", 
+                                                                variable=self.filter_comments_var)
+            filter_comments_checkbox.grid(row=10, column=0, columnspan=2, sticky="w", pady=5)
+            self.create_info_button(self.main_frame, 10, 2, "Apply additional filtering to remove date-related and noise comments")
+            
+            print("Adding bottom buttons...")
+            # Buttons
+            button_frame = customtkinter.CTkFrame(self.dialog, fg_color="transparent")
+            button_frame.pack(side="bottom", fill="x", padx=20, pady=10)
+            
+            save_button = customtkinter.CTkButton(button_frame, text="Save & Apply", command=self.save_settings,
+                                                fg_color="#2E8B57", hover_color="#3CB371")
+            save_button.pack(side="right", padx=5)
+            
+            cancel_button = customtkinter.CTkButton(button_frame, text="Cancel", command=self.cancel,
+                                                   fg_color="#8B4513", hover_color="#A0522D")
+            cancel_button.pack(side="right", padx=5)
+            
+            test_button = customtkinter.CTkButton(button_frame, text="Test Configuration", command=self.test_configuration,
+                                                fg_color="#4169E1", hover_color="#6495ED")
+            test_button.pack(side="left", padx=5)
+            
+            reset_button = customtkinter.CTkButton(button_frame, text="Reset to Defaults", command=self.reset_all,
+                                                 fg_color="#DC143C", hover_color="#B22222")
+            reset_button.pack(side="left", padx=5)
+            
+            print("UI setup complete!")
+            
+        except Exception as e:
+            print(f"Error in setup_ui: {e}")
+            raise
+    
+    def create_info_button(self, parent, row, column, info_text):
+        """Create info button for tooltips"""
+        info_button = customtkinter.CTkButton(parent, text="?", width=25, height=25,
+                                             command=lambda: messagebox.showinfo("Information", info_text))
+        info_button.grid(row=row, column=column, padx=5)
+    
+    def load_current_settings(self):
+        """Load current settings into the dialog"""
+        self.temperature_entry.insert(0, self.settings["temperature"])
+        self.top_p_entry.insert(0, self.settings["top_p"])
+        self.max_tokens_entry.insert(0, self.settings["max_tokens"])
+        self.system_prompt_textbox.insert("1.0", self.settings["system_prompt"])
+        self.workflow_entry.insert(0, self.settings["workflow_id"])
+        self.filter_comments_var.set(self.settings["filter_comments"])
+    
+    def reset_prompt(self):
+        """Reset system prompt to default"""
+        self.system_prompt_textbox.delete("1.0", tk.END)
+        self.system_prompt_textbox.insert("1.0", default_system_prompt)
+    
+    def reset_all(self):
+        """Reset all settings to defaults"""
+        if messagebox.askyesno("Reset Settings", "Reset all AI settings to defaults?"):
+            self.temperature_entry.delete(0, tk.END)
+            self.temperature_entry.insert(0, "0.7")
+            self.top_p_entry.delete(0, tk.END)
+            self.top_p_entry.insert(0, "1.0")
+            self.max_tokens_entry.delete(0, tk.END)
+            self.max_tokens_entry.insert(0, "16384")
+            self.workflow_entry.delete(0, tk.END)
+            self.workflow_entry.insert(0, "7c41c3ab-c214-4394-ba38-9da289975d85")
+            self.filter_comments_var.set(True)
+            self.reset_prompt()
+            self.filter_comments_var.set(True)
+            self.reset_prompt()
+    
+    def test_configuration(self):
+        """Test current configuration"""
+        config_text = f"""Current API Configuration:
+
+Workflow ID: {self.workflow_entry.get()}
+Temperature: {self.temperature_entry.get()}
+Top P: {self.top_p_entry.get()}
+Max Tokens: {self.max_tokens_entry.get()}
+Comment Filtering: {'Enabled' if self.filter_comments_var.get() else 'Disabled'}
+System Prompt: {self.system_prompt_textbox.get("1.0", tk.END).strip()[:200]}{'...' if len(self.system_prompt_textbox.get("1.0", tk.END).strip()) > 200 else ''}
+
+This configuration will be used for AI code reviews."""
+        
+        messagebox.showinfo("Configuration Test", config_text)
+    
+    def save_settings(self):
+        """Save settings and close dialog"""
+        self.settings["temperature"] = self.temperature_entry.get()
+        self.settings["top_p"] = self.top_p_entry.get()
+        self.settings["max_tokens"] = self.max_tokens_entry.get()
+        self.settings["system_prompt"] = self.system_prompt_textbox.get("1.0", tk.END).strip()
+        self.settings["workflow_id"] = self.workflow_entry.get()
+        self.settings["filter_comments"] = self.filter_comments_var.get()
+        
+        self.result = "save"
+        self.dialog.destroy()
+    
+    def cancel(self):
+        """Cancel and close dialog"""
+        self.result = "cancel"
+        self.dialog.destroy()
+
+def open_ai_settings_dialog():
+    """Open the AI settings modal dialog"""
+    global ai_settings
+    
+    try:
+        print("Opening AI Settings dialog...")
+        dialog = AISettingsDialog(root, ai_settings)
+        print(f"Dialog closed with result: {dialog.result}")
+        
+        if dialog.result == "save":
+            # Update global settings
+            ai_settings.update(dialog.settings)
+            save_ai_settings_to_file()
+            messagebox.showinfo("Success", "AI settings saved successfully!")
+            if 'log_activity' in globals():
+                log_activity("? AI Settings updated via Settings dialog")
+    except Exception as e:
+        print(f"Error opening AI settings dialog: {e}")
+        messagebox.showerror("Error", f"Failed to open AI settings dialog: {e}")
+
+def save_ai_settings_to_file():
+    """Save AI settings to file"""
+    try:
+        with open("ai_settings.json", "w", encoding="utf-8") as f:
+            json.dump(ai_settings, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to save AI settings: {e}")
+
+def load_ai_settings_from_file():
+    """Load AI settings from file"""
+    global ai_settings
+    try:
+        with open("ai_settings.json", "r", encoding="utf-8") as f:
+            loaded_settings = json.load(f)
+            ai_settings.update(loaded_settings)
+        return True
+    except FileNotFoundError:
+        return False
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to load AI settings: {e}")
+        return False
+
+# Load settings on startup
+load_ai_settings_from_file()
+
+# --- OLD AI SETTINGS (TO BE REMOVED) ---
+# --- OLD AI SETTINGS SECTION REMOVED ---
+# The AI settings have been moved to a modal dialog accessible from the Settings menu.
+# This keeps the main workflow screen clean and uncluttered.
+
+# --- FINAL INITIALIZATION ---
+# Try to load the custom theme file, fall back to built-in theme if not found
+try:
+    # Check multiple possible theme file locations (for development and PyInstaller)
+    theme_locations = [
+        os.path.join(os.path.dirname(__file__), "blue.json"),  # Development environment
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "AIReview", "blue.json"),  # Relative to root
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "blue.json"),  # Root directory
+    ]
+    
+    # If running from PyInstaller bundle, add those paths too
+    if hasattr(sys, '_MEIPASS'):
+        bundle_dir = sys._MEIPASS
+        theme_locations.extend([
+            os.path.join(bundle_dir, "AIReview", "blue.json"),  # PyInstaller bundle AIReview folder
+            os.path.join(bundle_dir, "blue.json"),  # PyInstaller bundle root
+        ])
+    
+    # Try each location until we find a valid theme file
+    theme_found = False
+    for theme_path in theme_locations:
+        if os.path.exists(theme_path):
+            print(f"Found theme file at: {theme_path}")
+            customtkinter.set_default_color_theme(theme_path)
+            theme_found = True
+            break
+    
+    if not theme_found:
+        print(f"Theme file not found in any expected locations, using default theme.")
+        customtkinter.set_default_color_theme("blue")  # Fall back to built-in blue theme
+except Exception as e:
+    print(f"Error loading theme: {e}, falling back to default theme")
+    customtkinter.set_default_color_theme("blue")  # Fall back to built-in blue theme
 
 # Run the Tkinter event loop (now CustomTkinter)
 root.mainloop()
