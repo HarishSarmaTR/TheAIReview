@@ -120,11 +120,15 @@ jobs:
     
     - name: Prepare theme files
       run: |
-        # Ensure theme file is copied to all necessary locations
+        # Ensure theme file is accessible in root directory
         Write-Host "Ensuring theme files are accessible..."
         if (-not (Test-Path -Path "blue.json")) {
-            Copy-Item -Path "AIReview/blue.json" -Destination "blue.json" -Force
-            Write-Host "Copied theme file to root directory"
+            Write-Host "Warning: blue.json not found in root directory!"
+            # Create a minimal theme file if it doesn't exist
+            Write-Host "Creating minimal theme file..."
+            '{"CTk": {"fg_color": ["#F0F0F0", "#212121"]}}' | Out-File -FilePath "blue.json" -Encoding UTF8
+        } else {
+            Write-Host "blue.json found in root directory"
         }
     
     - name: Prepare resources
@@ -140,7 +144,7 @@ jobs:
       run: |
         # Build the latest version (V2.0.0)
         Write-Host "Building AIReviewTool_V2.0.0.exe..."
-        pyinstaller --name "AIReviewTool_V2.0.0" --onefile --windowed --icon="ai.ico" --add-data "images/ai.ico;images" --add-data "ai.ico;." --add-data "images/TR.png;images" --add-data "images/logo.png;images" --add-data "AIReview/blue.json;AIReview" --add-data "AIReview/blue.json;." AIReview/AIReview.py
+        pyinstaller --name "AIReviewTool_V2.0.0" --onefile --windowed --icon="ai.ico" --add-data "images/ai.ico;images" --add-data "ai.ico;." --add-data "images/TR.png;images" --add-data "images/logo.png;images" --add-data "blue.json;AIReview" --add-data "blue.json;." AIReview/AIReview.py
         
         # Verify the V2.0.0 executable was created
         if (Test-Path -Path "dist/AIReviewTool_V2.0.0.exe") {
@@ -148,7 +152,7 @@ jobs:
             
             # Ensure theme file is also in the dist folder
             if (-not (Test-Path -Path "dist/blue.json")) {
-                Copy-Item -Path "AIReview/blue.json" -Destination "dist/blue.json" -Force
+                Copy-Item -Path "blue.json" -Destination "dist/blue.json" -Force
                 Write-Host "Copied theme file to dist directory"
             }
         } else {
