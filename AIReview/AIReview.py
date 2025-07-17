@@ -16,6 +16,10 @@ import time
 import json
 from tkinter import ttk
 from PIL import Image, ImageTk  # For handling the background image
+import threading
+import json
+from datetime import datetime, timedelta
+import hashlib
 
 def calculate_claude_cost(prompt_tokens, completion_tokens):
     """
@@ -69,7 +73,7 @@ filter_comments_var = None
 TOKEN_FILE = "tokens.txt"
 
 # Define the version as a static date-based version
-APP_VERSION = "2.0.1" # Incremented patch version for UI enhancements
+APP_VERSION = "2.0.2" # Incremented patch version for UI enhancements
                       # Versioning format: Major.Minor.Patch
                       # Major: Significant changes or new features
                       # Minor: Backward-compatible changes or improvements
@@ -80,6 +84,10 @@ RECENT_REPOS_FILE = "recent_repos.json"
 # Maximum number of repositories to remember
 MAX_RECENT_REPOS = 10
                         # Patch: Bug fixes or minor changes
+
+UPDATE_CHECK_URL = "https://raw.githubusercontent.com/HarishSarmaTR/TheAIReview/main/version_info.json"
+UPDATE_CHECK_FILE = "last_update_check.json"
+UPDATE_NOTIFICATION_FILE = "update_notifications.json"
 
 def open_openarena_link(event):
     """Open the OpenArena link in the default web browser."""
@@ -733,11 +741,48 @@ def review_code(diff, openarena_token):
     
     return ""  # Fallback return if all retries fail
 
+# Add this function to categorize comments by severity
+def determine_severity(comment_content):
+    """Determine severity level based on comment content"""
+    content_lower = comment_content.lower()
+    
+    # Critical issues
+    if any(word in content_lower for word in [
+        'security', 'vulnerability', 'crash', 'memory leak', 'buffer overflow',
+        'null pointer', 'segmentation fault', 'deadlock', 'race condition'
+    ]):
+        return "🔴 Critical"
+    
+    # High priority issues
+    elif any(word in content_lower for word in [
+        'logic error', 'incorrect', 'bug', 'failure', 'exception', 'error',
+        'undefined behavior', 'infinite loop', 'resource leak'
+    ]):
+        return "🟠 High"
+    
+    # Medium priority issues
+    elif any(word in content_lower for word in [
+        'performance', 'inefficient', 'optimization', 'deprecated',
+        'maintainability', 'readability', 'complexity'
+    ]):
+        return "🟡 Medium"
+    
+    # Low priority issues
+    elif any(word in content_lower for word in [
+        'style', 'convention', 'formatting', 'naming', 'comment',
+        'documentation', 'suggestion', 'consider'
+    ]):
+        return "🟢 Low"
+    
+    # Default to medium if can't categorize
+    return "🟡 Medium"
+
 # Post comments on GitHub PR
 def post_comments_on_pr(pr, comments, filename, modified_lines):
     """
     Post comments on a GitHub PR with improved line detection and comment parsing.
     This function parses AI-generated comments and posts them to the appropriate lines in the PR.
+    All comments are clearly marked as AI-generated.
     """
     added_comments = set()
     commits = list(pr.get_commits())
@@ -750,10 +795,6 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
     all_comments_text = "\n".join([c.strip() for c in comments if c.strip()])
     
     # Enhanced regex pattern to better capture individual line comments
-    # This pattern handles:
-    # 1. Standard "Line X: comment" format
-    # 2. Captures multi-line comments for a single line
-    # 3. Handles comments that might contain line numbers in their content
     line_pattern = re.compile(r'Line\s+(\d+)\s*:\s*(.*?)(?=\n\s*Line\s+\d+\s*:|$)', re.DOTALL)
     matches = line_pattern.findall(all_comments_text)
     
@@ -762,8 +803,12 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
     for line_num, content in matches:
         try:
             line_number = int(line_num)
-            comment_content = f"Line {line_num}: {content.strip()}"
-            parsed_comments.append((line_number, comment_content))
+            # Determine severity level
+            severity = determine_severity(content)
+            
+            # Enhanced AI comment format with severity
+            ai_comment = f"🤖 **AI Code Review** • {severity}\n\nLine {line_num}: {content.strip()}"
+            parsed_comments.append((line_number, ai_comment))
         except ValueError:
             log_activity(f"[ERROR] Invalid line number format: {line_num}")
             continue
@@ -783,8 +828,9 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
             if line_match:
                 try:
                     line_number = int(line_match.group(1))
-                    comment_content = block.strip()
-                    parsed_comments.append((line_number, comment_content))
+                    # Add simple AI identifier to the comment
+                    ai_comment = f"🤖 **AI Code Review**\n\n{block.strip()}"
+                    parsed_comments.append((line_number, ai_comment))
                 except ValueError:
                     continue
     
@@ -803,11 +849,13 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
                 if matches:
                     try:
                         line_number = int(matches[0])
-                        parsed_comments.append((line_number, line_content))
+                        # Add simple AI identifier to the comment
+                        ai_comment = f"🤖 **AI Code Review**\n\n{line_content}"
+                        parsed_comments.append((line_number, ai_comment))
                     except ValueError:
                         continue
     
-    log_activity(f"[COMMENT] Starting comment posting for {len(parsed_comments)} comments")
+    log_activity(f"[COMMENT] Starting comment posting for {len(parsed_comments)} AI-identified comments")
     log_activity(f"[COMMENT] Modified lines detected: {len(modified_lines)} total")
     
     # Debug: Show what lines are available
@@ -820,13 +868,9 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
     
     # Post each comment to GitHub (always on RIGHT side)
     for line_position, line_content in parsed_comments:
-        log_activity(f"[COMMENT] Processing comment for line {line_position}...")
+        log_activity(f"[COMMENT] Processing AI comment for line {line_position}...")
         
         # Check if this is a modified line in the PR
-        # For added/modified lines, line_position is positive
-        # For removed lines, we'd use negative line numbers in our modified_lines dictionary
-        
-        # First check if this exact line number is in the modified lines
         line_exists = line_position in modified_lines
         original_line = line_position
         
@@ -835,13 +879,13 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
             # Get all positive line numbers (added/modified lines)
             positive_lines = [l for l in modified_lines.keys() if l > 0]
             if positive_lines:
-                # Find the closest modified line (prefer lines after the comment line)
+                # Find the closest modified line
                 closest_lines = sorted(positive_lines, key=lambda l: abs(l - line_position))
                 if closest_lines:
                     closest_line = closest_lines[0]
-                    # Use the closest line if within a reasonable distance (increased to 10 lines)
+                    # Use the closest line if within a reasonable distance
                     if abs(closest_line - line_position) <= 10:
-                        log_activity(f"[COMMENT] Adjusting comment from line {line_position} to closest modified line {closest_line}")
+                        log_activity(f"[COMMENT] Adjusting AI comment from line {line_position} to closest modified line {closest_line}")
                         line_position = closest_line
                         line_exists = True
                     else:
@@ -851,7 +895,7 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
                         log_activity(f"[COMMENT] Line {original_line} distant from modifications, using closest line {closest_line} anyway")
             else:
                 # No positive lines available, this shouldn't happen but handle it
-                log_activity(f"[COMMENT] No positive lines available for comment placement")
+                log_activity(f"[COMMENT] No positive lines available for AI comment placement")
 
         # If we still can't find a line, try to use any available modified line
         if not line_exists and modified_lines:
@@ -859,23 +903,20 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
             if available_lines:
                 line_position = available_lines[0]  # Use first available line
                 line_exists = True
-                log_activity(f"[COMMENT] Using first available modified line {line_position} as fallback for line {original_line}")
+                log_activity(f"[COMMENT] Using first available modified line {line_position} as fallback for AI comment on line {original_line}")
 
         # Skip if we can't find a suitable line to attach the comment to
         if not line_exists:
-            log_activity(f"[COMMENT] Skipping comment for invalid line {original_line} in {filename}. No modified lines available.")
+            log_activity(f"[COMMENT] Skipping AI comment for invalid line {original_line} in {filename}. No modified lines available.")
             continue
 
         # Skip duplicate comments
         if line_content in added_comments:
-            log_activity(f"[COMMENT] Skipping duplicate comment at line {line_position}")
+            log_activity(f"[COMMENT] Skipping duplicate AI comment at line {line_position}")
             continue
 
         try:
-            # For GitHub API, we need to be very explicit about the positioning
-            # side="RIGHT" means the new version (right side of diff)
-            # The line number should correspond to the line in the new file
-            log_activity(f"[COMMENT] Posting comment to RIGHT side of diff at line {line_position}")
+            log_activity(f"[COMMENT] Posting AI comment to RIGHT side of diff at line {line_position}")
             log_activity(f"[COMMENT] Target file: {filename}, Line: {line_position}, Side: RIGHT")
             
             comment_result = pr.create_review_comment(
@@ -883,22 +924,22 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
                 commit=latest_commit,
                 path=filename,
                 line=line_position,
-                side="RIGHT"  # Explicitly set to RIGHT for new version
+                side="RIGHT"
             )
             
             # Verify the comment was posted correctly
             if hasattr(comment_result, 'side'):
                 actual_side = getattr(comment_result, 'side', 'unknown')
-                log_activity(f"[SUCCESS] Comment posted! Confirmed side: {actual_side}")
+                log_activity(f"[SUCCESS] AI comment posted! Confirmed side: {actual_side}")
             else:
-                log_activity(f"[SUCCESS] Comment posted successfully (side verification unavailable)")
+                log_activity(f"[SUCCESS] AI comment posted successfully (side verification unavailable)")
             
             added_comments.add(line_content)
-            log_activity(f"[SUCCESS] Comment posted successfully")
+            log_activity(f"[SUCCESS] AI comment posted successfully")
             
         except Exception as e:
             error_msg = str(e).lower()
-            log_activity(f"[ERROR] Error posting comment on PR #{pr.number}, file {filename}, line {line_position}: {e}")
+            log_activity(f"[ERROR] Error posting AI comment on PR #{pr.number}, file {filename}, line {line_position}: {e}")
             
             # If the error is about line position, try alternative approaches
             if "line" in error_msg or "position" in error_msg or "diff" in error_msg:
@@ -908,34 +949,37 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
                         available_lines = [l for l in modified_lines.keys() if l > 0]
                         if available_lines:
                             fallback_line = min(available_lines)  # Use the first modified line
-                            log_activity(f"[FALLBACK] Retrying comment on first available line {fallback_line} (RIGHT side)")
+                            log_activity(f"[FALLBACK] Retrying AI comment on first available line {fallback_line} (RIGHT side)")
+                            
+                            # Add additional context for fallback comments
+                            fallback_content = f"🤖 **AI Code Review** (originally for line {line_position})\n\n{line_content}"
                             
                             fallback_result = pr.create_review_comment(
-                                body=f"[AI REVIEW] **AI Review Comment** (originally for line {line_position}):\n\n{line_content}",
+                                body=fallback_content,
                                 commit=latest_commit,
                                 path=filename,
                                 line=fallback_line,
-                                side="RIGHT"  # Still use RIGHT side
+                                side="RIGHT"
                             )
                             
                             added_comments.add(line_content)
-                            log_activity(f"[SUCCESS] Posted comment to fallback line {fallback_line} on RIGHT side")
+                            log_activity(f"[SUCCESS] Posted AI comment to fallback line {fallback_line} on RIGHT side")
                         else:
-                            log_activity(f"[FALLBACK] No available lines found for comment posting")
+                            log_activity(f"[FALLBACK] No available lines found for AI comment posting")
                             
                 except Exception as fallback_error:
-                    log_activity(f"[FALLBACK] Fallback posting also failed: {fallback_error}")
+                    log_activity(f"[FALLBACK] Fallback AI comment posting also failed: {fallback_error}")
                     
                     # Last resort: try posting as a general PR comment (not line-specific)
                     try:
-                        log_activity(f"[FALLBACK] Attempting to post as general PR comment")
-                        general_comment = f"**AI Review for {filename} (line {line_position}):**\n\n{line_content}"
+                        log_activity(f"[FALLBACK] Attempting to post AI comment as general PR comment")
+                        general_comment = f"🤖 **AI Code Review for {filename} (line {line_position}):**\n\n{line_content}"
                         pr.create_issue_comment(body=general_comment)
-                        log_activity(f"[SUCCESS] Posted as general PR comment")
+                        log_activity(f"[SUCCESS] Posted AI comment as general PR comment")
                     except Exception as general_error:
-                        log_activity(f"[ERROR] General comment posting also failed: {general_error}")
+                        log_activity(f"[ERROR] General AI comment posting also failed: {general_error}")
             else:
-                log_activity(f"[ERROR] Non-positioning error, skipping fallback attempts")
+                log_activity(f"[ERROR] Non-positioning error for AI comment, skipping fallback attempts")
 
     return added_comments
 
@@ -1079,6 +1123,8 @@ def main(repo_name, pr_number, post_comments=True):
     total_cost = 0.0
     total_tokens = 0
     pr_url = None
+    summary_message = ""  # Initialize summary_message at the beginning
+    
     try:
         global github_token, openarena_token
         if not github_token or not openarena_token:
@@ -1122,7 +1168,7 @@ def main(repo_name, pr_number, post_comments=True):
                 log_activity(f"[SKIP] Skipping file: {file.filename} (matches ignore patterns)")
                 continue
             
-            reviewed_files_count +=1 # Count as reviewed even if no comments are made, but processing attempted
+            reviewed_files_count += 1 # Count as reviewed even if no comments are made, but processing attempted
 
             diff = file.patch
             # Extract exact modified lines
@@ -1150,7 +1196,9 @@ def main(repo_name, pr_number, post_comments=True):
             
             if not diff_text.strip():
                 log_activity(f"No reviewable changes found in {file.filename} after parsing patch.")
-                continue            # Send modified lines to AI
+                continue
+                
+            # Send modified lines to AI
             review_result = review_code(diff_text, openarena_token)
             
             if isinstance(review_result, tuple) and len(review_result) >= 3:
@@ -1161,7 +1209,7 @@ def main(repo_name, pr_number, post_comments=True):
                 file_tokens = 0
                 
             if not comments_text:
-                log_activity(f"? No AI feedback for {file.filename}")
+                log_activity(f"No AI feedback for {file.filename}")
                 continue
                 
             # If we received valid feedback but no token count (API limitation),
@@ -1202,19 +1250,21 @@ def main(repo_name, pr_number, post_comments=True):
             if post_comments:
                 posted_comments_for_file = post_comments_on_pr(pr, comment_lines, file.filename, modified_lines)
                 all_posted_comments_total_count += len(posted_comments_for_file)
-            else:                # Count the comments without posting but don't log content to keep activity log clean
+            else:
+                # Count the comments without posting but don't log content to keep activity log clean
                 log_activity(f"[SUMMARY] Found {len([line for line in comment_lines if line.strip()])} comments for {file.filename} (not posted to GitHub)")
                 # Count the comments even though they're not posted
                 all_posted_comments_total_count += len([line for line in comment_lines if line.strip()])
         
-        if all_posted_comments_total_count > 0: # Check if any comments were found across all files
+        # Generate summary message based on results
+        if all_posted_comments_total_count > 0:
             summary_message = f"[SUCCESS] AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. A total of {all_posted_comments_total_count} comments were generated."
             
             # Post summary comment only if posting is enabled
             if post_comments:
-                summary_comment = f"{summary_message} Please check and resolve."
+                summary_comment = f"🤖 **AI Code Review Summary**\n\n{summary_message} Please check and resolve."
                 pr.create_issue_comment(summary_comment)
-                log_activity(f"\\n[SUMMARY] Posted summary issue comment on PR #{pr.number}: {summary_comment}")
+                log_activity(f"\\n[SUMMARY] Posted AI summary issue comment on PR #{pr.number}: {summary_comment}")
             else:
                 log_activity(f"\\n[SUMMARY] {summary_message} (Comments were not posted to GitHub - see HTML report for details)")
                 
@@ -1222,10 +1272,14 @@ def main(repo_name, pr_number, post_comments=True):
             if not post_comments and all_comments:
                 create_comments_html_report(all_comments, pr_url, repo_name, pr_number)
                 
-        elif reviewed_files_count > 0: # Files were reviewed but no comments made
-            log_activity(f"\\n[SUCCESS] AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. No specific issues found by AI requiring comments.")
-        else: # No files were reviewed (e.g. all ignored or empty PR)
-            log_activity(f"\\n[INFO] No files were reviewed in PR #{pr.number}.")        # Status update handled by run_code_review after this function returns        log_activity(f"[SUCCESS] Code review process by AI has been completed. Check PR for details.")
+        elif reviewed_files_count > 0:
+            summary_message = f"[SUCCESS] AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. No specific issues found by AI requiring comments."
+            log_activity(f"\\n{summary_message}")
+        else:
+            summary_message = f"[INFO] No files were reviewed in PR #{pr.number}."
+            log_activity(f"\\n{summary_message}")
+            
+        # Log cost summary
         log_activity(f"[COST] COST SUMMARY")
         log_activity(f"[COST] Total estimated cost: ${total_cost:.5f} for {total_tokens} tokens")
         
@@ -1236,10 +1290,12 @@ def main(repo_name, pr_number, post_comments=True):
         output_cost = (output_tokens / 1000) * 0.015
         log_activity(f"[COST] Breakdown: Input ${input_cost:.5f} + Output ${output_cost:.5f}")
         log_activity(f"[COST] Claude 4 Sonnet pricing: $0.003/1K input tokens, $0.015/1K output tokens")
+        
     except Exception as e:
         log_activity(f"[ERROR] Error in main function: {e}")
+        summary_message = f"[ERROR] Code review failed: {str(e)}"
+        
     return total_files_in_pr, reviewed_files_count, all_posted_comments_total_count, pr_url, total_cost, total_tokens
-
 
 # Create the main Tkinter window
 # root = tk.Tk() # Old Tkinter root
@@ -1393,28 +1449,33 @@ content_frame.grid_rowconfigure(0, weight=1)
 # --- MENU BAR (Menu + Help) with CustomTkinter ---
 def show_release_notes():
     notes = (
-        "🚀 Release Notes (v2.0.1) 🚀\n\n"
-        "🎨 Modern UI Enhancements\n"
-        "   • Sleek customtkinter interface with professional blue theme\n"
-        "   • Enhanced layout with improved visual elements\n"
-        "   • Added Dark/Light mode button with instant switching\n\n"
-        "📊 Advanced Activity Tracking\n"
-        "   • Real-time activity log with timestamps for every action\n"
-        "   • Progress bar with percentage display for better feedback\n"
-        "   • Clear button that resets both log and review metrics\n"
-        "   • Detailed performance metrics and cost estimation\n\n"
-        "⚡ Enhanced Usability Features\n"
-        "   • Recent repositories dropdown for quick access\n"
-        "   • Comprehensive HTML user guide with screenshots\n"
-        "   • One-click PR viewing on GitHub\n"
-        "   • Improved token management with secure encryption\n"
-        "   • Streamlined menu organization with user guide documentation\n\n"
-        "🤖 AI Review Improvements\n"
-        "   • Enhanced Open Arena AI chain with Claude 4 Sonnet integration\n"
-        "   • Accurate token tracking and cost calculation\n"
-        "   • Smarter review prompts for more relevant feedback\n"
-        "   • Better error handling and retry mechanisms\n\n"
-        "✨ Ready to transform your code review process!"
+       "🚀 Release Notes (v2.0.2) 🚀\n\n"
+        "🤖 AI Comment Enhancement\n"
+        "   • All AI-generated comments now clearly marked with '🤖 AI Code Review' prefix\n"
+        "   • Professional comment format for better readability\n"
+        "   • Severity levels for AI comments (🔴 Critical, 🟠 High, 🟡 Medium, 🟢 Low)\n"
+        "   • Clear AI attribution to distinguish from human comments\n\n"
+        "🔧 Code Review Improvements\n"
+        "   • Enhanced error handling with better recovery mechanisms\n"
+        "   • Improved comment parsing and line mapping accuracy\n"
+        "   • Multiple retry strategies for reliable comment posting\n"
+        "   • Better fallback mechanisms for edge cases\n\n"
+        "🎯 Bug Fixes & Stability\n"
+        "   • Fixed UnboundLocalError in summary message handling\n"
+        "   • Improved OpenArena token validation with clearer errors\n"
+        "   • Enhanced API retry logic with exponential backoff\n"
+        "   • Comprehensive exception handling throughout\n\n"
+        "📊 Performance & Metrics\n"
+        "   • More accurate cost estimation and token counting\n"
+        "   • Enhanced activity logging with detailed status indicators\n"
+        "   • Real-time progress tracking during review process\n"
+        "   • Comprehensive breakdown of input/output costs\n\n"
+        "🛠️ Build & Deployment\n"
+        "   • Improved PowerShell build script with better error handling\n"
+        "   • Automatic theme file management and validation\n"
+        "   • Built-in executable testing and ZIP archive creation\n"
+        "   • Enhanced deployment reliability\n\n"
+        "✨ This release focuses on reliability, clear AI attribution, and enhanced user experience!"
     )
     dialog = customtkinter.CTkToplevel(root)
     dialog.title("Release Notes")
@@ -1659,10 +1720,271 @@ def open_user_guide():
 menu_bar = tk.Menu(root, font=("Arial", 9, "bold"))
 root.configure(menu=menu_bar)
 
+class UpdateChecker:
+    def __init__(self, current_version, parent_window):
+        self.current_version = current_version
+        self.parent_window = parent_window
+        self.check_interval_days = 1  # Check daily
+        
+    def should_check_for_updates(self):
+        """Check if we should perform an update check based on last check time"""
+        try:
+            if os.path.exists(UPDATE_CHECK_FILE):
+                with open(UPDATE_CHECK_FILE, 'r') as f:
+                    data = json.load(f)
+                    last_check = datetime.fromisoformat(data['last_check'])
+                    return datetime.now() - last_check > timedelta(days=self.check_interval_days)
+            return True
+        except:
+            return True
+    
+    def record_update_check(self):
+        """Record that we performed an update check"""
+        try:
+            data = {
+                'last_check': datetime.now().isoformat(),
+                'last_version_checked': self.current_version
+            }
+            with open(UPDATE_CHECK_FILE, 'w') as f:
+                json.dump(data, f)
+        except Exception as e:
+            print(f"Error recording update check: {e}")
+    
+    def has_been_notified(self, version):
+        """Check if user has already been notified about this version"""
+        try:
+            if os.path.exists(UPDATE_NOTIFICATION_FILE):
+                with open(UPDATE_NOTIFICATION_FILE, 'r') as f:
+                    data = json.load(f)
+                    return version in data.get('notified_versions', [])
+            return False
+        except:
+            return False
+    
+    def record_notification(self, version):
+        """Record that user has been notified about this version"""
+        try:
+            data = {'notified_versions': []}
+            if os.path.exists(UPDATE_NOTIFICATION_FILE):
+                with open(UPDATE_NOTIFICATION_FILE, 'r') as f:
+                    data = json.load(f)
+            
+            if 'notified_versions' not in data:
+                data['notified_versions'] = []
+            
+            if version not in data['notified_versions']:
+                data['notified_versions'].append(version)
+                # Keep only last 5 notifications to prevent file from growing
+                data['notified_versions'] = data['notified_versions'][-5:]
+            
+            with open(UPDATE_NOTIFICATION_FILE, 'w') as f:
+                json.dump(data, f)
+        except Exception as e:
+            print(f"Error recording notification: {e}")
+    
+    def compare_versions(self, version1, version2):
+        """Compare two version strings (e.g., '2.0.1' vs '2.0.2')"""
+        try:
+            v1_parts = [int(x) for x in version1.split('.')]
+            v2_parts = [int(x) for x in version2.split('.')]
+            
+            # Pad shorter version with zeros
+            max_len = max(len(v1_parts), len(v2_parts))
+            v1_parts.extend([0] * (max_len - len(v1_parts)))
+            v2_parts.extend([0] * (max_len - len(v2_parts)))
+            
+            for i in range(max_len):
+                if v1_parts[i] < v2_parts[i]:
+                    return -1
+                elif v1_parts[i] > v2_parts[i]:
+                    return 1
+            return 0
+        except:
+            return 0
+    
+    def check_for_updates_async(self):
+        """Check for updates in a background thread"""
+        def check_updates():
+            try:
+                if not self.should_check_for_updates():
+                    return
+                
+                log_activity("[UPDATE] Checking for application updates...")
+                
+                # Make request to GitHub for version info
+                response = requests.get(UPDATE_CHECK_URL, timeout=10)
+                if response.status_code == 200:
+                    version_info = response.json()
+                    latest_version = version_info.get('latest_version')
+                    
+                    if latest_version and self.compare_versions(self.current_version, latest_version) < 0:
+                        # New version available
+                        if not self.has_been_notified(latest_version):
+                            self.show_update_notification(version_info)
+                            self.record_notification(latest_version)
+                    else:
+                        log_activity("[UPDATE] Application is up to date")
+                else:
+                    log_activity(f"[UPDATE] Could not check for updates (HTTP {response.status_code})")
+                
+                self.record_update_check()
+                
+            except Exception as e:
+                log_activity(f"[UPDATE] Error checking for updates: {e}")
+        
+        # Run in background thread
+        thread = threading.Thread(target=check_updates, daemon=True)
+        thread.start()
+    
+    def show_update_notification(self, version_info):
+        """Show update notification dialog"""
+        def show_dialog():
+            try:
+                latest_version = version_info.get('latest_version')
+                release_date = version_info.get('release_date', 'Unknown')
+                download_url = version_info.get('download_url', '')
+                release_notes = version_info.get('release_notes', 'No release notes available')
+                force_update = version_info.get('force_update', False)
+                
+                dialog = customtkinter.CTkToplevel(self.parent_window)
+                dialog.title("Update Available")
+                dialog.geometry("500x400")
+                dialog.resizable(False, False)
+                dialog.grab_set()
+                dialog.transient(self.parent_window)
+                
+                # Center the dialog
+                dialog.update_idletasks()
+                x = (dialog.winfo_screenwidth() // 2) - (500 // 2)
+                y = (dialog.winfo_screenheight() // 2) - (400 // 2)
+                dialog.geometry(f"500x400+{x}+{y}")
+                
+                # Content frame
+                content_frame = customtkinter.CTkFrame(dialog)
+                content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+                
+                # Title
+                title_text = "🚀 Update Available!" if not force_update else "⚠️ Update Required!"
+                title_label = customtkinter.CTkLabel(
+                    content_frame, 
+                    text=title_text,
+                    font=customtkinter.CTkFont(size=18, weight="bold")
+                )
+                title_label.pack(pady=(0, 10))
+                
+                # Version info
+                version_text = f"Current Version: {self.current_version}\nLatest Version: {latest_version}\nRelease Date: {release_date}"
+                version_label = customtkinter.CTkLabel(content_frame, text=version_text)
+                version_label.pack(pady=(0, 10))
+                
+                # Release notes
+                notes_label = customtkinter.CTkLabel(content_frame, text="What's New:", font=customtkinter.CTkFont(weight="bold"))
+                notes_label.pack(anchor="w", pady=(10, 5))
+                
+                notes_textbox = customtkinter.CTkTextbox(content_frame, height=150)
+                notes_textbox.pack(fill="both", expand=True, pady=(0, 10))
+                notes_textbox.insert("1.0", release_notes)
+                notes_textbox.configure(state="disabled")
+                
+                # Buttons
+                button_frame = customtkinter.CTkFrame(content_frame, fg_color="transparent")
+                button_frame.pack(fill="x", pady=(10, 0))
+                
+                def download_update():
+                    webbrowser.open(download_url)
+                    dialog.destroy()
+                
+                def remind_later():
+                    dialog.destroy()
+                
+                def skip_version():
+                    self.record_notification(latest_version)
+                    dialog.destroy()
+                
+                download_button = customtkinter.CTkButton(
+                    button_frame, 
+                    text="Download Update",
+                    command=download_update,
+                    fg_color="#2E8B57",
+                    hover_color="#3CB371"
+                )
+                download_button.pack(side="left", padx=5)
+                
+                if not force_update:
+                    later_button = customtkinter.CTkButton(
+                        button_frame,
+                        text="Remind Later",
+                        command=remind_later,
+                        fg_color="#4169E1",
+                        hover_color="#6495ED"
+                    )
+                    later_button.pack(side="left", padx=5)
+                    
+                    skip_button = customtkinter.CTkButton(
+                        button_frame,
+                        text="Skip This Version",
+                        command=skip_version,
+                        fg_color="#8B4513",
+                        hover_color="#A0522D"
+                    )
+                    skip_button.pack(side="right", padx=5)
+                
+                log_activity(f"[UPDATE] User notified about version {latest_version}")
+                
+            except Exception as e:
+                log_activity(f"[UPDATE] Error showing update dialog: {e}")
+        
+        # Schedule dialog to show in main thread
+        self.parent_window.after(100, show_dialog)
+
+# Add this function to check for updates on startup
+def check_for_updates_on_startup():
+    """Check for updates when the application starts"""
+    try:
+        update_checker = UpdateChecker(APP_VERSION, root)
+        # Delay the check by 2 seconds to let the UI fully load
+        root.after(2000, update_checker.check_for_updates_async)
+    except Exception as e:
+        print(f"Error initializing update checker: {e}")
+
+# Add manual update check function for menu
+def manual_update_check():
+    """Manually check for updates (called from menu)"""
+    try:
+        update_checker = UpdateChecker(APP_VERSION, root)
+        
+        def check_and_notify():
+            try:
+                log_activity("[UPDATE] Manually checking for updates...")
+                response = requests.get(UPDATE_CHECK_URL, timeout=10)
+                if response.status_code == 200:
+                    version_info = response.json()
+                    latest_version = version_info.get('latest_version')
+                    
+                    if latest_version and update_checker.compare_versions(APP_VERSION, latest_version) < 0:
+                        update_checker.show_update_notification(version_info)
+                    else:
+                        messagebox.showinfo("Update Check", "You are using the latest version!")
+                else:
+                    messagebox.showerror("Update Check", f"Could not check for updates (HTTP {response.status_code})")
+                
+                update_checker.record_update_check()
+                
+            except Exception as e:
+                messagebox.showerror("Update Check", f"Error checking for updates: {e}")
+        
+        # Run in background thread
+        thread = threading.Thread(target=check_and_notify, daemon=True)
+        thread.start()
+        
+    except Exception as e:
+        messagebox.showerror("Update Check", f"Error initializing update check: {e}")
+
 # File menu
 file_menu = tk.Menu(menu_bar, tearoff=0, font=("Arial", 9, "normal"))
 menu_bar.add_cascade(label="Menu", menu=file_menu)
 file_menu.add_command(label="New Review", command=lambda: file_menu_callback("New Review"))
+file_menu.add_command(label="Check for Updates", command=manual_update_check)  # Add this line
 file_menu.add_command(label="View Latest Report", command=lambda: open_latest_report())
 file_menu.add_separator()
 file_menu.add_command(label="Release Notes", command=show_release_notes)
@@ -2103,6 +2425,7 @@ except Exception as e:
 
 # --- AI SETTINGS (Global Variables for Modal Dialog) ---
 # Default system prompt
+# Update the system prompt to include severity levels
 default_system_prompt = """You are a senior Software Developer with 20+ years of experience reviewing code changes for a team of skilled professionals. You understand that over-commenting on trivial matters is counter-productive. Focus ONLY on significant issues in the code that could cause actual bugs, serious performance problems, or major maintainability challenges.
 
 *** CRITICAL DATE FORMAT RULE ***
@@ -2127,10 +2450,15 @@ DO NOT COMMENT ON:
 - Date formats or date arithmetic
 - Well-established macros or utility functions
 
-FORMAT: Start each comment with 'Line X:' using exact line numbers from the diff.
-If no substantial issues found, provide NO comments.
+FORMAT: Start each comment with 'Line X: [SEVERITY]:' where SEVERITY is one of:
+- CRITICAL: Security vulnerabilities, crashes, memory leaks
+- HIGH: Logic errors, bugs, runtime failures
+- MEDIUM: Performance issues, maintainability problems
+- LOW: Minor suggestions, style improvements
 
-NOTE: You can customize this prompt below to change how the AI analyzes your code."""
+Example: Line 45: [HIGH]: Logic error that could cause null pointer exception...
+
+If no substantial issues found, provide NO comments."""
 
 # Global AI settings variables (to store current values)
 ai_settings = {
@@ -2493,6 +2821,9 @@ try:
 except Exception as e:
     print(f"Error loading theme: {e}, falling back to default theme")
     customtkinter.set_default_color_theme("blue")  # Fall back to built-in blue theme
+
+
+check_for_updates_on_startup()
 
 # Run the Tkinter event loop (now CustomTkinter)
 root.mainloop()
