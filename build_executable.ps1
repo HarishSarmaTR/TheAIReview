@@ -1,13 +1,13 @@
-# Build Executable Script for AI Review Tool v2.0.3
+# Build Executable Script for AI Review Tool Version
 # This script builds the executable with PyInstaller and manages backups
 
 param (
-    [string]$Version = "V2.0.4"  # Default version, can be overridden
+    [string]$Version = "V2.0.5"  # Default version, can be overridden
 )
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "AI Review Tool v2.0.4 Builder" -ForegroundColor Cyan
+Write-Host "AI Review Tool $Version Builder" -ForegroundColor Cyan
 Write-Host "=============================" -ForegroundColor Cyan
 
 # Run backup script first to preserve existing executable
@@ -179,7 +179,7 @@ Try {
     Write-Host ""
     Write-Host "Build process completed successfully!" -ForegroundColor Green
     Write-Host "======================================" -ForegroundColor Green
-    Write-Host "Version: 2.0.3" -ForegroundColor Cyan
+    Write-Host "$Version" -ForegroundColor Cyan
     Write-Host "Executable: $exePath" -ForegroundColor Cyan
     Write-Host "ZIP archive: $zipPath" -ForegroundColor Cyan
     Write-Host "File size: $fileSizeMB MB" -ForegroundColor Cyan

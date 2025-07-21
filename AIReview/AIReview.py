@@ -281,7 +281,7 @@ filter_comments_var = None
 TOKEN_FILE = "tokens.txt"
 
 # Define the version as a static date-based version
-APP_VERSION = "2.0.4" # Incremented patch version for UI enhancements
+APP_VERSION = "2.0.5" # Incremented patch version for UI enhancements
                       # Versioning format: Major.Minor.Patch
                       # Major: Significant changes or new features
                       # Minor: Backward-compatible changes or improvements
@@ -293,7 +293,7 @@ RECENT_REPOS_FILE = "recent_repos.json"
 MAX_RECENT_REPOS = 10
                         # Patch: Bug fixes or minor changes
 
-UPDATE_CHECK_URL = "https://raw.githubusercontent.com/HarishSarmaTR/TheAIReview/main/version_info.json"
+GITHUB_RELEASES_URL = "https://api.github.com/repos/HarishSarmaTR/TheAIReview/releases/latest"
 UPDATE_CHECK_FILE = "last_update_check.json"
 UPDATE_NOTIFICATION_FILE = "update_notifications.json"
 
@@ -1631,7 +1631,7 @@ if icon_path:
         try:
             # For Windows OS - explicitly set the taskbar icon
             import ctypes
-            app_id = "TR.AIReviewTool.{APP_VERSION}"  # Unique application ID
+            app_id = f"TR.AIReviewTool.{APP_VERSION}"  # Unique application ID
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
             print(f"Successfully set taskbar icon with app ID: {app_id}")
         except Exception as e:
@@ -1680,7 +1680,7 @@ content_frame.grid_rowconfigure(0, weight=1)
 # --- MENU BAR (Menu + Help) with CustomTkinter ---
 def show_release_notes():
     notes = (
-        "🚀 Release Notes (v2.0.4) 🚀\n\n"
+        "🚀 Release Notes (v2.0.5) 🚀\n\n"
         "🔑 NEW: Automated Token Extraction\n"
         "   • One-click OpenArena token extraction with 'Get-Token' button\n"
         "   • Automated Chrome browser integration for seamless authentication\n"
@@ -2048,17 +2048,34 @@ class UpdateChecker:
                 
                 log_activity("[UPDATE] Checking for application updates...")
                 
-                # Make request to GitHub for version info
-                response = requests.get(UPDATE_CHECK_URL, timeout=10)
+                # Make request to GitHub Releases API
+                response = requests.get(GITHUB_RELEASES_URL, timeout=10)
                 if response.status_code == 200:
-                    version_info = response.json()
-                    latest_version = version_info.get('latest_version')
+                    release_info = response.json()
+                    
+                    # Extract version from tag_name (remove 'v' prefix if present)
+                    latest_version = release_info.get('tag_name', '').lstrip('v')
+                    release_date = release_info.get('published_at', 'Unknown')
+                    download_url = release_info.get('html_url', '')
+                    release_notes = release_info.get('body', 'No release notes available')
+                    
+                    # Format the version_info for compatibility with existing code
+                    version_info = {
+                        'latest_version': latest_version,
+                        'release_date': release_date,
+                        'download_url': download_url,
+                        'release_notes': release_notes,
+                        'force_update': False  # You can set this based on your needs
+                    }
                     
                     if latest_version and self.compare_versions(self.current_version, latest_version) < 0:
                         # New version available
                         if not self.has_been_notified(latest_version):
                             self.show_update_notification(version_info)
                             self.record_notification(latest_version)
+                            log_activity(f"[UPDATE] New version available: {latest_version}")
+                        else:
+                            log_activity(f"[UPDATE] New version {latest_version} available (already notified)")
                     else:
                         log_activity("[UPDATE] Application is up to date")
                 else:
@@ -2193,15 +2210,31 @@ def manual_update_check():
         def check_and_notify():
             try:
                 log_activity("[UPDATE] Manually checking for updates...")
-                response = requests.get(UPDATE_CHECK_URL, timeout=10)
+                response = requests.get(GITHUB_RELEASES_URL, timeout=10)
                 if response.status_code == 200:
-                    version_info = response.json()
-                    latest_version = version_info.get('latest_version')
+                    release_info = response.json()
+                    
+                    # Extract version from tag_name (remove 'v' prefix if present)
+                    latest_version = release_info.get('tag_name', '').lstrip('v')
+                    release_date = release_info.get('published_at', 'Unknown')
+                    download_url = release_info.get('html_url', '')
+                    release_notes = release_info.get('body', 'No release notes available')
+                    
+                    # Format the version_info for compatibility
+                    version_info = {
+                        'latest_version': latest_version,
+                        'release_date': release_date,
+                        'download_url': download_url,
+                        'release_notes': release_notes,
+                        'force_update': False
+                    }
                     
                     if latest_version and update_checker.compare_versions(APP_VERSION, latest_version) < 0:
                         update_checker.show_update_notification(version_info)
+                        log_activity(f"[UPDATE] Manual check found new version: {latest_version}")
                     else:
-                        messagebox.showinfo("Update Check", "You are using the latest version!")
+                        messagebox.showinfo("Update Check", f"You are using the latest version!\n\nCurrent: v{APP_VERSION}\nLatest: v{latest_version}")
+                        log_activity(f"[UPDATE] Manual check: up to date (Current: {APP_VERSION}, Latest: {latest_version})")
                 else:
                     messagebox.showerror("Update Check", f"Could not check for updates (HTTP {response.status_code})")
                 
@@ -2209,6 +2242,7 @@ def manual_update_check():
                 
             except Exception as e:
                 messagebox.showerror("Update Check", f"Error checking for updates: {e}")
+                log_activity(f"[UPDATE] Manual check error: {e}")
         
         # Run in background thread
         thread = threading.Thread(target=check_and_notify, daemon=True)
