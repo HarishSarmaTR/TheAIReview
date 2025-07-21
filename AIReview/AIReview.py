@@ -20,6 +20,214 @@ import threading
 import json
 from datetime import datetime, timedelta
 import hashlib
+import getpass
+
+# Add this import near the top with other imports
+try:
+    from TokenExtraction import get_auth_token, save_token_to_file, load_token_from_file, get_auth_token_with_user_info, load_user_info_from_file
+    HAS_TOKEN_EXTRACTION = True
+except ImportError:
+    HAS_TOKEN_EXTRACTION = False
+    print("TokenExtraction module not found. Manual token entry required.")
+
+def get_authenticated_user_info():
+    """Get authenticated user information from SSO and system"""
+    user_info = {
+        'system_user': getpass.getuser(),  # System username
+        'sso_user': None,
+        'display_name': None,
+        'email': None,
+        'first_name': None,
+        'last_name': None
+    }
+    
+    try:
+        # Try to get SSO user info from TokenExtraction
+        if HAS_TOKEN_EXTRACTION:
+            sso_info = load_user_info_from_file()
+            
+            if sso_info:
+                user_info['sso_user'] = sso_info.get('username')
+                user_info['display_name'] = sso_info.get('display_name')
+                user_info['email'] = sso_info.get('email')
+                user_info['first_name'] = sso_info.get('first_name')
+                user_info['last_name'] = sso_info.get('last_name')
+                
+                log_activity(f"✅ SSO user info loaded: {user_info['display_name']}")
+            else:
+                log_activity("ℹ️ No SSO user info found, using system username")
+                user_info['display_name'] = user_info['system_user']
+        else:
+            # Fallback to system username
+            user_info['display_name'] = user_info['system_user']
+            log_activity(f"ℹ️ Using system username: {user_info['display_name']}")
+            
+    except Exception as e:
+        log_activity(f"⚠️ Could not get SSO user info: {e}")
+        user_info['display_name'] = user_info['system_user']
+    
+    return user_info
+
+def setup_welcome_section():
+    """Setup welcome section with user greeting"""
+    global welcome_section_frame
+    
+    # Create welcome section frame
+    welcome_section_frame = customtkinter.CTkFrame(left_frame)
+    welcome_section_frame.grid(row=0, column=0, padx=2, pady=(10,5), sticky="ew")
+    welcome_section_frame.grid_columnconfigure(0, weight=1)  # Welcome message takes most space
+    welcome_section_frame.grid_columnconfigure(1, weight=0)  # Dark mode button stays right
+
+    # Welcome message label
+    root.welcome_label = customtkinter.CTkLabel(
+        welcome_section_frame, 
+        text="Welcome! ☺️", 
+        font=customtkinter.CTkFont(size=12, weight="bold"),
+        text_color="#DC8400"  # Green color for welcome message
+    )
+    root.welcome_label.grid(row=0, column=0, pady=10, padx=15, sticky="w")
+    
+    # Create the Dark Mode button in the same frame as welcome message
+    global mode_switch
+    mode_switch = customtkinter.CTkButton(
+        welcome_section_frame, 
+        text="Dark Mode" if customtkinter.get_appearance_mode() == "Dark" else "Light Mode",
+        command=change_appearance_mode_event,
+        width=120,
+        height=28
+    )
+    mode_switch.grid(row=0, column=1, padx=5, sticky="e")  # Place on the right side
+    
+    # Update welcome message with new user info
+    update_welcome_message()
+
+def update_welcome_message():
+    """Update the welcome message with authenticated user info"""
+    try:
+        user_info = get_authenticated_user_info()
+        
+        # Create a more informative welcome message
+        if user_info['first_name']:
+            welcome_text = f"Welcome {user_info['first_name']}! 👋"
+        elif user_info['display_name']:
+            welcome_text = f"Welcome {user_info['display_name']}! 👋"
+        else:
+            welcome_text = f"Welcome {user_info['system_user']}! 👋"
+            
+        # Update the welcome label if it exists
+        if hasattr(root, 'welcome_label') and root.welcome_label:
+            root.welcome_label.configure(text=welcome_text)
+            log_activity(f"[UI] Welcome message updated: {welcome_text}")
+        
+        # Log user session info
+        if user_info['email']:
+            log_activity(f"📋 User session: {user_info['email']}")
+        else:
+            log_activity(f"📋 User session: {user_info['system_user']} (system)")
+            
+        return user_info
+        
+    except Exception as e:
+        log_activity(f"❌ Error updating welcome message: {e}")
+        return None
+
+def extract_openarena_token_with_user_info():
+    """Extract OpenArena token and user info using TR SSO authentication"""
+    url = "https://dataandanalytics.int.thomsonreuters.com/ai-platform/ai-experiences/use/11d87e9a-6dcd-4926-80ea-e9fdd07f7e9b"
+    
+    # Disable button during extraction
+    extract_token_button.configure(state="disabled", text="Extracting...")
+    root.update_idletasks()
+    
+    try:
+        log_activity("🚀 Starting TR SSO authentication with user info...")
+        log_activity("📋 Please complete SSO authentication when browser opens...")
+        
+        # Run token extraction in a separate thread
+        def extraction_thread():
+            try:
+                # Use the enhanced function that gets both token and user info
+                token, user_info = get_auth_token_with_user_info(url)
+                
+                # Update UI in main thread
+                def update_ui():
+                    if token:
+                        openarena_token_entry.delete(0, tk.END)
+                        openarena_token_entry.insert(0, token)
+                        log_activity("✅ OpenArena token extracted successfully!")
+                        
+                        # Update welcome message with new user info
+                        update_welcome_message()
+                        
+                        if user_info:
+                            if user_info.get('display_name'):
+                                log_activity(f"👤 User authenticated: {user_info['display_name']}")
+                            if user_info.get('email'):
+                                log_activity(f"📧 Email: {user_info['email']}")
+                            if user_info.get('first_name'):
+                                log_activity(f"👋 Welcome {user_info['first_name']}!")
+                        
+                        success_msg = f"Token extracted successfully!"
+                        if user_info and user_info.get('display_name'):
+                            success_msg += f"\nAuthenticated as: {user_info['display_name']}"
+                        if user_info and user_info.get('email'):
+                            success_msg += f"\nEmail: {user_info['email']}"
+                            
+                        messagebox.showinfo("Success", success_msg)
+                        
+                        # Save token
+                        if save_token_to_file(token):
+                            log_activity("💾 Token saved to file for future use")
+                    else:
+                        log_activity("❌ Failed to extract OpenArena token")
+                        messagebox.showerror("Error", "Failed to extract token. Please try manual entry.")
+                    
+                    # Re-enable button
+                    extract_token_button.configure(state="normal", text="Get-Token")
+                
+                root.after(0, update_ui)
+                
+            except Exception as e:
+                def show_error():
+                    log_activity(f"❌ Error during extraction: {e}")
+                    messagebox.showerror("Error", f"Extraction failed: {e}")
+                    extract_token_button.configure(state="normal", text="Get-Token")
+                
+                root.after(0, show_error)
+        
+        # Start extraction in background thread
+        thread = threading.Thread(target=extraction_thread, daemon=True)
+        thread.start()
+        
+    except Exception as e:
+        log_activity(f"❌ Error starting extraction: {e}")
+        messagebox.showerror("Error", f"Failed to start extraction: {e}")
+        extract_token_button.configure(state="normal", text="Get-Token")
+
+def setup_enhanced_header():
+    """Setup enhanced header with welcome message"""
+    
+
+# Enhanced startup sequence
+def enhanced_startup_sequence():
+    """Enhanced startup sequence with user authentication"""
+    try:
+        # Migrate token file if needed
+        migrate_token_file()
+        
+        # Load tokens
+        load_tokens()
+        load_openarena_token_on_startup()
+        
+        # Setup welcome section
+        setup_welcome_section()
+        
+        # Update welcome message (will load SSO user info if available)
+        root.after(1000, update_welcome_message)
+        
+    except Exception as e:
+        print(f"Error during enhanced startup: {e}")
+        messagebox.showerror("Startup Error", f"Error during startup: {str(e)}")
 
 def calculate_claude_cost(prompt_tokens, completion_tokens):
     """
@@ -73,7 +281,7 @@ filter_comments_var = None
 TOKEN_FILE = "tokens.txt"
 
 # Define the version as a static date-based version
-APP_VERSION = "2.0.2" # Incremented patch version for UI enhancements
+APP_VERSION = "2.0.3" # Incremented patch version for UI enhancements
                       # Versioning format: Major.Minor.Patch
                       # Major: Significant changes or new features
                       # Minor: Backward-compatible changes or improvements
@@ -170,6 +378,17 @@ def load_tokens():
         except Exception as e:
             print(f"Error loading tokens: {str(e)}")
             messagebox.showerror("Token Error", f"Could not load tokens: {str(e)}")
+
+def load_openarena_token_on_startup():
+    """Try to load OpenArena token from TokenExtraction module on startup"""
+    if HAS_TOKEN_EXTRACTION:
+        try:
+            saved_token = load_token_from_file()
+            if saved_token and not openarena_token_entry.get():
+                openarena_token_entry.insert(0, saved_token)
+                log_activity("📁 OpenArena token loaded from TokenExtraction file")
+        except Exception as e:
+            print(f"Could not load OpenArena token from TokenExtraction: {e}")
 
 def save_tokens():
     """Save tokens to a file."""
@@ -286,7 +505,10 @@ def run_code_review():
     try:
         test_headers = {
             'Authorization': f'Bearer {openarena_token}',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept-Encoding': 'gzip, deflate',
+            'User-Agent': 'AICodeReviewTool',
+            'Connection': 'keep-alive'  
         }
         test_payload = {
             "query": "test",
@@ -347,7 +569,7 @@ def run_code_review():
     if progress_bar:
         progress_bar.set(0)
         if progress_percentage_label:
-            progress_percentage_label.configure(text="0%")
+            progress_percentage_label.configure(text="🚀 Initializing...")
     if time_taken_label:
         time_taken_label.configure(text="-")
     if cost_label:
@@ -746,24 +968,28 @@ def determine_severity(comment_content):
     """Determine severity level based on comment content"""
     content_lower = comment_content.lower()
     
-    # Critical issues
+    # Critical issues - severe confirmed security or stability issues
     if any(word in content_lower for word in [
-        'security', 'vulnerability', 'crash', 'memory leak', 'buffer overflow',
-        'null pointer', 'segmentation fault', 'deadlock', 'race condition'
+        'critical security vulnerability', 'remote code execution', 'sql injection',
+        'authenticated bypass', 'privilege escalation', 'data breach',
+        'confirmed memory leak', 'proven buffer overflow', 'guaranteed crash'
     ]):
         return "🔴 Critical"
     
     # High priority issues
     elif any(word in content_lower for word in [
         'logic error', 'incorrect', 'bug', 'failure', 'exception', 'error',
-        'undefined behavior', 'infinite loop', 'resource leak'
+        'undefined behavior', 'infinite loop', 'resource leak', 'null pointer dereference',
+        'segmentation fault', 'deadlock', 'race condition', 'buffer overflow',
+        'memory leak', 'potential security', 'potential vulnerability'
     ]):
         return "🟠 High"
     
     # Medium priority issues
     elif any(word in content_lower for word in [
         'performance', 'inefficient', 'optimization', 'deprecated',
-        'maintainability', 'readability', 'complexity'
+        'maintainability', 'readability', 'complexity', 'potential issue',
+        'potential runtime issue', 'potential bug', 'edge case', 'possible error'
     ]):
         return "🟡 Medium"
     
@@ -898,7 +1124,7 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
                 log_activity(f"[COMMENT] No positive lines available for AI comment placement")
 
         # If we still can't find a line, try to use any available modified line
-        if not line_exists and modified_lines:
+        if not line_exists:
             available_lines = [l for l in modified_lines.keys() if l > 0]
             if available_lines:
                 line_position = available_lines[0]  # Use first available line
@@ -984,6 +1210,7 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
     return added_comments
 
 # Function to create HTML report of comments for browser viewing
+# Update the create_comments_html_report function
 def create_comments_html_report(comments, pr_url, repo_name, pr_number):
     """Create an HTML file with all review comments for viewing in a browser"""
     # Group comments by file
@@ -992,7 +1219,13 @@ def create_comments_html_report(comments, pr_url, repo_name, pr_number):
         filename = comment["file"]
         if filename not in comments_by_file:
             comments_by_file[filename] = []
-        comments_by_file[filename].append(comment)
+        # Add severity level to each comment
+        severity = determine_severity(comment["content"])
+        comments_by_file[filename].append({
+            "line_number": comment["line_number"],
+            "content": comment["content"],
+            "severity": severity
+        })
     
     # Create timestamps for filename and display
     timestamp = time.strftime("%Y%m%d-%H%M%S")
@@ -1010,6 +1243,7 @@ def create_comments_html_report(comments, pr_url, repo_name, pr_number):
             .file-section {{ margin-bottom: 30px; background: #f9f9f9; padding: 15px; border-radius: 5px; }}
             .comment {{ margin-bottom: 15px; padding: 10px; background: #fff; border-left: 4px solid #0078D7; }}
             .line-number {{ font-weight: bold; color: #0078D7; }}
+            .severity {{ font-weight: bold; color: #FF0000; }}
             .content {{ margin-top: 5px; white-space: pre-wrap; }}
             .pr-link {{ margin-bottom: 20px; }}
             .pr-link a {{ color: #0078D7; text-decoration: none; }}
@@ -1050,6 +1284,7 @@ def create_comments_html_report(comments, pr_url, repo_name, pr_number):
             html_content += f"""
             <div class="comment">
                 <div class="line-number">Line {comment["line_number"]}</div>
+                <div class="severity">Severity: {comment["severity"]}</div>
                 <div class="content">{comment["content"]}</div>
             </div>
             """
@@ -1065,7 +1300,7 @@ def create_comments_html_report(comments, pr_url, repo_name, pr_number):
     reports_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "reports")
     if not os.path.exists(reports_dir):
         os.mkdir(reports_dir)
-      # Save the HTML file
+    # Save the HTML file
     report_file = os.path.join(reports_dir, f"review_report_{repo_name.replace('/', '_')}_PR{pr_number}_{timestamp}.html")
     
     with open(report_file, 'w', encoding='utf-8') as f:
@@ -1114,7 +1349,7 @@ def create_comments_html_report(comments, pr_url, repo_name, pr_number):
     import threading
     thread = threading.Thread(target=open_report_safely, daemon=True)
     thread.start()
-
+    
 def main(repo_name, pr_number, post_comments=True):
     total_files_in_pr = 0
     reviewed_files_count = 0
@@ -1183,7 +1418,7 @@ def main(repo_name, pr_number, post_comments=True):
             
             # Debug: Show what line numbers are being sent to AI
             if modified_lines:
-                line_numbers_sent = [line_num for line_num in modified_lines.keys() if line_num > 0]
+                line_numbers_sent = [line for line in modified_lines.keys() if line > 0]
                 log_activity(f"[DEBUG] Sending line numbers to AI: {sorted(line_numbers_sent)}")
             
             # Debug output to see what changes were detected
@@ -1258,22 +1493,18 @@ def main(repo_name, pr_number, post_comments=True):
         
         # Generate summary message based on results
         if all_posted_comments_total_count > 0:
-            summary_message = f"[SUCCESS] AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. A total of {all_posted_comments_total_count} comments were generated."
-            
-            # Post summary comment only if posting is enabled
-            if post_comments:
-                summary_comment = f"🤖 **AI Code Review Summary**\n\n{summary_message} Please check and resolve."
-                pr.create_issue_comment(summary_comment)
-                log_activity(f"\\n[SUMMARY] Posted AI summary issue comment on PR #{pr.number}: {summary_comment}")
-            else:
+                summary_message = f"✅ AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. A total of {all_posted_comments_total_count} comments were generated."
+                pr.create_issue_comment(summary_message)
+                log_activity(f"\\n[SUMMARY] Posted AI summary issue comment on PR #{pr.number}: {summary_message}")
+        else:
                 log_activity(f"\\n[SUMMARY] {summary_message} (Comments were not posted to GitHub - see HTML report for details)")
                 
             # Create an HTML report for viewing in browser if not posting to GitHub
-            if not post_comments and all_comments:
+        if not post_comments and all_comments:
                 create_comments_html_report(all_comments, pr_url, repo_name, pr_number)
                 
         elif reviewed_files_count > 0:
-            summary_message = f"[SUCCESS] AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. No specific issues found by AI requiring comments."
+            summary_message = f"✅ AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. No specific issues found by AI requiring comments."
             log_activity(f"\\n{summary_message}")
         else:
             summary_message = f"[INFO] No files were reviewed in PR #{pr.number}."
@@ -1353,8 +1584,8 @@ except Exception as e:
     customtkinter.set_default_color_theme("blue")  # Fall back to built-in blue theme
 
 root = customtkinter.CTk() # New CustomTkinter root
-root.title("AI Code Review Tool")
-root.geometry("800x700") # Adjusted initial geometry, will be resizable
+root.title("🤖 AI Code Review Tool")
+root.geometry("1000x700") # Adjusted initial geometry, will be resizable
 
 # Set application icon - search for it in various possible locations
 def find_resource_path(resource_name):
@@ -1449,33 +1680,33 @@ content_frame.grid_rowconfigure(0, weight=1)
 # --- MENU BAR (Menu + Help) with CustomTkinter ---
 def show_release_notes():
     notes = (
-       "🚀 Release Notes (v2.0.2) 🚀\n\n"
-        "🤖 AI Comment Enhancement\n"
-        "   • All AI-generated comments now clearly marked with '🤖 AI Code Review' prefix\n"
-        "   • Professional comment format for better readability\n"
-        "   • Severity levels for AI comments (🔴 Critical, 🟠 High, 🟡 Medium, 🟢 Low)\n"
-        "   • Clear AI attribution to distinguish from human comments\n\n"
-        "🔧 Code Review Improvements\n"
-        "   • Enhanced error handling with better recovery mechanisms\n"
-        "   • Improved comment parsing and line mapping accuracy\n"
-        "   • Multiple retry strategies for reliable comment posting\n"
-        "   • Better fallback mechanisms for edge cases\n\n"
-        "🎯 Bug Fixes & Stability\n"
-        "   • Fixed UnboundLocalError in summary message handling\n"
-        "   • Improved OpenArena token validation with clearer errors\n"
-        "   • Enhanced API retry logic with exponential backoff\n"
-        "   • Comprehensive exception handling throughout\n\n"
-        "📊 Performance & Metrics\n"
-        "   • More accurate cost estimation and token counting\n"
-        "   • Enhanced activity logging with detailed status indicators\n"
-        "   • Real-time progress tracking during review process\n"
-        "   • Comprehensive breakdown of input/output costs\n\n"
-        "🛠️ Build & Deployment\n"
-        "   • Improved PowerShell build script with better error handling\n"
-        "   • Automatic theme file management and validation\n"
-        "   • Built-in executable testing and ZIP archive creation\n"
-        "   • Enhanced deployment reliability\n\n"
-        "✨ This release focuses on reliability, clear AI attribution, and enhanced user experience!"
+        "🚀 Release Notes (v2.0.3) 🚀\n\n"
+        "🔑 NEW: Automated Token Extraction\n"
+        "   • One-click OpenArena token extraction with 'Get-Token' button\n"
+        "   • Automated Chrome browser integration for seamless authentication\n"
+        "   • Persistent token storage with automatic loading on startup\n"
+        "   • Eliminates manual copy-paste errors and saves time\n\n"
+        "🎨 Modern UI Enhancements\n"
+        "   • Sleek customtkinter interface with professional blue theme\n"
+        "   • Enhanced layout with improved visual elements\n"
+        "   • Added Dark/Light mode button with instant switching\n\n"
+        "📊 Advanced Activity Tracking\n"
+        "   • Real-time activity log with timestamps for every action\n"
+        "   • Progress bar with percentage display for better feedback\n"
+        "   • Clear button that resets both log and review metrics\n"
+        "   • Detailed performance metrics and cost estimation\n\n"
+        "⚡ Enhanced Usability Features\n"
+        "   • Recent repositories dropdown for quick access\n"
+        "   • Comprehensive HTML user guide with screenshots\n"
+        "   • One-click PR viewing on GitHub\n"
+        "   • Improved token management with secure encryption\n"
+        "   • Streamlined menu organization with user guide documentation\n\n"
+        "🤖 AI Review Improvements\n"
+        "   • Enhanced Open Arena AI chain with Claude 4 Sonnet integration\n"
+        "   • Accurate token tracking and cost calculation\n"
+        "   • Smarter review prompts for more relevant feedback\n"
+        "   • Better error handling and retry mechanisms\n\n"
+        "✨ Ready to transform your code review process with automated token extraction!"
     )
     dialog = customtkinter.CTkToplevel(root)
     dialog.title("Release Notes")
@@ -1512,16 +1743,21 @@ def show_about():
         "This intelligent application leverages advanced AI to automatically review "
         "code changes in GitHub pull requests. It analyzes modifications, posts helpful "
         "comments, and generates comprehensive review metrics to improve code quality.\n\n"
+        "🔑 NEW in v2.0.3:\n"
+        "• Automated OpenArena token extraction with one-click authentication\n"
+        "• Seamless Chrome browser integration for token capture\n"
+        "• Persistent token storage with automatic loading\n\n"
         "✅ Benefits:\n"
         "• Faster code reviews with consistent quality\n"
         "• Early detection of potential issues\n"
         "• Improved code standards across your team\n"
-        "• Time savings for developers and reviewers\n\n"
+        "• Time savings for developers and reviewers\n"
+        "• Eliminates manual token management hassles\n\n"
         "🏆 Built with pride by the Ultratax Team, 2025"
     )
     dialog = customtkinter.CTkToplevel(root)
     dialog.title("About")
-    dialog.geometry("500x400")  # Increased size for enhanced content
+    dialog.geometry("500x450")  # Increased size for enhanced content
     dialog.resizable(False, False)
     dialog.grab_set()
     
@@ -1534,7 +1770,7 @@ def show_about():
     content_frame.pack(fill="both", expand=True, padx=20, pady=20)
     
     # About text - using a text widget instead of label for better text handling
-    about_text = customtkinter.CTkTextbox(content_frame, height=300, width=450)
+    about_text = customtkinter.CTkTextbox(content_frame, height=350, width=450)
     about_text.pack(pady=10, padx=10, fill="both", expand=True)
     about_text.insert("1.0", about)
     about_text.configure(state="disabled")  # Make it read-only
@@ -1694,6 +1930,7 @@ def open_user_guide():
                 # For non-Windows systems, use webbrowser with proper file URL
                 file_url = f"file://{guide_path}"
                 log_activity(f"[DEBUG] Opening user guide URL: {file_url}")
+
                 webbrowser.open(file_url)
             log_activity("[SUCCESS] User guide opened in browser")
         except Exception as open_error:
@@ -2057,7 +2294,7 @@ def clear_activity_log():
         progress_bar.set(0)
         # Clear progress percentage if it exists
         if progress_percentage_label:
-            progress_percentage_label.configure(text="0%")
+            progress_percentage_label.configure(text="Ready to start")
 
 def file_menu_callback(choice):
     if choice == "New Review":
@@ -2070,7 +2307,7 @@ def file_menu_callback(choice):
         if progress_bar:
             progress_bar.set(0)
             if progress_percentage_label:
-                progress_percentage_label.configure(text="0%")
+                progress_percentage_label.configure(text="Ready to start")
         status_message.set("")
         if time_taken_label:
             time_taken_label.configure(text="-")
@@ -2087,33 +2324,17 @@ left_frame.grid_columnconfigure(0, weight=1)
 
 # --- Settings Frame ---
 settings_frame = customtkinter.CTkFrame(left_frame)
-settings_frame.grid(row=0, column=0, padx=10, pady=(0,10), sticky="ew")
+settings_frame.grid(row=1, column=0, padx=10, pady=(0,10), sticky="ew")  # Changed from row=0 to row=1
 settings_frame.grid_columnconfigure(0, weight=1)
 settings_frame.grid_columnconfigure(1, weight=0)
 
 # Add header label to settings frame
-header_label = customtkinter.CTkLabel(settings_frame, text="AI Code Review Tool", font=customtkinter.CTkFont(size=20, weight="bold"))
-header_label.grid(row=0, column=0, pady=5, padx=10, sticky="w")
-
-# Theme selector with a toggle switch
-theme_frame = customtkinter.CTkFrame(settings_frame)
-theme_frame.grid(row=0, column=1, padx=10, pady=5, sticky="e")
-
-# Create mode switch
-# Create the button as a global variable
-global mode_switch
-mode_switch = customtkinter.CTkButton(
-    theme_frame, 
-    text="Dark Mode" if customtkinter.get_appearance_mode() == "Dark" else "Light Mode",
-    command=change_appearance_mode_event,
-    width=120,
-    height=28
-)
-mode_switch.pack(side="right", padx=5)
+header_label = customtkinter.CTkLabel(settings_frame, text="🤖 AI Code Review Tool", font=customtkinter.CTkFont(size=20, weight="bold"))
+header_label.grid(row=0, column=0, columnspan=2, pady=5, padx=10, sticky="ew")
 
 # --- Input Fields Frame ---
 input_frame = customtkinter.CTkFrame(left_frame)
-input_frame.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
+input_frame.grid(row=2, column=0, padx=10, pady=10, sticky="ew")  # Changed from row=1 to row=2
 input_frame.grid_columnconfigure(1, weight=1)
 
 # --- Updated Info Button ---
@@ -2135,16 +2356,85 @@ github_token_entry.grid(row=0, column=1, pady=5, padx=10, sticky="ew")
 create_ctk_info_button(input_frame, 0, 2, "Enter your GitHub personal access token. Required for GitHub API access.")
 
 # OpenArena Token
+# OpenArena Token with extraction button
 oa_token_label = customtkinter.CTkLabel(input_frame, text="OpenArena Token:", font=customtkinter.CTkFont(weight="bold"))
 oa_token_label.grid(row=1, column=0, sticky='w', padx=10, pady=5)
-openarena_token_entry = customtkinter.CTkEntry(input_frame, show="*", placeholder_text="Enter OpenArena API Token")
-openarena_token_entry.grid(row=1, column=1, pady=5, padx=10, sticky="ew")
-create_ctk_info_button(input_frame, 1, 2, "Enter your OpenArena token for AI API authentication.")
 
-# OpenArena Link
-openarena_link_label = customtkinter.CTkLabel(input_frame, text="OpenArena Platform Link", text_color="blue", cursor="hand2", font=customtkinter.CTkFont(underline=True))
-openarena_link_label.grid(row=2, column=0, columnspan=3, pady=(0, 10), padx=10, sticky='w')
-openarena_link_label.bind("<Button-1>", open_openarena_link)
+# Create frame for token entry and extraction button
+oa_token_frame = customtkinter.CTkFrame(input_frame, fg_color="transparent")
+oa_token_frame.grid(row=1, column=1, pady=5, padx=10, sticky="ew")
+oa_token_frame.grid_columnconfigure(0, weight=1)
+
+openarena_token_entry = customtkinter.CTkEntry(oa_token_frame, show="*", placeholder_text="Enter OpenArena API Token")
+openarena_token_entry.grid(row=0, column=0, sticky="ew", padx=(0, 5))
+
+# Add token extraction button
+if HAS_TOKEN_EXTRACTION:
+    def extract_openarena_token():
+        """Extract OpenArena token using automated browser method"""
+        url = "https://dataandanalytics.int.thomsonreuters.com/ai-platform/ai-experiences/use/11d87e9a-6dcd-4926-80ea-e9fdd07f7e9b"
+        
+        # Disable button during extraction
+        extract_token_button.configure(state="disabled", text="Extracting...")
+        root.update_idletasks()
+        
+        try:
+            log_activity("🚀 Starting automated token extraction...")
+            log_activity("📋 Please log in to OpenArena when the browser opens...")
+            
+            # Run token extraction in a separate thread to avoid blocking UI
+            def extraction_thread():
+                try:
+                    token = get_auth_token(url)
+                    
+                    # Update UI in main thread
+                    def update_ui():
+                        if token:
+                            openarena_token_entry.delete(0, tk.END)
+                            openarena_token_entry.insert(0, token)
+                            log_activity("✅ OpenArena token extracted successfully!")
+                            messagebox.showinfo("Success", "OpenArena token extracted and populated successfully!")
+                            
+                            # Optionally save the token
+                            if save_token_to_file(token):
+                                log_activity("💾 Token saved to file for future use")
+                        else:
+                            log_activity("❌ Failed to extract OpenArena token")
+                            messagebox.showerror("Error", "Failed to extract OpenArena token. Please try manual entry.")
+                        
+                        # Re-enable button
+                        extract_token_button.configure(state="normal", text="Get-Token")
+                    
+                    root.after(0, update_ui)
+                    
+                except Exception as e:
+                    def show_error():
+                        log_activity(f"❌ Error during token extraction: {e}")
+                        messagebox.showerror("Error", f"Token extraction failed: {e}")
+                        extract_token_button.configure(state="normal", text="Get-Token")
+                    
+                    root.after(0, show_error)
+            
+            # Start extraction in background thread
+            thread = threading.Thread(target=extraction_thread, daemon=True)
+            thread.start()
+            
+        except Exception as e:
+            log_activity(f"❌ Error starting token extraction: {e}")
+            messagebox.showerror("Error", f"Failed to start token extraction: {e}")
+            extract_token_button.configure(state="normal", text="Get-Token")
+    
+    extract_token_button = customtkinter.CTkButton(
+        oa_token_frame, 
+        text="Get-Token", 
+        command=extract_openarena_token_with_user_info,
+        width=100,
+        fg_color="#2E8B57",
+        hover_color="#3CB371"
+    )
+    extract_token_button.grid(row=0, column=1, padx=(5, 0))
+
+create_ctk_info_button(input_frame, 1, 2, "Enter your OpenArena token for AI API authentication. Use Get-Token to get token automatically.")
 
 # Repository Name
 repo_label = customtkinter.CTkLabel(input_frame, text="Repository Name:", font=customtkinter.CTkFont(weight="bold"))
@@ -2195,7 +2485,7 @@ create_ctk_info_button(input_frame, 5, 2, "When unchecked, comments will be show
 
 # --- Control Buttons Frame ---
 controls_frame = customtkinter.CTkFrame(left_frame)
-controls_frame.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
+controls_frame.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
 controls_frame.grid_columnconfigure(0, weight=1) # Center the review button
 controls_frame.grid_columnconfigure(1, weight=0) # Token buttons
 controls_frame.grid_columnconfigure(2, weight=1) # Center the review button
@@ -2216,7 +2506,7 @@ review_button.grid(row=1, column=0, columnspan=3, pady=(10,5)) # Spans all colum
 
 # --- Progress Frame ---
 progress_frame = customtkinter.CTkFrame(left_frame)
-progress_frame.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
+progress_frame.grid(row=4, column=0, padx=10, pady=10, sticky="ew")
 progress_frame.grid_columnconfigure(0, weight=1)
 
 # Progress bar with percentage display
@@ -2231,7 +2521,7 @@ progress_bar.set(0)
 # Progress percentage label
 progress_percentage_label = customtkinter.CTkLabel(
     progress_container, 
-    text="0%", 
+    text="Ready to start", 
     font=customtkinter.CTkFont(size=11, weight="bold"),
     text_color="#FF6F00"
 )
@@ -2240,7 +2530,7 @@ progress_percentage_label.grid(row=1, column=0, sticky="ew")
 
 # View buttons frame
 view_buttons_frame = customtkinter.CTkFrame(left_frame)
-view_buttons_frame.grid(row=4, column=0, padx=10, pady=(0,10), sticky="ew")
+view_buttons_frame.grid(row=5, column=0, padx=10, pady=(0,10), sticky="ew")
 view_buttons_frame.grid_columnconfigure(0, weight=1)
 view_buttons_frame.grid_columnconfigure(1, weight=1)
 
@@ -2310,7 +2600,7 @@ view_report_button.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
 # --- Status and Footer Frame ---
 status_footer_frame = customtkinter.CTkFrame(left_frame)
-status_footer_frame.grid(row=5, column=0, padx=10, pady=(10,0), sticky="ew")
+status_footer_frame.grid(row=6, column=0, padx=10, pady=(10,0), sticky="ew")
 status_footer_frame.grid_columnconfigure(0, weight=1) # For centering status message
 
 status_message = tk.StringVar()
@@ -2339,7 +2629,7 @@ activity_log_title_frame.grid_columnconfigure(1, weight=0)
 
 activity_log_title_label = customtkinter.CTkLabel(
     activity_log_title_frame, 
-    text="Activity Log:", 
+    text="Activity Logs:", 
     font=customtkinter.CTkFont(size=12, weight="bold")
 )
 activity_log_title_label.grid(row=0, column=0, sticky="w")
@@ -2349,9 +2639,9 @@ clear_log_button = customtkinter.CTkButton(
     activity_log_title_frame, 
     text="Clear", 
     command=clear_activity_log, 
-    width=60, 
-    height=24,
-    font=customtkinter.CTkFont(size=10)
+    width=80,  # Increased from 60
+    height=28,  # Increased from 24
+    font=customtkinter.CTkFont(size=12)  # Increased from 10
 )
 clear_log_button.grid(row=0, column=1, sticky="e", padx=5)
 
@@ -2415,6 +2705,8 @@ migrate_token_file()
 # Load tokens on startup
 try:
     load_tokens()
+    # Add this line:
+    load_openarena_token_on_startup()
 except Exception as e:
     print(f"Error during token loading on startup: {e}")
     messagebox.showerror("Token Loading Error", 
@@ -2493,10 +2785,8 @@ class AISettingsDialog:
             
             # Center the dialog on screen
             self.dialog.update_idletasks()
-            screen_width = self.dialog.winfo_screenwidth()
-            screen_height = self.dialog.winfo_screenheight()
-            x = (screen_width // 2) - (dialog_width // 2)
-            y = (screen_height // 2) - (dialog_height // 2)
+            x = (self.dialog.winfo_screenwidth() // 2) - (dialog_width // 2)
+            y = (self.dialog.winfo_screenheight() // 2) - (dialog_height // 2)
             self.dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
             
             self.dialog.transient(parent)
@@ -2824,6 +3114,9 @@ except Exception as e:
 
 
 check_for_updates_on_startup()
+
+# Add this line before root.mainloop()
+enhanced_startup_sequence()
 
 # Run the Tkinter event loop (now CustomTkinter)
 root.mainloop()

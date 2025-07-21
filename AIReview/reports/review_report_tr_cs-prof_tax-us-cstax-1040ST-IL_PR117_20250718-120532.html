@@ -1,0 +1,80 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>AI Code Review - tr/cs-prof_tax-us-cstax-1040ST-IL PR #117</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
+            h1 { color: #0078D7; }
+            h2 { color: #0078D7; margin-top: 30px; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+            .file-section { margin-bottom: 30px; background: #f9f9f9; padding: 15px; border-radius: 5px; }
+            .comment { margin-bottom: 15px; padding: 10px; background: #fff; border-left: 4px solid #0078D7; }
+            .line-number { font-weight: bold; color: #0078D7; }
+            .severity { font-weight: bold; color: #FF0000; }
+            .content { margin-top: 5px; white-space: pre-wrap; }
+            .pr-link { margin-bottom: 20px; }
+            .pr-link a { color: #0078D7; text-decoration: none; }
+            .pr-link a:hover { text-decoration: underline; }
+            .summary { margin-top: 20px; padding: 15px; background: #e6f3ff; border-radius: 5px; }
+            .review-info { margin-bottom: 25px; padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #28a745; }
+            .timestamp { color: #666; font-size: 14px; font-style: italic; }
+        </style>
+    </head>
+    <body>
+        <h1>AI Code Review Report</h1>
+        
+        <div class="review-info">
+            <div class="timestamp">Review completed on July 18, 2025 at 12:05:32 PM</div>
+        </div>
+        
+        <div class="pr-link">
+            <strong>Repository:</strong> tr/cs-prof_tax-us-cstax-1040ST-IL | <strong>PR #:</strong> 117
+            <br>
+            <a href="https://github.com/tr/cs-prof_tax-us-cstax-1040ST-IL/pull/117" target="_blank">View PR on GitHub</a>
+        </div>
+        
+        <div class="summary">
+            <strong>Total files with comments:</strong> 2
+            <br>
+            <strong>Total comments:</strong> 2
+        </div>
+    
+        <h2>src/calc/__test_ILdbk.h</h2>
+        <div class="file-section">
+        
+            <div class="comment">
+                <div class="line-number">Line 124</div>
+                <div class="severity">Severity: 🟠 High</div>
+                <div class="content">Looking at this code, I can identify several issues that need attention:
+
+Line 124: Function signature mismatch: The template function `getDBK(int unit)` only takes a unit parameter, but according to the context documentation, DBK functions should take both Form and Unit parameters as `getDBK<T>(short Form, short Unit)`. This could cause compilation errors when the actual platform DBK functions are expected.
+
+Line 130: Function signature mismatch: Similarly, `chgDBK(int unit)` only takes a unit parameter, but the documented interface requires both Form and Unit parameters as `chgDBK<T>(short Form, short Unit)`. This inconsistency could lead to compilation failures.
+
+Line 126: Logic error: The generic template returns `nullptr` for all types, which violates the documented behavior where `getDBK` should return a valid pointer to existing data blocks. This could cause null pointer dereferences in calling code that expects valid DBK pointers.
+
+Line 132: Logic error: The generic template returns `nullptr` for all types, but according to the documentation, `chgDBK` should create a new data block if one doesn't exist and return a valid pointer. Returning `nullptr` could cause crashes in code that expects a valid pointer for modification.
+
+Line 136-137: Potential macro collision: These `#define` statements override the global `chgDBK` and `getDBK` functions, but only within the test context. This could cause unexpected behavior if other code expects the original platform functions, especially since the test versions have different signatures.</div>
+            </div>
+            </div>
+        <h2>src/calc/__test_il4562.cpp</h2>
+        <div class="file-section">
+        
+            <div class="comment">
+                <div class="line-number">Line 41</div>
+                <div class="severity">Severity: 🟠 High</div>
+                <div class="content">Line 41: Logic error: The `chgDBK` template specialization ignores the `unit` parameter and always returns the same global object. According to the DBK documentation, different units should have separate data blocks, but this implementation will cause all units to share the same data, potentially leading to data corruption.
+
+Line 46: Logic error: The `getDBK` template specialization modifies the global DBK object (line 50) even though it returns a const pointer. This violates the const contract and could lead to unexpected side effects when code expects read-only access.
+
+Line 50: Logic error: The code modifies `g_pILDeprDBK.track_transfered_assets[R(632)]` using `R(632)` as an index, but `R(632)` is set to 2000 (line 391). This creates a very large array index that could cause memory issues or undefined behavior if the container doesn't handle large indices properly.
+
+Line 540: Potential runtime error: Accessing `testIL4562dbk::g_pILDeprDBK.track_transfered_assets[R(632)]` where `R(632)` is 2000 could cause out-of-bounds access or excessive memory allocation depending on the container implementation.
+
+Line 625: Logic error: The condition checks `testIL4562dbk::g_pILDeprDBK.track_transfered_assets[R(632)].orig_IL_asset` using the same problematic large index (2000), which could lead to undefined behavior or incorrect logic evaluation.</div>
+            </div>
+            </div>
+    </body>
+    </html>
+    
