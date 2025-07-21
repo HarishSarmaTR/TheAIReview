@@ -2,12 +2,12 @@
 # This script builds the executable with PyInstaller and manages backups
 
 param (
-    [string]$Version = "V2.0.3"  # Default version, can be overridden
+    [string]$Version = "V2.0.4"  # Default version, can be overridden
 )
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "AI Review Tool v2.0.3 Builder" -ForegroundColor Cyan
+Write-Host "AI Review Tool v2.0.4 Builder" -ForegroundColor Cyan
 Write-Host "=============================" -ForegroundColor Cyan
 
 # Run backup script first to preserve existing executable

@@ -281,7 +281,7 @@ filter_comments_var = None
 TOKEN_FILE = "tokens.txt"
 
 # Define the version as a static date-based version
-APP_VERSION = "2.0.3" # Incremented patch version for UI enhancements
+APP_VERSION = "2.0.4" # Incremented patch version for UI enhancements
                       # Versioning format: Major.Minor.Patch
                       # Major: Significant changes or new features
                       # Minor: Backward-compatible changes or improvements
@@ -1584,7 +1584,7 @@ except Exception as e:
     customtkinter.set_default_color_theme("blue")  # Fall back to built-in blue theme
 
 root = customtkinter.CTk() # New CustomTkinter root
-root.title("🤖 AI Code Review Tool")
+root.title("AI Code Review Tool")
 root.geometry("1000x700") # Adjusted initial geometry, will be resizable
 
 # Set application icon - search for it in various possible locations
@@ -1631,7 +1631,7 @@ if icon_path:
         try:
             # For Windows OS - explicitly set the taskbar icon
             import ctypes
-            app_id = "TR.AIReviewTool.V2.0.1"  # Unique application ID
+            app_id = "TR.AIReviewTool.{APP_VERSION}"  # Unique application ID
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
             print(f"Successfully set taskbar icon with app ID: {app_id}")
         except Exception as e:
@@ -1680,7 +1680,7 @@ content_frame.grid_rowconfigure(0, weight=1)
 # --- MENU BAR (Menu + Help) with CustomTkinter ---
 def show_release_notes():
     notes = (
-        "🚀 Release Notes (v2.0.3) 🚀\n\n"
+        "🚀 Release Notes (v2.0.4) 🚀\n\n"
         "🔑 NEW: Automated Token Extraction\n"
         "   • One-click OpenArena token extraction with 'Get-Token' button\n"
         "   • Automated Chrome browser integration for seamless authentication\n"

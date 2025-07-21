@@ -3,7 +3,7 @@
 
 param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet("v1.0.1", "V2.0.0", "V2.0.1", "V2.0.2", "V2.0.3")]
+    [ValidateSet("v1.0.1", "V2.0.0", "V2.0.1", "V2.0.2", "V2.0.3", "V2.0.4")]
     [string]$Version
 )
 
@@ -72,6 +72,19 @@ switch ($Version) {
         } elseif (Test-Path "AIReviewTool_V2.0.3.spec") {
             Write-Host "Using PyInstaller directly..." -ForegroundColor Yellow
             pyinstaller AIReviewTool_V2.0.3.spec
+        } else {
+            Write-Host "ERROR: V2.0.3 build files not found!" -ForegroundColor Red
+            exit 1
+        }
+    }
+    
+    "V2.0.4" {
+        Write-Host "Building V2.0.4 (Latest)..." -ForegroundColor Green
+        if (Test-Path "build_v2.0.4.ps1") {
+            & .\build_v2.0.4.ps1
+        } elseif (Test-Path "AIReviewTool_V2.0.4.spec") {
+            Write-Host "Using PyInstaller directly..." -ForegroundColor Yellow
+            pyinstaller AIReviewTool_V2.0.4.spec
         } else {
             Write-Host "ERROR: V2.0.3 build files not found!" -ForegroundColor Red
             exit 1
