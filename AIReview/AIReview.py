@@ -1749,9 +1749,6 @@ def show_about():
     about = (
         Looking at your error and the code, I can see two main issues that need to be fixed:
 
-1. Fix the Missing UpdateChecker Methods
-The error shows that UpdateChecker is missing the show_update_notification_with_download method and likely others. Here's the complete UpdateChecker class with all required methods:
-
 class UpdateChecker:
     def __init__(self, current_version, parent_window):
         self.current_version = current_version
