@@ -2599,7 +2599,7 @@ class UpdateChecker:
             import sys
             import zipfile
             
-            # For ZIP files, we need to extract and find the executable
+            # For ZIP files, extract and find the executable
             if downloaded_file_path.lower().endswith('.zip'):
                 log_activity("[UPDATE] Extracting ZIP file...")
                 extract_dir = os.path.join(os.path.dirname(downloaded_file_path), "extracted")
@@ -2628,6 +2628,10 @@ class UpdateChecker:
             current_exe = sys.executable if getattr(sys, 'frozen', False) else __file__
             current_dir = os.path.dirname(current_exe)
             
+            # Get the new filename from the downloaded file (this is key!)
+            new_filename = os.path.basename(downloaded_file_path)
+            new_exe_path = os.path.join(current_dir, new_filename)
+            
             # Create backup of current version
             if os.path.exists(current_exe) and current_exe.endswith('.exe'):
                 backup_path = os.path.join(current_dir, f"AIReviewTool_backup_{self.current_version}.exe")
@@ -2638,31 +2642,40 @@ class UpdateChecker:
                 except Exception as e:
                     log_activity(f"[UPDATE] Warning: Could not create backup: {e}")
             
-            # Create update script
+            # Create update script that handles filename changes
             update_script = os.path.join(current_dir, "update_script.bat")
             script_content = f'''@echo off
-echo Updating AI Review Tool...
-timeout /t 3 /nobreak >nul
-copy "{downloaded_file_path}" "{current_exe}"
-if errorlevel 1 (
-    echo Update failed!
-    pause
-    exit /b 1
-)
-echo Update completed successfully!
-start "" "{current_exe}"
-del "%~f0"
-'''
+    echo Updating AI Review Tool...
+    timeout /t 3 /nobreak >nul
+
+    REM Copy new version with correct filename
+    copy "{downloaded_file_path}" "{new_exe_path}"
+    if errorlevel 1 (
+        echo Update failed!
+        pause
+        exit /b 1
+    )
+
+    REM Remove old version if different filename
+    if not "{current_exe}" == "{new_exe_path}" (
+        del "{current_exe}" 2>nul
+    )
+
+    echo Update completed successfully!
+    start "" "{new_exe_path}"
+    del "%~f0"
+    '''
             
             with open(update_script, 'w') as f:
                 f.write(script_content)
             
             log_activity("[UPDATE] Starting update process...")
+            log_activity(f"[UPDATE] New file will be: {new_exe_path}")
             
             # Show update dialog
             messagebox.showinfo("Update", 
-                              "The application will now close to complete the update.\n"
-                              "The updated version will start automatically.")
+                            "The application will now close to complete the update.\n"
+                            "The updated version will start automatically with the correct filename.")
             
             # Start update script and exit
             subprocess.Popen([update_script], shell=True)
