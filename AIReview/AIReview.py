@@ -281,7 +281,7 @@ filter_comments_var = None
 TOKEN_FILE = "tokens.txt"
 
 # Define the version as a static date-based version
-APP_VERSION = "2.0.8" # Incremented patch version for UI enhancements
+APP_VERSION = "2.0.9" # Incremented patch version for UI enhancements
                       # Versioning format: Major.Minor.Patch
                       # Major: Significant changes or new features
                       # Minor: Backward-compatible changes or improvements
@@ -1683,7 +1683,7 @@ content_frame.grid_rowconfigure(0, weight=1)
 # --- MENU BAR (Menu + Help) with CustomTkinter ---
 def show_release_notes():
     notes = (
-        "🚀 Release Notes (v2.0.7) 🚀\n\n"
+        "🚀 Release Notes (v2.0.9) 🚀\n\n"
         "🔑 NEW: Automated Token Extraction\n"
         "   • One-click OpenArena token extraction with 'Get-Token' button\n"
         "   • Automated Chrome browser integration for seamless authentication\n"
@@ -1747,13 +1747,470 @@ def show_release_notes():
 
 def show_about():
     about = (
+        Looking at your error and the code, I can see two main issues that need to be fixed:
+
+1. Fix the Missing UpdateChecker Methods
+The error shows that UpdateChecker is missing the show_update_notification_with_download method and likely others. Here's the complete UpdateChecker class with all required methods:
+
+class UpdateChecker:
+    def __init__(self, current_version, parent_window):
+        self.current_version = current_version
+        self.parent_window = parent_window
+        self.check_interval_days = 1  # Check daily
+        
+    def test_internet_connectivity(self):
+        """Test if we have internet connectivity"""
+        try:
+            response = requests.get("https://api.github.com", timeout=5)
+            return response.status_code == 200
+        except Exception:
+            return False
+    
+    def compare_versions(self, version1, version2):
+        """Compare two version strings. Returns -1 if version1 < version2, 0 if equal, 1 if version1 > version2"""
+        try:
+            v1_parts = tuple(map(int, version1.split('.')))
+            v2_parts = tuple(map(int, version2.split('.')))
+            
+            log_activity(f"[UPDATE] Comparing versions: {v1_parts} vs {v2_parts}")
+            
+            if v1_parts < v2_parts:
+                return -1
+            elif v1_parts > v2_parts:
+                return 1
+            else:
+                return 0
+        except Exception as e:
+            log_activity(f"[UPDATE] Error comparing versions: {e}")
+            return 0
+    
+    def should_check_for_updates(self):
+        """Check if we should check for updates based on the last check time"""
+        try:
+            if os.path.exists(UPDATE_CHECK_FILE):
+                with open(UPDATE_CHECK_FILE, 'r') as f:
+                    data = json.load(f)
+                    last_check = datetime.fromisoformat(data.get('last_check', '2000-01-01'))
+                    return datetime.now() - last_check > timedelta(days=self.check_interval_days)
+            return True
+        except Exception as e:
+            log_activity(f"[UPDATE] Error checking update schedule: {e}")
+            return True
+    
+    def record_update_check(self):
+        """Record that we checked for updates"""
+        try:
+            data = {'last_check': datetime.now().isoformat()}
+            with open(UPDATE_CHECK_FILE, 'w') as f:
+                json.dump(data, f)
+            log_activity("[UPDATE] Update check recorded")
+        except Exception as e:
+            log_activity(f"[UPDATE] Error recording update check: {e}")
+    
+    def has_been_notified(self, version):
+        """Check if user has already been notified about this version"""
+        try:
+            if os.path.exists(UPDATE_NOTIFICATION_FILE):
+                with open(UPDATE_NOTIFICATION_FILE, 'r') as f:
+                    data = json.load(f)
+                    return version in data.get('notified_versions', [])
+            return False
+        except Exception as e:
+            log_activity(f"[UPDATE] Error checking notification history: {e}")
+            return False
+    
+    def record_notification(self, version):
+        """Record that user was notified about this version"""
+        try:
+            data = {'notified_versions': []}
+            if os.path.exists(UPDATE_NOTIFICATION_FILE):
+                with open(UPDATE_NOTIFICATION_FILE, 'r') as f:
+                    data = json.load(f)
+            
+            if version not in data['notified_versions']:
+                data['notified_versions'].append(version)
+                
+            with open(UPDATE_NOTIFICATION_FILE, 'w') as f:
+                json.dump(data, f)
+        except Exception as e:
+            log_activity(f"[UPDATE] Error recording notification: {e}")
+
+    def get_latest_exe_info(self):
+        try:
+            log_activity("[UPDATE] Fetching repository contents from GitHub API...")
+            response = requests.get(GITHUB_DIST_URL, timeout=10)
+            log_activity(f"[UPDATE] GitHub API response status: {response.status_code}")
+            
+            if response.status_code == 200:
+                files = response.json()
+                log_activity(f"[UPDATE] Found {len(files)} total files in dist folder")
+                
+                # Debug: List all files found
+                for f in files:
+                    log_activity(f"[UPDATE] Found file: {f['name']} (size: {f.get('size', 'unknown')})")
+                
+                # Find ZIP files and extract version info - be more flexible with file extensions
+                exe_files_with_versions = []
+                for f in files:
+                    filename = f['name'].lower()
+                    # Look for both .exe files and .zip files that might contain executables
+                    if filename.endswith('.exe') or (filename.endswith('.zip') and 'aireviewtool' in filename.lower()):
+                        log_activity(f"[UPDATE] Potential executable found: {f['name']}")
+                        
+                        # Try to extract version from filename
+                        version_match = re.search(r'[Vv]?(\d+\.\d+\.\d+)', f['name'])
+                        if version_match:
+                            version_str = version_match.group(1)
+                            # Convert version to tuple for proper sorting (2.0.10 > 2.0.9)
+                            version_tuple = tuple(map(int, version_str.split('.')))
+                            exe_files_with_versions.append((f, version_str, version_tuple))
+                            log_activity(f"[UPDATE] Version extracted: {version_str}")
+                        else:
+                            log_activity(f"[UPDATE] No version found in filename: {f['name']}")
+                
+                log_activity(f"[UPDATE] Found {len(exe_files_with_versions)} files with versions")
+                
+                if exe_files_with_versions:
+                    # Sort by version tuple to get the truly latest version
+                    latest_file, latest_version, _ = max(exe_files_with_versions, key=lambda x: x[2])
+                    
+                    log_activity(f"[UPDATE] Latest version determined: {latest_version}")
+                    
+                    return {
+                        'version': latest_version,
+                        'filename': latest_file['name'],
+                        'download_url': latest_file['download_url'],
+                        'size': latest_file['size']
+                    }
+                else:
+                    log_activity("[UPDATE] No executable files with version numbers found")
+                    return None
+            else:
+                log_activity(f"[UPDATE] GitHub API error: {response.status_code} - {response.text}")
+                return None
+                
+        except Exception as e:
+            log_activity(f"[UPDATE] Error getting EXE info: {e}")
+            return None
+    
+    def download_update(self, exe_info, progress_callback=None):
+        """Download the update file"""
+        try:
+            import tempfile
+            import shutil
+            
+            # Create temp directory for download
+            temp_dir = tempfile.mkdtemp()
+            temp_file_path = os.path.join(temp_dir, exe_info['filename'])
+            
+            log_activity(f"[UPDATE] Downloading {exe_info['filename']}...")
+            
+            # Download the file
+            response = requests.get(exe_info['download_url'], stream=True, timeout=60)
+            response.raise_for_status()
+            
+            total_size = int(response.headers.get('content-length', 0))
+            downloaded = 0
+            
+            with open(temp_file_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        
+                        if progress_callback and total_size > 0:
+                            progress = (downloaded / total_size) * 100
+                            progress_callback(progress)
+            
+            log_activity(f"[UPDATE] Download completed: {temp_file_path}")
+            return temp_file_path
+            
+        except Exception as e:
+            log_activity(f"[UPDATE] Download failed: {e}")
+            return None
+    
+    def install_update(self, downloaded_file_path):
+        """Install the downloaded update"""
+        try:
+            import subprocess
+            import sys
+            import zipfile
+            
+            # For ZIP files, we need to extract and find the executable
+            if downloaded_file_path.lower().endswith('.zip'):
+                log_activity("[UPDATE] Extracting ZIP file...")
+                extract_dir = os.path.join(os.path.dirname(downloaded_file_path), "extracted")
+                os.makedirs(extract_dir, exist_ok=True)
+                
+                with zipfile.ZipFile(downloaded_file_path, 'r') as zip_ref:
+                    zip_ref.extractall(extract_dir)
+                
+                # Find the executable in the extracted files
+                exe_file = None
+                for root, dirs, files in os.walk(extract_dir):
+                    for file in files:
+                        if file.lower().endswith('.exe') and 'aireviewtool' in file.lower():
+                            exe_file = os.path.join(root, file)
+                            break
+                    if exe_file:
+                        break
+                
+                if not exe_file:
+                    log_activity("[UPDATE] No executable found in ZIP file")
+                    messagebox.showerror("Update Error", "No executable found in the update package.")
+                    return
+                
+                downloaded_file_path = exe_file
+            
+            current_exe = sys.executable if getattr(sys, 'frozen', False) else __file__
+            current_dir = os.path.dirname(current_exe)
+            
+            # Create backup of current version
+            if os.path.exists(current_exe) and current_exe.endswith('.exe'):
+                backup_path = os.path.join(current_dir, f"AIReviewTool_backup_{self.current_version}.exe")
+                try:
+                    import shutil
+                    shutil.copy2(current_exe, backup_path)
+                    log_activity(f"[UPDATE] Backup created: {backup_path}")
+                except Exception as e:
+                    log_activity(f"[UPDATE] Warning: Could not create backup: {e}")
+            
+            # Create update script
+            update_script = os.path.join(current_dir, "update_script.bat")
+            script_content = f'''@echo off
+echo Updating AI Review Tool...
+timeout /t 3 /nobreak >nul
+copy "{downloaded_file_path}" "{current_exe}"
+if errorlevel 1 (
+    echo Update failed!
+    pause
+    exit /b 1
+)
+echo Update completed successfully!
+start "" "{current_exe}"
+del "%~f0"
+'''
+            
+            with open(update_script, 'w') as f:
+                f.write(script_content)
+            
+            log_activity("[UPDATE] Starting update process...")
+            
+            # Show update dialog
+            messagebox.showinfo("Update", 
+                              "The application will now close to complete the update.\n"
+                              "The updated version will start automatically.")
+            
+            # Start update script and exit
+            subprocess.Popen([update_script], shell=True)
+            self.parent_window.quit()
+            
+        except Exception as e:
+            log_activity(f"[UPDATE] Installation failed: {e}")
+            messagebox.showerror("Update Error", f"Failed to install update: {e}")
+    
+    def check_for_updates_async(self):
+        """Check for updates in a background thread"""
+        def check_updates():
+            try:
+                # Check internet connectivity first
+                if not self.test_internet_connectivity():
+                    log_activity("[UPDATE] No internet connection available")
+                    return
+                
+                if not self.should_check_for_updates():
+                    log_activity("[UPDATE] Update check not due yet")
+                    return
+                
+                log_activity("[UPDATE] Checking for application updates...")
+                
+                # Get latest file info from dist folder
+                exe_info = self.get_latest_exe_info()
+                
+                if exe_info:
+                    log_activity(f"[UPDATE] Found latest version: {exe_info['version']}")
+                    comparison = self.compare_versions(self.current_version, exe_info['version'])
+                    log_activity(f"[UPDATE] Version comparison result: {comparison}")
+                    
+                    if comparison < 0:
+                        # New version available
+                        if not self.has_been_notified(exe_info['version']):
+                            self.show_update_notification_with_download(exe_info)
+                            self.record_notification(exe_info['version'])
+                            log_activity(f"[UPDATE] New version available: {exe_info['version']}")
+                        else:
+                            log_activity(f"[UPDATE] New version {exe_info['version']} available (already notified)")
+                    else:
+                        log_activity("[UPDATE] Application is up to date")
+                else:
+                    log_activity("[UPDATE] Could not retrieve version information")
+                
+                self.record_update_check()
+                
+            except Exception as e:
+                log_activity(f"[UPDATE] Error checking for updates: {e}")
+        
+        # Run in background thread
+        thread = threading.Thread(target=check_updates, daemon=True)
+        thread.start()
+    
+    def show_update_notification_with_download(self, exe_info):
+        """Show update notification dialog with download functionality"""
+        def show_dialog():
+            try:
+                dialog = customtkinter.CTkToplevel(self.parent_window)
+                dialog.title("Update Available")
+                dialog.geometry("500x400")
+                dialog.resizable(False, False)
+                dialog.grab_set()
+                dialog.transient(self.parent_window)
+                
+                # Center the dialog
+                dialog.update_idletasks()
+                x = (dialog.winfo_screenwidth() // 2) - (500 // 2)
+                y = (dialog.winfo_screenheight() // 2) - (400 // 2)
+                dialog.geometry(f"500x400+{x}+{y}")
+                
+                # Content frame
+                content_frame = customtkinter.CTkFrame(dialog)
+                content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+                
+                # Title
+                title_label = customtkinter.CTkLabel(
+                    content_frame, 
+                    text="🚀 Update Available!",
+                    font=customtkinter.CTkFont(size=18, weight="bold")
+                )
+                title_label.pack(pady=(0, 10))
+                
+                # Version info
+                file_size_mb = exe_info['size'] / (1024 * 1024)
+                version_text = f"Current Version: {self.current_version}\nLatest Version: {exe_info['version']}\nFile: {exe_info['filename']}\nSize: {file_size_mb:.1f} MB"
+                version_label = customtkinter.CTkLabel(content_frame, text=version_text)
+                version_label.pack(pady=(0, 10))
+                
+                # Progress bar (initially hidden)
+                progress_frame = customtkinter.CTkFrame(content_frame, fg_color="transparent")
+                progress_frame.pack(fill="x", pady=10)
+                progress_frame.pack_forget()  # Hide initially
+                
+                progress_bar = customtkinter.CTkProgressBar(progress_frame)
+                progress_bar.pack(fill="x", pady=5)
+                progress_bar.set(0)
+                
+                progress_label = customtkinter.CTkLabel(progress_frame, text="Downloading...")
+                progress_label.pack()
+                
+                # Status label
+                status_label = customtkinter.CTkLabel(content_frame, text="")
+                status_label.pack(pady=5)
+                
+                # Buttons
+                button_frame = customtkinter.CTkFrame(content_frame, fg_color="transparent")
+                button_frame.pack(fill="x", pady=(10, 0))
+                
+                def download_and_install():
+                    # Show progress
+                    progress_frame.pack(fill="x", pady=10)
+                    download_button.configure(state="disabled", text="Downloading...")
+                    later_button.configure(state="disabled")
+                    skip_button.configure(state="disabled")
+                    
+                    def progress_callback(progress):
+                        def update_progress():
+                            progress_bar.set(progress / 100)
+                            progress_label.configure(text=f"Downloading... {progress:.1f}%")
+                        dialog.after(0, update_progress)
+                    
+                    def download_thread():
+                        try:
+                            # Download the update
+                            downloaded_path = self.download_update(exe_info, progress_callback)
+                            
+                            if downloaded_path:
+                                def install_update():
+                                    status_label.configure(text="Installing update...")
+                                    dialog.after(1000, lambda: self.install_update(downloaded_path))
+                                
+                                dialog.after(0, install_update)
+                            else:
+                                def show_error():
+                                    status_label.configure(text="Download failed!")
+                                    download_button.configure(state="normal", text="Retry Download")
+                                    later_button.configure(state="normal")
+                                    skip_button.configure(state="normal")
+                                
+                                dialog.after(0, show_error)
+                                
+                        except Exception as e:
+                            def show_error():
+                                status_label.configure(text=f"Error: {e}")
+                                download_button.configure(state="normal", text="Retry Download")
+                                later_button.configure(state="normal")
+                                skip_button.configure(state="normal")
+                            
+                            dialog.after(0, show_error)
+                    
+                    # Start download in background
+                    thread = threading.Thread(target=download_thread, daemon=True)
+                    thread.start()
+                
+                def remind_later():
+                    dialog.destroy()
+                
+                def skip_version():
+                    self.record_notification(exe_info['version'])
+                    dialog.destroy()
+                
+                download_button = customtkinter.CTkButton(
+                    button_frame, 
+                    text="Download & Install Update",
+                    command=download_and_install,
+                    fg_color="#2E8B57",
+                    hover_color="#3CB371"
+                )
+                download_button.pack(side="left", padx=5)
+                
+                later_button = customtkinter.CTkButton(
+                    button_frame,
+                    text="Remind Later",
+                    command=remind_later,
+                    fg_color="#4169E1",
+                    hover_color="#6495ED"
+                )
+                later_button.pack(side="left", padx=5)
+                
+                skip_button = customtkinter.CTkButton(
+                    button_frame,
+                    text="Skip This Version",
+                    command=skip_version,
+                    fg_color="#8B4513",
+                    hover_color="#A0522D"
+                )
+                skip_button.pack(side="right", padx=5)
+                
+                log_activity(f"[UPDATE] User notified about version {exe_info['version']}")
+                
+            except Exception as e:
+                log_activity(f"[UPDATE] Error showing update dialog: {e}")
+        
+        # Schedule dialog to show in main thread
+        self.parent_window.after(100, show_dialog)
+
+2. Update the About Dialog Text
+Replace the show_about() function with this updated version:
+
+def show_about():
+    about = (
         "🤖 AI Code Review Tool 🤖\n\n"
         "💡 What it does:\n"
         "This intelligent application leverages advanced AI to automatically review "
         "code changes in GitHub pull requests. It analyzes modifications, posts helpful "
         "comments, and generates comprehensive review metrics to improve code quality.\n\n"
-        "🔑 NEW in v2.0.3:\n"
-        "• Automated OpenArena token extraction with one-click authentication\n"
+        "🔑 NEW in v2.0.9:\n"
+        "• Enhanced update system with automatic ZIP file handling\n"
+        "• Improved error handling and user feedback\n"
+        "• Better version comparison and notification management\n"
         "• Seamless Chrome browser integration for token capture\n"
         "• Persistent token storage with automatic loading\n\n"
         "✅ Benefits:\n"

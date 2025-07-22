@@ -3,7 +3,7 @@
 
 param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet("v1.0.1", "V2.0.0", "V2.0.1", "V2.0.2", "V2.0.3", "V2.0.4", "V2.0.5", "V2.0.6", "V2.0.7", "V2.0.8")]
+    [ValidateSet("v1.0.1", "V2.0.1", "V2.0.6", "V2.0.7", "V2.0.8", "V2.0.9")]
     [string]$Version
 )
 
