@@ -281,7 +281,7 @@ filter_comments_var = None
 TOKEN_FILE = "tokens.txt"
 
 # Define the version as a static date-based version
-APP_VERSION = "2.0.5" # Incremented patch version for UI enhancements
+APP_VERSION = "2.0.6" # Incremented patch version for UI enhancements
                       # Versioning format: Major.Minor.Patch
                       # Major: Significant changes or new features
                       # Minor: Backward-compatible changes or improvements
