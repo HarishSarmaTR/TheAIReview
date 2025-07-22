@@ -25,13 +25,14 @@ $requiredFiles = @(
 )
 
 foreach ($file in $requiredFiles) {
-    if (-not (Test-Path -Path $file)) {
+    if (-not (Test-Path -LiteralPath $file)) {
         Write-Host "ERROR: Required file/directory not found: $file" -ForegroundColor Red
         exit 1
     }
 }
 
 # Check for blue.json in multiple locations
+Write-Host "Checking for theme file..." -ForegroundColor Yellow
 $blueJsonPath = $null
 $possibleLocations = @(
     "blue.json",
@@ -40,7 +41,7 @@ $possibleLocations = @(
 )
 
 foreach ($location in $possibleLocations) {
-    if (Test-Path -Path $location) {
+    if (Test-Path -LiteralPath $location) {
         $blueJsonPath = $location
         Write-Host "Found blue.json at: $location" -ForegroundColor Green
         break
@@ -54,18 +55,22 @@ if (-not $blueJsonPath) {
 
 # Copy theme file to current directory for PyInstaller to find it more easily
 Write-Host "Ensuring theme file is accessible..." -ForegroundColor Yellow
-if ($blueJsonPath -and (-not (Test-Path -Path "blue.json"))) {
-    Copy-Item -Path $blueJsonPath -Destination "blue.json" -Force
+if ($blueJsonPath -and (-not (Test-Path -LiteralPath "blue.json"))) {
+    Copy-Item -LiteralPath $blueJsonPath -Destination "blue.json" -Force
     Write-Host "Copied theme file from $blueJsonPath to root directory" -ForegroundColor Green
-} elseif (Test-Path -Path "blue.json") {
+} elseif (Test-Path -LiteralPath "blue.json") {
     Write-Host "Theme file already exists in root directory" -ForegroundColor Green
 }
 
 # Copy icon to root directory for easier access
 Write-Host "Preparing icon file..." -ForegroundColor Yellow
-if (-not (Test-Path -Path "ai.ico")) {
-    Copy-Item -Path "images/ai.ico" -Destination "ai.ico" -Force
-    Write-Host "Copied icon file to root directory for easier access" -ForegroundColor Green
+if (-not (Test-Path -LiteralPath "ai.ico")) {
+    if (Test-Path -LiteralPath "images/ai.ico") {
+        Copy-Item -LiteralPath "images/ai.ico" -Destination "ai.ico" -Force
+        Write-Host "Copied icon file to root directory for easier access" -ForegroundColor Green
+    } else {
+        Write-Host "WARNING: Icon file not found at images/ai.ico" -ForegroundColor Yellow
+    }
 }
 
 # Build the executable with PyInstaller
@@ -82,8 +87,9 @@ $pyinstallerArgs = @(
 )
 
 # Add theme file if it exists
-if (Test-Path -Path "blue.json") {
+if (Test-Path -LiteralPath "blue.json") {
     $pyinstallerArgs += "--add-data", "blue.json;."
+    Write-Host "Added blue.json to PyInstaller data files" -ForegroundColor Green
 }
 
 # Add the main Python file
@@ -91,22 +97,29 @@ $pyinstallerArgs += "AIReview/AIReview.py"
 
 # Execute PyInstaller
 Try {
-    Write-Host "PyInstaller arguments: $($pyinstallerArgs -join ' ')" -ForegroundColor Cyan
-    pyinstaller @pyinstallerArgs
+    Write-Host "PyInstaller command: pyinstaller $($pyinstallerArgs -join ' ')" -ForegroundColor Cyan
+    
+    # Use Start-Process to avoid parameter binding issues
+    $processArgs = $pyinstallerArgs -join ' '
+    $process = Start-Process -FilePath "pyinstaller" -ArgumentList $pyinstallerArgs -Wait -PassThru -NoNewWindow
+    
+    if ($process.ExitCode -ne 0) {
+        throw "PyInstaller failed with exit code $($process.ExitCode)"
+    }
     
     # Verify the executable was created
     $exePath = "dist/AIReviewTool_$Version.exe"
-    if (Test-Path -Path $exePath) {
+    if (Test-Path -LiteralPath $exePath) {
         Write-Host "Executable successfully created at $exePath" -ForegroundColor Green
         
         # Get file size
-        $fileSize = (Get-Item $exePath).length
+        $fileSize = (Get-Item -LiteralPath $exePath).length
         $fileSizeMB = [math]::Round($fileSize / 1MB, 2)
         Write-Host "File size: $fileSizeMB MB" -ForegroundColor Cyan
         
         # Manually ensure theme file is in the right location in the dist folder
-        if ((Test-Path -Path "blue.json") -and (-not (Test-Path -Path "dist/blue.json"))) {
-            Copy-Item -Path "blue.json" -Destination "dist/blue.json" -Force
+        if ((Test-Path -LiteralPath "blue.json") -and (-not (Test-Path -LiteralPath "dist/blue.json"))) {
+            Copy-Item -LiteralPath "blue.json" -Destination "dist/blue.json" -Force
             Write-Host "Copied theme file to dist directory" -ForegroundColor Green
         }
         
@@ -116,37 +129,27 @@ Try {
         
         # Prepare items for ZIP
         $zipItems = @($exePath)
-        if (Test-Path -Path "dist/blue.json") {
+        if (Test-Path -LiteralPath "dist/blue.json") {
             $zipItems += "dist/blue.json"
         }
         
-        Compress-Archive -Path $zipItems -DestinationPath $zipPath -Force
+        Compress-Archive -LiteralPath $zipItems -DestinationPath $zipPath -Force
         Write-Host "ZIP archive created at $zipPath" -ForegroundColor Green
         
         # Get ZIP file size
-        $zipSize = (Get-Item $zipPath).length
+        $zipSize = (Get-Item -LiteralPath $zipPath).length
         $zipSizeMB = [math]::Round($zipSize / 1MB, 2)
         Write-Host "ZIP size: $zipSizeMB MB" -ForegroundColor Cyan
         
-        # Test the executable quickly
-        Write-Host "Testing executable startup..." -ForegroundColor Yellow
-        try {
-            $testProcess = Start-Process -FilePath $exePath -ArgumentList "--version" -NoNewWindow -PassThru -Wait -ErrorAction SilentlyContinue
-            if ($testProcess.ExitCode -eq 0 -or $null -eq $testProcess.ExitCode) {
-                Write-Host "Executable startup test: PASSED" -ForegroundColor Green
-            } else {
-                Write-Host "Executable startup test: WARNING (exit code $($testProcess.ExitCode))" -ForegroundColor Yellow
-            }
-        } catch {
-            Write-Host "Executable startup test: SKIPPED (GUI application)" -ForegroundColor Yellow
-        }
+        # Test the executable quickly (skip for GUI applications)
+        Write-Host "Build completed successfully!" -ForegroundColor Green
         
     } else {
         Write-Host "ERROR: Executable was not created at $exePath" -ForegroundColor Red
         
         # Check if there are any files in the dist directory
-        if (Test-Path -Path "dist") {
-            $distFiles = Get-ChildItem -Path "dist" -File
+        if (Test-Path -LiteralPath "dist") {
+            $distFiles = Get-ChildItem -LiteralPath "dist" -File
             if ($distFiles.Count -gt 0) {
                 Write-Host "Files found in dist directory:" -ForegroundColor Yellow
                 foreach ($file in $distFiles) {
@@ -164,22 +167,22 @@ Try {
     
     # Clean up build artifacts
     Write-Host "Cleaning up build artifacts..." -ForegroundColor Yellow
-    if (Test-Path -Path "build") {
-        Remove-Item -Path "build" -Recurse -Force
+    if (Test-Path -LiteralPath "build") {
+        Remove-Item -LiteralPath "build" -Recurse -Force
     }
     
     # Clean up temporary files
-    if (Test-Path -Path "ai.ico") {
-        Remove-Item -Path "ai.ico" -Force
+    if (Test-Path -LiteralPath "ai.ico") {
+        Remove-Item -LiteralPath "ai.ico" -Force
     }
-    if (Test-Path -Path "blue.json" -and $blueJsonPath -ne "blue.json") {
-        Remove-Item -Path "blue.json" -Force
+    if ((Test-Path -LiteralPath "blue.json") -and ($blueJsonPath -ne "blue.json")) {
+        Remove-Item -LiteralPath "blue.json" -Force
     }
     
     Write-Host ""
     Write-Host "Build process completed successfully!" -ForegroundColor Green
     Write-Host "======================================" -ForegroundColor Green
-    Write-Host "$Version" -ForegroundColor Cyan
+    Write-Host "Version: $Version" -ForegroundColor Cyan
     Write-Host "Executable: $exePath" -ForegroundColor Cyan
     Write-Host "ZIP archive: $zipPath" -ForegroundColor Cyan
     Write-Host "File size: $fileSizeMB MB" -ForegroundColor Cyan

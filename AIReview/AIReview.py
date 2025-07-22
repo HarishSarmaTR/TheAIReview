@@ -1745,10 +1745,6 @@ def show_release_notes():
     )
     close_button.pack(pady=10)
 
-def show_about():
-    about = (
-        Looking at your error and the code, I can see two main issues that need to be fixed:
-
 class UpdateChecker:
     def __init__(self, current_version, parent_window):
         self.current_version = current_version
@@ -2194,9 +2190,6 @@ del "%~f0"
         # Schedule dialog to show in main thread
         self.parent_window.after(100, show_dialog)
 
-2. Update the About Dialog Text
-Replace the show_about() function with this updated version:
-
 def show_about():
     about = (
         "🤖 AI Code Review Tool 🤖\n\n"
@@ -2204,23 +2197,25 @@ def show_about():
         "This intelligent application leverages advanced AI to automatically review "
         "code changes in GitHub pull requests. It analyzes modifications, posts helpful "
         "comments, and generates comprehensive review metrics to improve code quality.\n\n"
-        "🔑 NEW in v2.0.9:\n"
-        "• Enhanced update system with automatic ZIP file handling\n"
-        "• Improved error handling and user feedback\n"
-        "• Better version comparison and notification management\n"
-        "• Seamless Chrome browser integration for token capture\n"
-        "• Persistent token storage with automatic loading\n\n"
+        "🔧 Key Features:\n"
+        "• Automated AI-powered code analysis using Claude 4 Sonnet\n"
+        "• Seamless GitHub integration with pull request commenting\n"
+        "• One-click OpenArena token extraction and management\n"
+        "• Comprehensive HTML reporting with severity categorization\n"
+        "• Smart filtering to focus on meaningful issues\n"
+        "• Real-time progress tracking and cost estimation\n\n"
         "✅ Benefits:\n"
-        "• Faster code reviews with consistent quality\n"
-        "• Early detection of potential issues\n"
-        "• Improved code standards across your team\n"
-        "• Time savings for developers and reviewers\n"
-        "• Eliminates manual token management hassles\n\n"
+        "• Faster code reviews with consistent quality standards\n"
+        "• Early detection of potential bugs and security issues\n"
+        "• Improved code maintainability across your team\n"
+        "• Significant time savings for developers and reviewers\n"
+        "• Reduces human oversight and review fatigue\n\n"
+        "📋 Version: 2.0.9\n"
         "🏆 Built with pride by the Ultratax Team, 2025"
     )
     dialog = customtkinter.CTkToplevel(root)
     dialog.title("About")
-    dialog.geometry("500x450")  # Increased size for enhanced content
+    dialog.geometry("500x450")
     dialog.resizable(False, False)
     dialog.grab_set()
     
