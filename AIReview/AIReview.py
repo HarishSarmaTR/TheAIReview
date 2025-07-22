@@ -281,7 +281,7 @@ filter_comments_var = None
 TOKEN_FILE = "tokens.txt"
 
 # Define the version as a static date-based version
-APP_VERSION = "2.0.9" # Incremented patch version for UI enhancements
+APP_VERSION = "2.0.10" # Incremented patch version for UI enhancements
                       # Versioning format: Major.Minor.Patch
                       # Major: Significant changes or new features
                       # Minor: Backward-compatible changes or improvements
@@ -1683,7 +1683,7 @@ content_frame.grid_rowconfigure(0, weight=1)
 # --- MENU BAR (Menu + Help) with CustomTkinter ---
 def show_release_notes():
     notes = (
-        "🚀 Release Notes (v2.0.9) 🚀\n\n"
+        f"🚀 Release Notes ({APP_VERSION}) 🚀\n\n"
         "🔑 NEW: Automated Token Extraction\n"
         "   • One-click OpenArena token extraction with 'Get-Token' button\n"
         "   • Automated Chrome browser integration for seamless authentication\n"
@@ -2210,7 +2210,7 @@ def show_about():
         "• Improved code maintainability across your team\n"
         "• Significant time savings for developers and reviewers\n"
         "• Reduces human oversight and review fatigue\n\n"
-        "📋 Version: 2.0.9\n"
+        f"📋 Version: {APP_VERSION}\n"
         "🏆 Built with pride by the Ultratax Team, 2025"
     )
     dialog = customtkinter.CTkToplevel(root)
