@@ -291,8 +291,6 @@ APP_VERSION = "2.0.10" # Incremented patch version for UI enhancements
 RECENT_REPOS_FILE = "recent_repos.json"
 # Maximum number of repositories to remember
 MAX_RECENT_REPOS = 10
-                        # Patch: Bug fixes or minor changes
-
 
 # Add these new constants
 GITHUB_DIST_URL = "https://api.github.com/repos/HarishSarmaTR/TheAIReview/contents/dist"
