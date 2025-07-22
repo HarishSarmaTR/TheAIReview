@@ -281,7 +281,7 @@ filter_comments_var = None
 TOKEN_FILE = "tokens.txt"
 
 # Define the version as a static date-based version
-APP_VERSION = "2.0.6" # Incremented patch version for UI enhancements
+APP_VERSION = "2.0.8" # Incremented patch version for UI enhancements
                       # Versioning format: Major.Minor.Patch
                       # Major: Significant changes or new features
                       # Minor: Backward-compatible changes or improvements
@@ -1972,26 +1972,123 @@ class UpdateChecker:
         self.parent_window = parent_window
         self.check_interval_days = 1  # Check daily
         
+    def test_internet_connectivity(self):
+        """Test if we have internet connectivity"""
+        try:
+            response = requests.get("https://api.github.com", timeout=5)
+            return response.status_code == 200
+        except Exception:
+            return False
+    
+    def compare_versions(self, version1, version2):
+        """Compare two version strings. Returns -1 if version1 < version2, 0 if equal, 1 if version1 > version2"""
+        try:
+            v1_parts = tuple(map(int, version1.split('.')))
+            v2_parts = tuple(map(int, version2.split('.')))
+            
+            log_activity(f"[UPDATE] Comparing versions: {v1_parts} vs {v2_parts}")
+            
+            if v1_parts < v2_parts:
+                return -1
+            elif v1_parts > v2_parts:
+                return 1
+            else:
+                return 0
+        except Exception as e:
+            log_activity(f"[UPDATE] Error comparing versions: {e}")
+            return 0
+    
+    def should_check_for_updates(self):
+        """Check if we should check for updates based on the last check time"""
+        try:
+            if os.path.exists(UPDATE_CHECK_FILE):
+                with open(UPDATE_CHECK_FILE, 'r') as f:
+                    data = json.load(f)
+                    last_check = datetime.fromisoformat(data.get('last_check', '2000-01-01'))
+                    return datetime.now() - last_check > timedelta(days=self.check_interval_days)
+            return True
+        except Exception as e:
+            log_activity(f"[UPDATE] Error checking update schedule: {e}")
+            return True
+    
+    def record_update_check(self):
+        """Record that we checked for updates"""
+        try:
+            data = {'last_check': datetime.now().isoformat()}
+            with open(UPDATE_CHECK_FILE, 'w') as f:
+                json.dump(data, f)
+            log_activity("[UPDATE] Update check recorded")
+        except Exception as e:
+            log_activity(f"[UPDATE] Error recording update check: {e}")
+    
+    def has_been_notified(self, version):
+        """Check if user has already been notified about this version"""
+        try:
+            if os.path.exists(UPDATE_NOTIFICATION_FILE):
+                with open(UPDATE_NOTIFICATION_FILE, 'r') as f:
+                    data = json.load(f)
+                    return version in data.get('notified_versions', [])
+            return False
+        except Exception as e:
+            log_activity(f"[UPDATE] Error checking notification history: {e}")
+            return False
+    
+    def record_notification(self, version):
+        """Record that user was notified about this version"""
+        try:
+            data = {'notified_versions': []}
+            if os.path.exists(UPDATE_NOTIFICATION_FILE):
+                with open(UPDATE_NOTIFICATION_FILE, 'r') as f:
+                    data = json.load(f)
+            
+            if version not in data['notified_versions']:
+                data['notified_versions'].append(version)
+                
+            with open(UPDATE_NOTIFICATION_FILE, 'w') as f:
+                json.dump(data, f)
+        except Exception as e:
+            log_activity(f"[UPDATE] Error recording notification: {e}")
+
     def get_latest_exe_info(self):
         try:
+            log_activity("[UPDATE] Fetching repository contents from GitHub API...")
             response = requests.get(GITHUB_DIST_URL, timeout=10)
+            log_activity(f"[UPDATE] GitHub API response status: {response.status_code}")
+            
             if response.status_code == 200:
                 files = response.json()
+                log_activity(f"[UPDATE] Found {len(files)} total files in dist folder")
                 
-                # Find EXE files and extract version info
+                # Debug: List all files found
+                for f in files:
+                    log_activity(f"[UPDATE] Found file: {f['name']} (size: {f.get('size', 'unknown')})")
+                
+                # Find ZIP files and extract version info - be more flexible with file extensions
                 exe_files_with_versions = []
                 for f in files:
-                    if f['name'].endswith('.exe'):
+                    filename = f['name'].lower()
+                    # Look for both .exe files and .zip files that might contain executables
+                    if filename.endswith('.exe') or (filename.endswith('.zip') and 'aireviewtool' in filename.lower()):
+                        log_activity(f"[UPDATE] Potential executable found: {f['name']}")
+                        
+                        # Try to extract version from filename
                         version_match = re.search(r'[Vv]?(\d+\.\d+\.\d+)', f['name'])
                         if version_match:
                             version_str = version_match.group(1)
                             # Convert version to tuple for proper sorting (2.0.10 > 2.0.9)
                             version_tuple = tuple(map(int, version_str.split('.')))
                             exe_files_with_versions.append((f, version_str, version_tuple))
+                            log_activity(f"[UPDATE] Version extracted: {version_str}")
+                        else:
+                            log_activity(f"[UPDATE] No version found in filename: {f['name']}")
+                
+                log_activity(f"[UPDATE] Found {len(exe_files_with_versions)} files with versions")
                 
                 if exe_files_with_versions:
                     # Sort by version tuple to get the truly latest version
                     latest_file, latest_version, _ = max(exe_files_with_versions, key=lambda x: x[2])
+                    
+                    log_activity(f"[UPDATE] Latest version determined: {latest_version}")
                     
                     return {
                         'version': latest_version,
@@ -1999,20 +2096,26 @@ class UpdateChecker:
                         'download_url': latest_file['download_url'],
                         'size': latest_file['size']
                     }
-            return None
+                else:
+                    log_activity("[UPDATE] No executable files with version numbers found")
+                    return None
+            else:
+                log_activity(f"[UPDATE] GitHub API error: {response.status_code} - {response.text}")
+                return None
+                
         except Exception as e:
             log_activity(f"[UPDATE] Error getting EXE info: {e}")
             return None
     
     def download_update(self, exe_info, progress_callback=None):
-        """Download the update EXE file"""
+        """Download the update file"""
         try:
             import tempfile
             import shutil
             
             # Create temp directory for download
             temp_dir = tempfile.mkdtemp()
-            temp_exe_path = os.path.join(temp_dir, exe_info['filename'])
+            temp_file_path = os.path.join(temp_dir, exe_info['filename'])
             
             log_activity(f"[UPDATE] Downloading {exe_info['filename']}...")
             
@@ -2023,7 +2126,7 @@ class UpdateChecker:
             total_size = int(response.headers.get('content-length', 0))
             downloaded = 0
             
-            with open(temp_exe_path, 'wb') as f:
+            with open(temp_file_path, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         f.write(chunk)
@@ -2033,34 +2136,65 @@ class UpdateChecker:
                             progress = (downloaded / total_size) * 100
                             progress_callback(progress)
             
-            log_activity(f"[UPDATE] Download completed: {temp_exe_path}")
-            return temp_exe_path
+            log_activity(f"[UPDATE] Download completed: {temp_file_path}")
+            return temp_file_path
             
         except Exception as e:
             log_activity(f"[UPDATE] Download failed: {e}")
             return None
     
-    def install_update(self, downloaded_exe_path):
+    def install_update(self, downloaded_file_path):
         """Install the downloaded update"""
         try:
             import subprocess
             import sys
+            import zipfile
+            
+            # For ZIP files, we need to extract and find the executable
+            if downloaded_file_path.lower().endswith('.zip'):
+                log_activity("[UPDATE] Extracting ZIP file...")
+                extract_dir = os.path.join(os.path.dirname(downloaded_file_path), "extracted")
+                os.makedirs(extract_dir, exist_ok=True)
+                
+                with zipfile.ZipFile(downloaded_file_path, 'r') as zip_ref:
+                    zip_ref.extractall(extract_dir)
+                
+                # Find the executable in the extracted files
+                exe_file = None
+                for root, dirs, files in os.walk(extract_dir):
+                    for file in files:
+                        if file.lower().endswith('.exe') and 'aireviewtool' in file.lower():
+                            exe_file = os.path.join(root, file)
+                            break
+                    if exe_file:
+                        break
+                
+                if not exe_file:
+                    log_activity("[UPDATE] No executable found in ZIP file")
+                    messagebox.showerror("Update Error", "No executable found in the update package.")
+                    return
+                
+                downloaded_file_path = exe_file
             
             current_exe = sys.executable if getattr(sys, 'frozen', False) else __file__
             current_dir = os.path.dirname(current_exe)
             
             # Create backup of current version
-            backup_path = os.path.join(current_dir, f"AIReviewTool_backup_{self.current_version}.exe")
             if os.path.exists(current_exe) and current_exe.endswith('.exe'):
-                shutil.copy2(current_exe, backup_path)
-                log_activity(f"[UPDATE] Backup created: {backup_path}")
+                backup_path = os.path.join(current_dir, f"AIReviewTool_backup_{self.current_version}.exe")
+                try:
+                    import shutil
+                    shutil.copy2(current_exe, backup_path)
+                    log_activity(f"[UPDATE] Backup created: {backup_path}")
+                except Exception as e:
+                    log_activity(f"[UPDATE] Warning: Could not create backup: {e}")
             
             # Create update script
             update_script = os.path.join(current_dir, "update_script.bat")
             script_content = f'''@echo off
 echo Updating AI Review Tool...
 timeout /t 3 /nobreak >nul
-copy "{downloaded_exe_path}" "{current_exe}"
+copy "{downloaded_file_path}" "{current_exe}"
 if errorlevel 1 (
     echo Update failed!
     pause
@@ -2093,24 +2227,37 @@ del "%~f0"
         """Check for updates in a background thread"""
         def check_updates():
             try:
+                # Check internet connectivity first
+                if not self.test_internet_connectivity():
+                    log_activity("[UPDATE] No internet connection available")
+                    return
+                
                 if not self.should_check_for_updates():
+                    log_activity("[UPDATE] Update check not due yet")
                     return
                 
                 log_activity("[UPDATE] Checking for application updates...")
                 
-                # Get latest EXE info from dist folder
+                # Get latest file info from dist folder
                 exe_info = self.get_latest_exe_info()
                 
-                if exe_info and self.compare_versions(self.current_version, exe_info['version']) < 0:
-                    # New version available
-                    if not self.has_been_notified(exe_info['version']):
-                        self.show_update_notification_with_download(exe_info)
-                        self.record_notification(exe_info['version'])
-                        log_activity(f"[UPDATE] New version available: {exe_info['version']}")
+                if exe_info:
+                    log_activity(f"[UPDATE] Found latest version: {exe_info['version']}")
+                    comparison = self.compare_versions(self.current_version, exe_info['version'])
+                    log_activity(f"[UPDATE] Version comparison result: {comparison}")
+                    
+                    if comparison < 0:
+                        # New version available
+                        if not self.has_been_notified(exe_info['version']):
+                            self.show_update_notification_with_download(exe_info)
+                            self.record_notification(exe_info['version'])
+                            log_activity(f"[UPDATE] New version available: {exe_info['version']}")
+                        else:
+                            log_activity(f"[UPDATE] New version {exe_info['version']} available (already notified)")
                     else:
-                        log_activity(f"[UPDATE] New version {exe_info['version']} available (already notified)")
+                        log_activity("[UPDATE] Application is up to date")
                 else:
-                    log_activity("[UPDATE] Application is up to date")
+                    log_activity("[UPDATE] Could not retrieve version information")
                 
                 self.record_update_check()
                 
@@ -2282,31 +2429,67 @@ def manual_update_check():
         
         def check_and_notify():
             try:
-                log_activity("[UPDATE] Manually checking for updates...")
+                log_activity("[UPDATE] Starting manual update check...")
+                log_activity(f"[UPDATE] Current version: {APP_VERSION}")
+                
+                # Check internet connectivity first
+                if not update_checker.test_internet_connectivity():
+                    def show_no_internet():
+                        messagebox.showerror("Update Check Error", 
+                                           "No internet connection available.\n\nPlease check your internet connection and try again.")
+                        log_activity("[UPDATE] Manual check failed: No internet connection")
+                    
+                    root.after(0, show_no_internet)
+                    return
                 
                 # Get latest EXE info from dist folder
                 exe_info = update_checker.get_latest_exe_info()
                 
-                if exe_info and update_checker.compare_versions(APP_VERSION, exe_info['version']) < 0:
-                    update_checker.show_update_notification_with_download(exe_info)
-                    log_activity(f"[UPDATE] Manual check found new version: {exe_info['version']}")
+                if exe_info:
+                    comparison = update_checker.compare_versions(APP_VERSION, exe_info['version'])
+                    
+                    if comparison < 0:
+                        # New version available
+                        update_checker.show_update_notification_with_download(exe_info)
+                        log_activity(f"[UPDATE] Manual check found new version: {exe_info['version']}")
+                    else:
+                        # Up to date
+                        def show_up_to_date():
+                            messagebox.showinfo("Update Check", 
+                                              f"You are using the latest version!\n\n"
+                                              f"Current: v{APP_VERSION}\n"
+                                              f"Latest: v{exe_info['version']}")
+                        
+                        root.after(0, show_up_to_date)
+                        log_activity(f"[UPDATE] Manual check: up to date (Current: {APP_VERSION}, Latest: {exe_info['version']})")
                 else:
-                    current_version = exe_info['version'] if exe_info else "Unknown"
-                    messagebox.showinfo("Update Check", f"You are using the latest version!\n\nCurrent: v{APP_VERSION}\nLatest: v{current_version}")
-                    log_activity(f"[UPDATE] Manual check: up to date (Current: {APP_VERSION}, Latest: {current_version})")
+                    # Could not get version info
+                    def show_check_error():
+                        messagebox.showerror("Update Check Error", 
+                                           "Could not retrieve version information from GitHub.\n\n"
+                                           "Please check your internet connection and try again.")
+                    
+                    root.after(0, show_check_error)
+                    log_activity("[UPDATE] Manual check: Could not retrieve version information")
                 
                 update_checker.record_update_check()
                 
             except Exception as e:
-                messagebox.showerror("Update Check", f"Error checking for updates: {e}")
-                log_activity(f"[UPDATE] Manual check error: {e}")
+                def show_error():
+                    messagebox.showerror("Update Check Error", 
+                                       f"Error checking for updates:\n\n{str(e)}\n\n"
+                                       f"Please check your internet connection and try again.")
+                    log_activity(f"[UPDATE] Manual check error: {e}")
+                
+                root.after(0, show_error)
         
         # Run in background thread
         thread = threading.Thread(target=check_and_notify, daemon=True)
         thread.start()
         
     except Exception as e:
-        messagebox.showerror("Update Check", f"Error initializing update check: {e}")
+        messagebox.showerror("Update Check Error", f"Error initializing update check: {e}")
+        log_activity(f"[UPDATE] Failed to initialize manual update check: {e}")
 
 # File menu
 file_menu = tk.Menu(menu_bar, tearoff=0, font=("Arial", 9, "normal"))
