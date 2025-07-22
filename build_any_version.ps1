@@ -51,58 +51,7 @@ switch ($Version) {
             exit 1
         }
     }
-
-    "V2.0.2" {
-        Write-Host "Building V2.0.2 (Latest)..." -ForegroundColor Green
-        if (Test-Path "build_v2.0.2.ps1") {
-            & .\build_v2.0.2.ps1
-        } elseif (Test-Path "AIReviewTool_V2.0.2.spec") {
-            Write-Host "Using PyInstaller directly..." -ForegroundColor Yellow
-            pyinstaller AIReviewTool_V2.0.2.spec
-        } else {
-            Write-Host "ERROR: V2.0.2 build files not found!" -ForegroundColor Red
-            exit 1
-        }
-    }
-
-    "V2.0.3" {
-        Write-Host "Building V2.0.3 (Latest)..." -ForegroundColor Green
-        if (Test-Path "build_v2.0.3.ps1") {
-            & .\build_v2.0.1.ps1
-        } elseif (Test-Path "AIReviewTool_V2.0.3.spec") {
-            Write-Host "Using PyInstaller directly..." -ForegroundColor Yellow
-            pyinstaller AIReviewTool_V2.0.3.spec
-        } else {
-            Write-Host "ERROR: V2.0.3 build files not found!" -ForegroundColor Red
-            exit 1
-        }
-    }
     
-    "V2.0.4" {
-        Write-Host "Building V2.0.4 (Latest)..." -ForegroundColor Green
-        if (Test-Path "build_v2.0.4.ps1") {
-            & .\build_v2.0.4.ps1
-        } elseif (Test-Path "AIReviewTool_V2.0.4.spec") {
-            Write-Host "Using PyInstaller directly..." -ForegroundColor Yellow
-            pyinstaller AIReviewTool_V2.0.4.spec
-        } else {
-            Write-Host "ERROR: V2.0.3 build files not found!" -ForegroundColor Red
-            exit 1
-        }
-    }
-
-    "V2.0.5" {
-        Write-Host "Building V2.0.5 (Latest)..." -ForegroundColor Green
-        if (Test-Path "build_v2.0.5.ps1") {
-            & .\build_v2.0.5.ps1
-        } elseif (Test-Path "AIReviewTool_V2.0.5.spec") {
-            Write-Host "Using PyInstaller directly..." -ForegroundColor Yellow
-            pyinstaller AIReviewTool_V2.0.5.spec
-        } else {
-            Write-Host "ERROR: V2.0.5 build files not found!" -ForegroundColor Red
-            exit 1
-        }
-    }
     "V2.0.6" {
         Write-Host "Building V2.0.6 (Latest)..." -ForegroundColor Green
         if (Test-Path "build_v2.0.6.ps1") {
