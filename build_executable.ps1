@@ -2,7 +2,7 @@
 # This script builds the executable with PyInstaller and manages backups
 
 param (
-    [string]$Version = "V2.0.10"  # Default version, can be overridden
+    [string]$Version = "V2.1.0"  # Default version, can be overridden
 )
 
 $ErrorActionPreference = "Stop"

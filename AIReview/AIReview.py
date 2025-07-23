@@ -281,7 +281,7 @@ filter_comments_var = None
 TOKEN_FILE = "tokens.txt"
 
 # Define the version as a static date-based version
-APP_VERSION = "2.0.10" # Incremented patch version for UI enhancements
+APP_VERSION = "2.1.0" # Incremented patch version for UI enhancements
                       # Versioning format: Major.Minor.Patch
                       # Major: Significant changes or new features
                       # Minor: Backward-compatible changes or improvements
@@ -1888,7 +1888,6 @@ class UpdateChecker:
         """Download the update file"""
         try:
             import tempfile
-            import shutil
             
             # Create temp directory for download
             temp_dir = tempfile.mkdtemp()
@@ -1927,7 +1926,7 @@ class UpdateChecker:
             import sys
             import zipfile
             
-            # For ZIP files, we need to extract and find the executable
+            # For ZIP files, extract and find the executable
             if downloaded_file_path.lower().endswith('.zip'):
                 log_activity("[UPDATE] Extracting ZIP file...")
                 extract_dir = os.path.join(os.path.dirname(downloaded_file_path), "extracted")
@@ -1956,6 +1955,10 @@ class UpdateChecker:
             current_exe = sys.executable if getattr(sys, 'frozen', False) else __file__
             current_dir = os.path.dirname(current_exe)
             
+            # *** KEY FIX: Get the new filename from downloaded file ***
+            new_filename = os.path.basename(downloaded_file_path)  # e.g., "AIReviewTool_v2.0.10.exe"
+            new_exe_path = os.path.join(current_dir, new_filename)  # Full path to new version
+            
             # Create backup of current version
             if os.path.exists(current_exe) and current_exe.endswith('.exe'):
                 backup_path = os.path.join(current_dir, f"AIReviewTool_backup_{self.current_version}.exe")
@@ -1966,31 +1969,40 @@ class UpdateChecker:
                 except Exception as e:
                     log_activity(f"[UPDATE] Warning: Could not create backup: {e}")
             
-            # Create update script
+            # *** CORRECTED BATCH SCRIPT ***
             update_script = os.path.join(current_dir, "update_script.bat")
             script_content = f'''@echo off
-echo Updating AI Review Tool...
-timeout /t 3 /nobreak >nul
-copy "{downloaded_file_path}" "{current_exe}"
-if errorlevel 1 (
-    echo Update failed!
-    pause
-    exit /b 1
-)
-echo Update completed successfully!
-start "" "{current_exe}"
-del "%~f0"
-'''
+    echo Updating AI Review Tool...
+    timeout /t 3 /nobreak >nul
+
+    REM Copy new version with correct filename
+    copy "{downloaded_file_path}" "{new_exe_path}"
+    if errorlevel 1 (
+        echo Update failed!
+        pause
+        exit /b 1
+    )
+
+    REM Remove old version if different filename
+    if not "{current_exe}" == "{new_exe_path}" (
+        del "{current_exe}" 2>nul
+    )
+
+    echo Update completed successfully!
+    start "" "{new_exe_path}"
+    del "%~f0"
+    '''
             
             with open(update_script, 'w') as f:
                 f.write(script_content)
             
             log_activity("[UPDATE] Starting update process...")
+            log_activity(f"[UPDATE] Will launch new version: {new_exe_path}")  # Added logging
             
             # Show update dialog
             messagebox.showinfo("Update", 
-                              "The application will now close to complete the update.\n"
-                              "The updated version will start automatically.")
+                            "The application will now close to complete the update.\n"
+                            f"The new version ({new_filename}) will start automatically.")
             
             # Start update script and exit
             subprocess.Popen([update_script], shell=True)
