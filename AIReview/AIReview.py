@@ -1,5 +1,10 @@
 ﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# FILE: AIReview.py
+
+"""
+Author: Velavalapalli Harish Sarma (velavalapalli.harishsarma@thomsonreuters.com)
+"""
 
 import tkinter as tk
 from tkinter import messagebox, Toplevel, Label, Button
