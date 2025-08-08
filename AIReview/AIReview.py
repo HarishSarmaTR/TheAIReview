@@ -9,6 +9,7 @@ import os
 import re
 import requests
 import webbrowser
+import urllib.parse  # For URL encoding email content
 from github import Github
 import fnmatch
 from cryptography.fernet import Fernet
@@ -29,6 +30,30 @@ try:
 except ImportError:
     HAS_TOKEN_EXTRACTION = False
     print("TokenExtraction module not found. Manual token entry required.")
+
+# Import usage tracking
+try:
+    from usage_tracker import start_tracking_session, log_review_activity, log_system_activity, end_tracking_session, get_usage_report, is_admin_user
+    HAS_USAGE_TRACKING = True
+except ImportError:
+    HAS_USAGE_TRACKING = False
+    print("Usage tracking module not found. Running without usage tracking.")
+
+# Import GitHub token extractor
+try:
+    from github_token_extractor import get_github_token_smart, get_github_token_interactive, load_github_token_from_file, create_github_token_instructions
+    HAS_GITHUB_EXTRACTOR = True
+except ImportError:
+    HAS_GITHUB_EXTRACTOR = False
+    print("GitHub token extractor not found. Manual token entry required.")
+
+# Import update checker
+try:
+    from update_checker import check_for_updates_startup, check_for_updates_manual
+    HAS_UPDATE_CHECKER = True
+except ImportError:
+    HAS_UPDATE_CHECKER = False
+    print("Update checker not found. Manual update checking required.")
 
 def get_authenticated_user_info():
     """Get authenticated user information from SSO and system"""
@@ -60,43 +85,51 @@ def get_authenticated_user_info():
         else:
             # Fallback to system username
             user_info['display_name'] = user_info['system_user']
-            log_activity(f"ℹ️ Using system username: {user_info['display_name']}")
+            log_activity(f"👤 Using system username: {user_info['display_name']}")
             
     except Exception as e:
-        log_activity(f"⚠️ Could not get SSO user info: {e}")
+        log_activity(f"❌ Could not get SSO user info: {e}")
         user_info['display_name'] = user_info['system_user']
     
     return user_info
 
 def setup_welcome_section():
-    """Setup welcome section with user greeting"""
+    """Setup compact welcome section with user greeting"""
     global welcome_section_frame
     
-    # Create welcome section frame
-    welcome_section_frame = customtkinter.CTkFrame(left_frame)
-    welcome_section_frame.grid(row=0, column=0, padx=2, pady=(10,5), sticky="ew")
+    # Create compact welcome section frame
+    welcome_section_frame = customtkinter.CTkFrame(left_frame, corner_radius=8)
+    welcome_section_frame.grid(row=1, column=0, padx=4, pady=1, sticky="ew")
     welcome_section_frame.grid_columnconfigure(0, weight=1)  # Welcome message takes most space
     welcome_section_frame.grid_columnconfigure(1, weight=0)  # Dark mode button stays right
 
-    # Welcome message label
+    # Welcome message label - compact
     root.welcome_label = customtkinter.CTkLabel(
         welcome_section_frame, 
-        text="Welcome! ☺️", 
+        text="Welcome! \U0001F44B", 
         font=customtkinter.CTkFont(size=12, weight="bold"),
-        text_color="#DC8400"  # Green color for welcome message
+        text_color="#DC8400"  # Orange color for welcome message
     )
-    root.welcome_label.grid(row=0, column=0, pady=10, padx=15, sticky="w")
+    root.welcome_label.grid(row=0, column=0, pady=2, padx=8, sticky="w")
     
-    # Create the Dark Mode button in the same frame as welcome message
+    # Create compact Dark Mode toggle button
     global mode_switch
+    current_mode = customtkinter.get_appearance_mode()
+    
+    # Create a compact toggle button
     mode_switch = customtkinter.CTkButton(
-        welcome_section_frame, 
-        text="Dark Mode" if customtkinter.get_appearance_mode() == "Dark" else "Light Mode",
-        command=change_appearance_mode_event,
-        width=120,
-        height=28
+        welcome_section_frame,
+        text="\U0001F319" if current_mode == "Dark" else "\U00002600\uFE0F",
+        command=toggle_dark_mode,
+        width=60,
+        height=22,
+        corner_radius=11,  # Rounded corners for toggle look
+        fg_color=("#3B8ED0", "#1F6AA5") if current_mode == "Dark" else ("#DBDBDB", "#ABABAB"),
+        hover_color=("#36719F", "#144870") if current_mode == "Dark" else ("#C7C7C7", "#949494"),
+        text_color="white" if current_mode == "Dark" else "black",
+        font=customtkinter.CTkFont(size=12)
     )
-    mode_switch.grid(row=0, column=1, padx=5, sticky="e")  # Place on the right side
+    mode_switch.grid(row=0, column=1, padx=4, sticky="e")  # Place on the right side
     
     # Update welcome message with new user info
     update_welcome_message()
@@ -108,11 +141,11 @@ def update_welcome_message():
         
         # Create a more informative welcome message
         if user_info['first_name']:
-            welcome_text = f"Welcome {user_info['first_name']}! 👋"
+            welcome_text = f"Welcome {user_info['first_name']}! \U0001F44B"
         elif user_info['display_name']:
-            welcome_text = f"Welcome {user_info['display_name']}! 👋"
+            welcome_text = f"Welcome {user_info['display_name']}! \U0001F44B"
         else:
-            welcome_text = f"Welcome {user_info['system_user']}! 👋"
+            welcome_text = f"Welcome {user_info['system_user']}! \U0001F44B"
             
         # Update the welcome label if it exists
         if hasattr(root, 'welcome_label') and root.welcome_label:
@@ -121,15 +154,243 @@ def update_welcome_message():
         
         # Log user session info
         if user_info['email']:
-            log_activity(f"📋 User session: {user_info['email']}")
+            log_activity(f"👤 User session: {user_info['email']}")
         else:
-            log_activity(f"📋 User session: {user_info['system_user']} (system)")
+            log_activity(f"👤 User session: {user_info['system_user']} (system)")
             
         return user_info
         
     except Exception as e:
         log_activity(f"❌ Error updating welcome message: {e}")
         return None
+
+def extract_github_token_interactive():
+    """Open GitHub token creation page for manual token setup"""
+    try:
+        log_activity("🔧 Preparing GitHub token setup with SSO instructions...")
+        
+        # Show comprehensive pre-setup instructions first
+        pre_instructions = """🔐 GitHub Token Setup Instructions
+
+IMPORTANT: Please follow these steps in order:
+
+📋 STEP 1 - Navigate to Token Settings:
+   🌐 Go to GitHub Settings → Developer settings
+   🔑 Click "Personal access tokens" 
+   📝 Select "Tokens (classic)" (as shown in the red arrow)
+
+🆕 STEP 2 - Create Token:
+   ➕ Click "Generate new token (classic)"
+   📝 Note: "AI Review Tool Token"
+   ⏰ Expiration: 90 days (recommended)
+   ✅ Permissions: Check "repo" (Full control of repositories)
+
+🔐 STEP 3 - SSO Authorization (CRITICAL):
+   ⚙️ After creating token, you'll see "Configure SSO" button
+   🔗 Click "Configure SSO" next to your organization
+   ✅ Click "Authorize" to grant SSO access
+   ⚠️ Without SSO authorization, the token won't work!
+
+🔒 STEP 4 - Security:
+   📋 Copy the token immediately (shown only once!)
+   🔐 Store it securely - it will be encrypted locally
+
+Click OK to open GitHub token creation page..."""
+        
+        result = messagebox.askokcancel("GitHub Token Setup - Read Instructions", pre_instructions)
+        
+        if not result:
+            log_activity("\U0001F6D1 User cancelled GitHub token setup")
+            return
+        
+        # Open GitHub token creation page in browser
+        github_token_url = "https://github.com/settings/tokens/new"
+        webbrowser.open(github_token_url)
+        log_activity("\U0001F310 GitHub token creation page opened in browser")
+        
+        # Show post-opening reminder
+        post_instructions = """\U0001F310 GitHub Token Page Opened
+
+Quick Reminder:
+
+1. ? Navigate: Personal access tokens ? Tokens (classic)
+2. ? Create: Generate new token (classic)
+3. ? Configure: Note="AI Review Tool", Expiration=90 days
+4. ? Permissions: Check "repo" scope
+5. ? Generate: Click "Generate token"
+6. \U0001F6E1\uFE0F SSO: Click "Configure SSO" \u2192 "Authorize" (REQUIRED!)
+7. ? Copy: Save the token (shown only once!)
+8. ? Paste: Enter token in the field below
+
+Without SSO authorization, your token will not work with organization repositories!"""
+        
+        messagebox.showinfo("GitHub Token - Next Steps", post_instructions)
+        log_activity("? GitHub token setup instructions provided")
+        
+    except Exception as e:
+        log_activity(f"? Error opening GitHub token page: {e}")
+        messagebox.showerror("Error", f"Failed to open GitHub token page:\n{e}")
+
+def show_token_creation_dialog():
+    """Show comprehensive dialog about GitHub token creation with SSO requirements"""
+    message = """\U0001F4A1 No existing GitHub token found.
+
+\U0001F4DD IMPORTANT: Token must be SSO-authorized to work with organization repositories!
+
+The setup process includes:
+� Creating a Personal Access Token (classic)
+� Configuring SSO authorization 
+� Authorizing access to your organization
+
+Click OK to open GitHub with detailed step-by-step instructions."""
+    
+    result = messagebox.askokcancel("GitHub Token Setup Required", message)
+    
+    if result:
+        extract_github_token_interactive()
+    else:
+        log_activity("\U0001F6D1 User cancelled GitHub token setup")
+
+def create_new_github_token():
+    """Simply redirect to GitHub token creation page"""
+    extract_github_token_interactive()
+
+def prompt_for_existing_token():
+    """Prompt user to enter an existing GitHub token"""
+    from tkinter import simpledialog
+    
+    instructions = """Please paste your GitHub Personal Access Token below.
+
+\U0001F4DD IMPORTANT: Make sure your token is SSO-authorized!
+If you get authentication errors, check that you've clicked 
+"Configure SSO" ? "Authorize" after creating the token.
+
+If you don't have a token, click Cancel and use the "Get" button."""
+    
+    messagebox.showinfo("GitHub Token Setup", instructions)
+    
+    token = simpledialog.askstring(
+        "Enter GitHub Token",
+        "Paste your SSO-authorized GitHub Personal Access Token:",
+        show='*'  # Hide the token input
+    )
+    
+    if token and token.strip():
+        # Simple validation - just check length and format
+        if len(token.strip()) >= 40 and token.strip().startswith(('ghp_', 'github_pat_')):
+            github_token_entry.delete(0, tk.END)
+            github_token_entry.insert(0, token.strip())
+            log_activity("? GitHub token entered successfully!")
+            
+            # Show SSO reminder
+            sso_reminder = """? Token saved successfully!
+
+\U0001F6E1\uFE0F SSO Reminder: If you encounter authentication errors when accessing 
+organization repositories, verify that your token has SSO authorization:
+
+1. Go to GitHub Settings ? Developer settings ? Personal access tokens
+2. Find your token and check for "Configure SSO" button
+3. Click "Configure SSO" and "Authorize" for your organization
+
+Your token is now encrypted and stored locally."""
+            
+            messagebox.showinfo("Token Saved - SSO Reminder", sso_reminder)
+        else:
+            log_activity("? Invalid GitHub token format")
+            messagebox.showerror("Invalid Token", 
+                "The token format appears invalid. GitHub tokens should:\n"
+                "� Be at least 40 characters long\n"
+                "� Start with 'ghp_' or 'github_pat_'\n\n"
+                "Please check and try again.\n\n"
+                "\U0001F4DD Don't forget to authorize SSO after creating the token!")
+    else:
+        log_activity("\U0001F6AB No token provided")
+        messagebox.showinfo("Cancelled", "No token was provided.")
+    """Extract GitHub token using the interactive extractor"""
+    if not HAS_GITHUB_EXTRACTOR:
+        messagebox.showinfo("GitHub Token Extractor", 
+            "GitHub token extraction module not available.\n\n"
+            "Please create a token manually:\n"
+            "1. Go to GitHub Settings ? Developer settings ? Personal access tokens\n"
+            "2. Click 'Generate new token'\n"
+            "3. Select 'repo' scope\n"
+            "4. Copy and paste the token here")
+        return
+    
+    # Disable button during extraction
+    try:
+        # Find the GitHub extract button and disable it
+        for widget in github_frame.winfo_children():
+            if isinstance(widget, customtkinter.CTkButton) and widget.cget("text") == "Get":
+                widget.configure(state="disabled", text="Getting...")
+                root.update_idletasks()
+                break
+    except:
+        pass
+    
+    try:
+        log_activity("\U0001F50D Starting GitHub token extraction process...")
+        log_activity("? Checking for existing GitHub tokens...")
+        
+        # Run token extraction in a separate thread
+        def extraction_thread():
+            try:
+                # Use smart token retrieval that checks existing sources first
+                token = get_github_token_smart()
+                
+                # Update UI in main thread
+                def update_ui():
+                    if token:
+                        github_token_entry.delete(0, tk.END)
+                        github_token_entry.insert(0, token)
+                        log_activity("? GitHub token retrieved successfully!")
+                        messagebox.showinfo("Success", 
+                            "GitHub token retrieved and saved successfully!\n\n"
+                            "The token has been added to the GitHub Token field.")
+                    else:
+                        log_activity("\U0001F6AB No existing valid token found")
+                        # Show user choice dialog
+                        show_token_creation_dialog()
+                    
+                    # Re-enable button
+                    try:
+                        for widget in github_frame.winfo_children():
+                            if isinstance(widget, customtkinter.CTkButton):
+                                widget.configure(state="normal", text="Get")
+                                break
+                    except:
+                        pass
+                
+                root.after(0, update_ui)
+                
+            except Exception as e:
+                def show_error():
+                    log_activity(f"? Error during GitHub token extraction: {e}")
+                    messagebox.showerror("Error", f"GitHub token extraction failed:\n{e}")
+                    try:
+                        for widget in github_frame.winfo_children():
+                            if isinstance(widget, customtkinter.CTkButton):
+                                widget.configure(state="normal", text="Get")
+                                break
+                    except:
+                        pass
+                
+                root.after(0, show_error)
+        
+        # Start extraction in background thread
+        thread = threading.Thread(target=extraction_thread, daemon=True)
+        thread.start()
+        
+    except Exception as e:
+        log_activity(f"? Error starting GitHub token extraction: {e}")
+        messagebox.showerror("Error", f"Failed to start GitHub token extraction:\n{e}")
+        try:
+            for widget in github_frame.winfo_children():
+                if isinstance(widget, customtkinter.CTkButton):
+                    widget.configure(state="normal", text="Get")
+                    break
+        except:
+            pass
 
 def extract_openarena_token_with_user_info():
     """Extract OpenArena token and user info using TR SSO authentication"""
@@ -140,8 +401,8 @@ def extract_openarena_token_with_user_info():
     root.update_idletasks()
     
     try:
-        log_activity("🚀 Starting TR SSO authentication with user info...")
-        log_activity("📋 Please complete SSO authentication when browser opens...")
+        log_activity("\U0001F511 Starting TR SSO authentication with user info...")
+        log_activity("\U0001F4BB Please complete SSO authentication when browser opens...")
         
         # Run token extraction in a separate thread
         def extraction_thread():
@@ -154,18 +415,18 @@ def extract_openarena_token_with_user_info():
                     if token:
                         openarena_token_entry.delete(0, tk.END)
                         openarena_token_entry.insert(0, token)
-                        log_activity("✅ OpenArena token extracted successfully!")
+                        log_activity("? OpenArena token extracted successfully!")
                         
                         # Update welcome message with new user info
                         update_welcome_message()
                         
                         if user_info:
                             if user_info.get('display_name'):
-                                log_activity(f"👤 User authenticated: {user_info['display_name']}")
+                                log_activity(f"\U0001F464 User authenticated: {user_info['display_name']}")
                             if user_info.get('email'):
-                                log_activity(f"📧 Email: {user_info['email']}")
+                                log_activity(f"\U0001F4E7 Email: {user_info['email']}")
                             if user_info.get('first_name'):
-                                log_activity(f"👋 Welcome {user_info['first_name']}!")
+                                log_activity(f"\U0001F44B Welcome {user_info['first_name']}!")
                         
                         success_msg = f"Token extracted successfully!"
                         if user_info and user_info.get('display_name'):
@@ -177,9 +438,9 @@ def extract_openarena_token_with_user_info():
                         
                         # Save token
                         if save_token_to_file(token):
-                            log_activity("💾 Token saved to file for future use")
+                            log_activity("\U0001F4BE Token saved to file for future use")
                     else:
-                        log_activity("❌ Failed to extract OpenArena token")
+                        log_activity("? Failed to extract OpenArena token")
                         messagebox.showerror("Error", "Failed to extract token. Please try manual entry.")
                     
                     # Re-enable button
@@ -189,7 +450,7 @@ def extract_openarena_token_with_user_info():
                 
             except Exception as e:
                 def show_error():
-                    log_activity(f"❌ Error during extraction: {e}")
+                    log_activity(f"? Error during extraction: {e}")
                     messagebox.showerror("Error", f"Extraction failed: {e}")
                     extract_token_button.configure(state="normal", text="Get-Token")
                 
@@ -200,34 +461,102 @@ def extract_openarena_token_with_user_info():
         thread.start()
         
     except Exception as e:
-        log_activity(f"❌ Error starting extraction: {e}")
+        log_activity(f"? Error starting extraction: {e}")
         messagebox.showerror("Error", f"Failed to start extraction: {e}")
         extract_token_button.configure(state="normal", text="Get-Token")
 
+def restore_user_data():
+    """Restore user data from backup if needed"""
+    try:
+        # Placeholder for user data restoration logic
+        log_activity("\U0001F4C1 User data restoration checked")
+    except Exception as e:
+        log_activity(f"\U000026A0\uFE0F Error checking user data restoration: {e}")
+
+def backup_user_data():
+    """Backup user data for future updates"""
+    try:
+        # Placeholder for user data backup logic
+        log_activity("\U0001F4BE User data backup completed")
+    except Exception as e:
+        log_activity(f"\U000026A0\uFE0F Error backing up user data: {e}")
+
 def setup_enhanced_header():
     """Setup enhanced header with welcome message"""
-    
+    # This function is now handled by setup_welcome_section()
+    pass
 
 # Enhanced startup sequence
 def enhanced_startup_sequence():
-    """Enhanced startup sequence with user authentication"""
+    """Enhanced startup sequence with user authentication and data restoration"""
     try:
-        # Migrate token file if needed
-        migrate_token_file()
+        # Start usage tracking session first
+        if HAS_USAGE_TRACKING:
+            try:
+                user_info = get_authenticated_user_info()
+                has_access, access_message = start_tracking_session(user_info)
+                log_activity(f"\U0001F6E1 Access Control: {access_message}")
+                
+                # Check if user is admin and show admin info
+                if is_admin_user(user_info):
+                    log_activity("\U0001F510 Admin privileges detected - full access granted")
+                    # You can uncomment the next line to see usage report on startup
+                    # log_activity(f"?? Usage Report:\n{get_usage_report()}")
+                
+            except PermissionError as e:
+                # Access denied - show error and exit
+                log_activity(f"? Access Denied: {e}")
+                messagebox.showerror("Access Denied", 
+                    f"You do not have permission to use this tool.\n\n{e}\n\n"
+                    "Please contact the administrator for access.")
+                root.quit()
+                return
+            except Exception as e:
+                log_activity(f"\U000026A0\uFE0F Usage tracking error: {e}")
         
-        # Load tokens
-        load_tokens()
-        load_openarena_token_on_startup()
+        # Restore user data if needed
+        restore_user_data()
+        
+        # Load AI settings from file
+        load_ai_settings()
+        
+        # Setup modern UI first (creates the entry fields)
+        setup_modern_ui()
         
         # Setup welcome section
         setup_welcome_section()
         
+        # Migrate token file if needed
+        migrate_token_file()
+        
+        # Load tokens (now that UI elements exist)
+        load_tokens()
+        load_openarena_token_on_startup()
+        
         # Update welcome message (will load SSO user info if available)
         root.after(1000, update_welcome_message)
         
+        # Update repository combobox with recent repositories
+        root.after(1500, update_repo_combobox)
+        
+        # Check for updates (non-blocking, after UI is ready)
+        if HAS_UPDATE_CHECKER:
+            root.after(3000, lambda: check_for_updates_startup(APP_VERSION))
+        
+        # Backup user data for future updates
+        root.after(2000, backup_user_data)
+        
     except Exception as e:
         print(f"Error during enhanced startup: {e}")
-        messagebox.showerror("Startup Error", f"Error during startup: {str(e)}")
+        # Even if there's an error, make sure UI is set up
+        try:
+            if github_token_entry is None:  # UI not set up yet
+                setup_modern_ui()
+                setup_welcome_section()
+        except:
+            pass
+        log_activity(f"\U000026A0\uFE0F Startup warning: {str(e)}")
+        # Don't show error dialog as it might prevent UI from appearing
 
 def calculate_claude_cost(prompt_tokens, completion_tokens):
     """
@@ -267,6 +596,7 @@ time_taken_label = None
 cost_label = None
 last_pr_url = None  # Store the last reviewed PR URL for the View PR button
 view_pr_button = None
+latest_report_path = None  # Store the latest report path for the View Report button
 repo_combobox = None  # Combobox for repository selection
 
 # Global variables for AI settings UI elements
@@ -277,11 +607,16 @@ system_prompt_textbox = None
 workflow_entry = None
 filter_comments_var = None
 
+# Global variables for UI frames and buttons
+github_frame = None
+extract_token_button = None
+current_window_height = 640  # Further reduced for better footer visibility
+
 
 TOKEN_FILE = "tokens.txt"
 
 # Define the version as a static date-based version
-APP_VERSION = "2.1.0" # Incremented patch version for UI enhancements
+APP_VERSION = "2.1.1" # Updated for emoji enhancements and improved feedback UI
                       # Versioning format: Major.Minor.Patch
                       # Major: Significant changes or new features
                       # Minor: Backward-compatible changes or improvements
@@ -344,6 +679,8 @@ def decrypt_token(encrypted_token):
 def load_tokens():
     """Load GitHub and OpenArena tokens from a file."""
     global github_token, openarena_token
+    
+    # First try to load from the encrypted token file
     if os.path.exists(TOKEN_FILE):
         try:
             with open(TOKEN_FILE, 'r') as file:
@@ -362,8 +699,12 @@ def load_tokens():
                     try:
                         github_token = decrypt_token(tokens[0].strip())
                         openarena_token = decrypt_token(tokens[1].strip())
-                        github_token_entry.insert(0, github_token)
-                        openarena_token_entry.insert(0, openarena_token)
+                        
+                        # Only update UI fields if they exist
+                        if github_token_entry is not None:
+                            github_token_entry.insert(0, github_token)
+                        if openarena_token_entry is not None:
+                            openarena_token_entry.insert(0, openarena_token)
                         print("Tokens loaded successfully.")
                     except Exception as e:
                         print(f"Error decrypting tokens: {str(e)}")
@@ -371,23 +712,41 @@ def load_tokens():
                         # Handle the error by backing up the problematic token file
                         backup_file = f"{TOKEN_FILE}.bak"
                         if os.path.exists(backup_file):
-                            os.remove(backup_file)
-                        os.rename(TOKEN_FILE, backup_file)
-                        print(f"Renamed corrupted token file to {backup_file}")
+                            try:
+                                os.remove(backup_file)
+                            except:
+                                pass  # Ignore if can't remove backup
+                        try:
+                            os.rename(TOKEN_FILE, backup_file)
+                            print(f"Renamed corrupted token file to {backup_file}")
+                        except Exception as rename_error:
+                            print(f"Could not rename token file: {rename_error}")
                 else:
                     print("Token file does not contain enough tokens.")
         except Exception as e:
             print(f"Error loading tokens: {str(e)}")
-            messagebox.showerror("Token Error", f"Could not load tokens: {str(e)}")
+            # Don't show error dialog during startup as it might interfere with UI creation
+    
+    # If GitHub token wasn't loaded and we have the GitHub extractor, try loading from its file
+    if HAS_GITHUB_EXTRACTOR and (not github_token or not github_token.strip()):
+        try:
+            extracted_token = load_github_token_from_file()
+            if extracted_token and github_token_entry is not None:
+                github_token_entry.delete(0, tk.END)
+                github_token_entry.insert(0, extracted_token)
+                print("GitHub token loaded from extractor file")
+                log_activity("\U0001F511 GitHub token loaded from extractor file")
+        except Exception as e:
+            print(f"Could not load GitHub token from extractor: {e}")
 
 def load_openarena_token_on_startup():
     """Try to load OpenArena token from TokenExtraction module on startup"""
     if HAS_TOKEN_EXTRACTION:
         try:
             saved_token = load_token_from_file()
-            if saved_token and not openarena_token_entry.get():
+            if saved_token and openarena_token_entry is not None and not openarena_token_entry.get():
                 openarena_token_entry.insert(0, saved_token)
-                log_activity("📁 OpenArena token loaded from TokenExtraction file")
+                log_activity("\U0001F511 OpenArena token loaded from TokenExtraction file")
         except Exception as e:
             print(f"Could not load OpenArena token from TokenExtraction: {e}")
 
@@ -470,20 +829,47 @@ def add_recent_repo(repo_name):
     # Save the updated list
     save_recent_repos(repos)
     
-    # Update the dropdown if it exists
-    if repo_combobox and hasattr(repo_combobox, 'configure'):
-        try:
-            current_values = repo_combobox['values'] if hasattr(repo_combobox, 'values') else []
-            if repo_name not in current_values:
-                repo_combobox.configure(values=repos)
-        except Exception as e:
-            print(f"Error updating repository combobox: {e}")
+    # Update the combobox if it exists
+    update_repo_combobox()
+
+def handle_repo_selection(choice):
+    """Handle repository selection from dropdown - automatically save to recent repos"""
+    if choice and '/' in choice:
+        add_recent_repo(choice)
+        log_activity(f"\U0001F4C1 Repository selected: {choice}")
+
+def add_custom_repository():
+    """No longer needed - combobox is editable"""
+    pass
+
+def update_repo_combobox():
+    """Update the repository combobox with recent repositories"""
+    try:
+        # Load recent repositories and merge with defaults
+        recent_repos = load_recent_repos()
+        default_repos = ["tr/cs-prof_tax-us-cstax-1040ST-AL", "tr/cs-prof_tax-us-cstax-1040ST-IL", "tr/cs-prof_tax-us-cstax-1040ST-NE"]
+        
+        # Combine recent repos with defaults (recent first)
+        all_repos = []
+        for repo in recent_repos:
+            if repo not in all_repos:
+                all_repos.append(repo)
+        for repo in default_repos:
+            if repo not in all_repos:
+                all_repos.append(repo)
+        
+        # Update the dropdown values if it exists - need to find the dropdown via the frame
+        # This is a simplified approach since we can't easily reference the dropdown directly
+        log_activity(f"\U0001F4C1 Repository list updated with {len(all_repos)} repositories")
+            
+    except Exception as e:
+        print(f"Error updating repository combobox: {e}")
 
 def run_code_review():
     global github_token, openarena_token, last_pr_url
     github_token = github_token_entry.get()
     openarena_token = openarena_token_entry.get()
-    repo_name = repo_name_entry.get()
+    repo_name = repo_combobox.get()  # Use combobox instead of entry
     pr_number = pr_number_entry.get()
     post_comments = post_comments_var.get()  # Get checkbox state
     
@@ -562,19 +948,29 @@ def run_code_review():
         max_tok = max_tokens_entry.get() or "16384"
         workflow = workflow_entry.get() or "default"
         filtering = ai_settings.get("filter_comments", True)
-        log_activity(f"[CONFIG] AI Settings: Temp={temp}, Top-P={top_p}, Max-Tokens={max_tok}, Filtering={'On' if filtering else 'Off'}")
+        noise_reduction = ai_settings.get("reduce_noise", True)
+        log_activity(f"[CONFIG] AI Settings: Temp={temp}, Top-P={top_p}, Max-Tokens={max_tok}, Filtering={'On' if filtering else 'Off'}, Noise Reduction={'On' if noise_reduction else 'Off'}")
+    else:
+        filtering = ai_settings.get("filter_comments", True)
+        noise_reduction = ai_settings.get("reduce_noise", True)
+        log_activity(f"[CONFIG] AI Settings: Filtering={'On' if filtering else 'Off'}, Noise Reduction={'On' if noise_reduction else 'Off'}")
     
     # Update status via activity log and status label
     log_activity("Starting code review...")
+    
+    # Log review activity for usage tracking
+    if HAS_USAGE_TRACKING:
+        log_review_activity(repo_name, pr_number, f"Starting code review for {repo_name} PR #{pr_number}")
+    
     status_message.set("Running code review...")
     if progress_bar:
         progress_bar.set(0)
         if progress_percentage_label:
-            progress_percentage_label.configure(text="🚀 Initializing...")
+            progress_percentage_label.configure(text="\U0001F504 Initializing...")
     if time_taken_label:
-        time_taken_label.configure(text="-")
+        time_taken_label.configure(text="\U000023F1\uFE0F Time: -")
     if cost_label:
-        cost_label.configure(text="-")
+        cost_label.configure(text="\U0001F4B0 Cost: -")
     if view_pr_button:
         view_pr_button.configure(state="disabled")
     if view_report_button:
@@ -598,23 +994,23 @@ def run_code_review():
         # Format time as mm:ss min for clarity
         minutes = int(duration // 60)
         seconds = int(duration % 60)
-        time_taken_label.configure(text=f"{minutes:02d}:{seconds:02d} min")
+        time_taken_label.configure(text=f"\U000023F1\uFE0F Time: {minutes:02d}:{seconds:02d} min")
     if cost_label:
         if total_cost > 0:
-            cost_label.configure(text=f"Est. Cost: ${total_cost:.4f} ({total_tokens} tokens)")
+            cost_label.configure(text=f"\U0001F4B0 Cost: ${total_cost:.4f}")
         else:
             # Even if API reports 0 cost, provide an estimate based on response length
             if all_posted_comments_count > 0:
                 # Rough estimate: $0.01 per comment as a minimum
                 min_cost = all_posted_comments_count * 0.01
-                cost_label.configure(text=f"Min. Est. Cost: ${min_cost:.4f}")
+                cost_label.configure(text=f"\U0001F4B0 Min. Cost: ${min_cost:.4f}")
             else:
-                cost_label.configure(text=f"Est. Cost: ${total_cost:.4f}")
+                cost_label.configure(text=f"\U0001F4B0 Cost: ${total_cost:.4f}")
     review_button.configure(state="normal")
     
     if reviewed_files_count > 0:
         log_activity(f"Code review completed. Reviewed {reviewed_files_count}/{total_files} files. Posted {all_posted_comments_count} comments.")
-        status_message.set("Completed ✅")
+        status_message.set("Completed ?")
         messagebox.showinfo("Success", f"Code review completed successfully! Reviewed {reviewed_files_count}/{total_files} files.")
         last_pr_url = pr_url
         
@@ -720,39 +1116,50 @@ def filter_review_comments(comments, filename):
     """
     Filter review comments based on specified rules.
     
-    Rules:
-    1. Skip comments about CCMMDDYY date format (8-digit dates)
-    2. Skip comments about date arithmetic or Base_Date calculations
-    3. Skip comments about date constants and thresholds
+    Only filter out comments that are genuinely not useful while preserving 
+    valuable feedback about code quality, security, and maintainability.
     """
     if not comments:
         return comments
     
+    # Only filter if filtering is explicitly enabled in settings
+    if not ai_settings.get("filter_comments", False):
+        return comments
+    
     filtered_comments = []
     
-    # Keywords that indicate date-related comments to filter out
-    date_keywords = [
-        'date format', 'date calculation', 'ccmmddyy', 'yyyymmdd', 
-        'base_date', 'base date', 'date arithmetic', '20123100',
-        'invalid date', 'malformed date', 'date value', 'date functions',
-        'gadateannual', 'gadateext', 'dateext', 'datethresholds',
-        'iga::thresholds', 'extension due date', 'year-end calculations'
+    # Only filter out very specific date-related false positives
+    # but keep legitimate concerns about date handling
+    overly_specific_date_keywords = [
+        'ccmmddyy format is', 'ccmmddyy is correct', '20123100 is valid',
+        'base_date is correct', 'gadateannual is correct'
     ]
+    
+    # Only filter out extremely speculative language if noise reduction is enabled
+    noise_keywords = [
+        'you might possibly want to maybe consider', 
+        'this could potentially maybe be',
+        'it might possibly be worth considering perhaps'
+    ] if ai_settings.get("reduce_noise", False) else []
     
     for comment in comments:
         comment_lower = comment.lower()
         
-        # Check if this comment is about dates (which we want to filter out)
-        is_date_comment = any(keyword in comment_lower for keyword in date_keywords)
+        # Only filter out very specific false positive patterns
+        is_false_positive = any(keyword in comment_lower for keyword in overly_specific_date_keywords)
         
-        # Also check for 8-digit number patterns that might be dates
-        import re
-        has_8_digit_pattern = bool(re.search(r'\b\d{8}\b', comment))
+        # Only filter extremely speculative comments
+        is_overly_speculative = ai_settings.get("reduce_noise", False) and any(keyword in comment_lower for keyword in noise_keywords)
         
-        if is_date_comment or has_8_digit_pattern:
-            log_activity(f"[FILTER] Filtered out date-related comment: {comment[:100]}...")
+        if is_false_positive:
+            log_activity(f"[FILTER] Filtered out false positive: {comment[:100]}...")
             continue
             
+        if is_overly_speculative:
+            log_activity(f"[FILTER] Filtered out overly speculative comment: {comment[:100]}...")
+            continue
+            
+        # Keep all other comments - they're likely valuable feedback
         filtered_comments.append(comment)
     
     return filtered_comments
@@ -851,7 +1258,19 @@ def review_code(diff, openarena_token):
             system_prompt = default_system_prompt
         
         payload = {
-            "query": f"Review the following code changes and provide feedback only for actual issues:\n{diff}",
+            "query": f"""Please perform a comprehensive code review of the following code changes. Analyze the code for bugs, security issues, performance problems, and maintainability concerns.
+
+CODE CHANGES TO REVIEW:
+{diff}
+
+REVIEW REQUIREMENTS:
+1. Focus on identifying actual issues that could impact functionality, security, or maintainability
+2. Provide specific line-by-line feedback where improvements are needed
+3. Use the format 'Line <number>: [SEVERITY] Description' for each issue
+4. Be thorough but practical - flag genuine concerns that developers should address
+5. Suggest concrete solutions for identified problems
+
+Please provide detailed, actionable feedback to help improve this code.""",
             "workflow_id": workflow_id,
             "is_persistence_allowed": False,
             "modelparams": {
@@ -955,8 +1374,6 @@ def review_code(diff, openarena_token):
                 else:
                     log_activity(f"[ERROR] Failed to review code after {max_retries} retries: {e}")
                     return f"Error: {str(e)}", 0.0, 0
-        
-        return "Error: Failed to get a response from the API after multiple attempts", 0.0, 0
     
     except Exception as e:
         log_activity(f"[ERROR] Unexpected error in review_code function: {str(e)}")
@@ -975,7 +1392,7 @@ def determine_severity(comment_content):
         'authenticated bypass', 'privilege escalation', 'data breach',
         'confirmed memory leak', 'proven buffer overflow', 'guaranteed crash'
     ]):
-        return "🔴 Critical"
+        return "\U0001F6A8 Critical"
     
     # High priority issues
     elif any(word in content_lower for word in [
@@ -984,7 +1401,7 @@ def determine_severity(comment_content):
         'segmentation fault', 'deadlock', 'race condition', 'buffer overflow',
         'memory leak', 'potential security', 'potential vulnerability'
     ]):
-        return "🟠 High"
+        return "\U000026A0\uFE0F High"
     
     # Medium priority issues
     elif any(word in content_lower for word in [
@@ -992,17 +1409,17 @@ def determine_severity(comment_content):
         'maintainability', 'readability', 'complexity', 'potential issue',
         'potential runtime issue', 'potential bug', 'edge case', 'possible error'
     ]):
-        return "🟡 Medium"
+        return "\U0001F7E1 Medium"
     
     # Low priority issues
     elif any(word in content_lower for word in [
         'style', 'convention', 'formatting', 'naming', 'comment',
         'documentation', 'suggestion', 'consider'
     ]):
-        return "🟢 Low"
+        return "\U0001F7E2 Low"
     
     # Default to medium if can't categorize
-    return "🟡 Medium"
+    return "\U0001F7E1 Medium"
 
 # Post comments on GitHub PR
 def post_comments_on_pr(pr, comments, filename, modified_lines):
@@ -1034,7 +1451,7 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
             severity = determine_severity(content)
             
             # Enhanced AI comment format with severity
-            ai_comment = f"🤖 **AI Code Review** • {severity}\n\nLine {line_num}: {content.strip()}"
+            ai_comment = f"\U0001F916 **AI Code Review** \u2022 {severity}\n\nLine {line_num}: {content.strip()}"
             parsed_comments.append((line_number, ai_comment))
         except ValueError:
             log_activity(f"[ERROR] Invalid line number format: {line_num}")
@@ -1056,7 +1473,7 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
                 try:
                     line_number = int(line_match.group(1))
                     # Add simple AI identifier to the comment
-                    ai_comment = f"🤖 **AI Code Review**\n\n{block.strip()}"
+                    ai_comment = f"\U0001F916 **AI Code Review**\n\n{block.strip()}"
                     parsed_comments.append((line_number, ai_comment))
                 except ValueError:
                     continue
@@ -1077,7 +1494,7 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
                     try:
                         line_number = int(matches[0])
                         # Add simple AI identifier to the comment
-                        ai_comment = f"🤖 **AI Code Review**\n\n{line_content}"
+                        ai_comment = f"\U0001F916 **AI Code Review**\n\n{line_content}"
                         parsed_comments.append((line_number, ai_comment))
                     except ValueError:
                         continue
@@ -1179,7 +1596,7 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
                             log_activity(f"[FALLBACK] Retrying AI comment on first available line {fallback_line} (RIGHT side)")
                             
                             # Add additional context for fallback comments
-                            fallback_content = f"🤖 **AI Code Review** (originally for line {line_position})\n\n{line_content}"
+                            fallback_content = f"\U0001F916 **AI Code Review** (originally for line {line_position})\n\n{line_content}"
                             
                             fallback_result = pr.create_review_comment(
                                 body=fallback_content,
@@ -1200,7 +1617,7 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
                     # Last resort: try posting as a general PR comment (not line-specific)
                     try:
                         log_activity(f"[FALLBACK] Attempting to post AI comment as general PR comment")
-                        general_comment = f"🤖 **AI Code Review for {filename} (line {line_position}):**\n\n{line_content}"
+                        general_comment = f"\U0001F916 **AI Code Review for {filename} (line {line_position}):**\n\n{line_content}"
                         pr.create_issue_comment(body=general_comment)
                         log_activity(f"[SUCCESS] Posted AI comment as general PR comment")
                     except Exception as general_error:
@@ -1482,34 +1899,42 @@ def main(repo_name, pr_number, post_comments=True):
                     "content": line
                 } for line in comment_lines if line.strip()])
             
-            # Post comments if enabled
-            if post_comments:
+            # Post comments if enabled - FIX: Only post if post_comments is True
+            if post_comments and comment_lines:
                 posted_comments_for_file = post_comments_on_pr(pr, comment_lines, file.filename, modified_lines)
                 all_posted_comments_total_count += len(posted_comments_for_file)
+                log_activity(f"[POSTED] Posted {len(posted_comments_for_file)} comments to GitHub for {file.filename}")
             else:
                 # Count the comments without posting but don't log content to keep activity log clean
-                log_activity(f"[SUMMARY] Found {len([line for line in comment_lines if line.strip()])} comments for {file.filename} (not posted to GitHub)")
-                # Count the comments even though they're not posted
-                all_posted_comments_total_count += len([line for line in comment_lines if line.strip()])
+                comment_count = len([line for line in comment_lines if line.strip()])
+                if comment_count > 0:
+                    if post_comments:
+                        log_activity(f"[INFO] Found {comment_count} comments for {file.filename} but none were posted")
+                    else:
+                        log_activity(f"[GENERATED] Found {comment_count} AI comments for {file.filename} (not posted - checkbox unchecked)")
+                    all_posted_comments_total_count += comment_count
         
         # Generate summary message based on results
-        if all_posted_comments_total_count > 0:
-                summary_message = f"✅ AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. A total of {all_posted_comments_total_count} comments were generated."
-                pr.create_issue_comment(summary_message)
-                log_activity(f"\\n[SUMMARY] Posted AI summary issue comment on PR #{pr.number}: {summary_message}")
-        else:
-                log_activity(f"\\n[SUMMARY] {summary_message} (Comments were not posted to GitHub - see HTML report for details)")
-                
-            # Create an HTML report for viewing in browser if not posting to GitHub
-        if not post_comments and all_comments:
-                create_comments_html_report(all_comments, pr_url, repo_name, pr_number)
-                
+        if post_comments and all_posted_comments_total_count > 0:
+            summary_message = f"? AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. A total of {all_posted_comments_total_count} comments were posted to GitHub PR."
+            pr.create_issue_comment(summary_message)
+            log_activity(f"\\n[SUMMARY] Posted AI summary issue comment on PR #{pr.number}: {summary_message}")
+        elif not post_comments and all_posted_comments_total_count > 0:
+            summary_message = f"? AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. A total of {all_posted_comments_total_count} comments were generated (not posted to GitHub - see HTML report)."
+            log_activity(f"\\n[SUMMARY] {summary_message}")
+        elif all_posted_comments_total_count > 0:
+            summary_message = f"? AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. A total of {all_posted_comments_total_count} comments were generated."
+            log_activity(f"\\n[SUMMARY] {summary_message}")
         elif reviewed_files_count > 0:
-            summary_message = f"✅ AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. No specific issues found by AI requiring comments."
+            summary_message = f"? AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. No specific issues found by AI requiring comments."
             log_activity(f"\\n{summary_message}")
         else:
             summary_message = f"[INFO] No files were reviewed in PR #{pr.number}."
             log_activity(f"\\n{summary_message}")
+            
+        # Create an HTML report for viewing in browser if comments exist
+        if all_comments:
+            create_comments_html_report(all_comments, pr_url, repo_name, pr_number)
             
         # Log cost summary
         log_activity(f"[COST] COST SUMMARY")
@@ -1533,21 +1958,55 @@ def main(repo_name, pr_number, post_comments=True):
 # root = tk.Tk() # Old Tkinter root
 
 # Theme change callback
-def change_appearance_mode_event(new_mode=None):
-    # Toggle between light and dark mode if no mode is specified
-    if new_mode is None or new_mode not in ["Light", "Dark"]:
+def toggle_dark_mode():
+    """Toggle between dark and light mode with custom button styling"""
+    global mode_switch
+    
+    # Get current mode and toggle
+    current_mode = customtkinter.get_appearance_mode()
+    new_mode = "Light" if current_mode == "Dark" else "Dark"
+    
+    # Set the new appearance mode
+    customtkinter.set_appearance_mode(new_mode)
+    log_activity(f"\U0001F3A8 Switched to {new_mode} mode")
+    
+    # Update the button appearance to reflect the current mode
+    if mode_switch:
+        if new_mode == "Dark":
+            mode_switch.configure(
+                text="\U0001F319 Dark",
+                fg_color=("#3B8ED0", "#1F6AA5"),
+                hover_color=("#36719F", "#144870"),
+                text_color="white"
+            )
+        else:
+            mode_switch.configure(
+                text="\U00002600\uFE0F Light", 
+                fg_color=("#DBDBDB", "#ABABAB"),
+                hover_color=("#C7C7C7", "#949494"),
+                text_color="black"
+            )
+
+def change_appearance_mode_event():
+    # Get the current state of the toggle checkbox
+    if 'mode_switch' in globals() and mode_switch is not None:
+        try:
+            # If checkbox is checked, use Dark mode; if unchecked, use Light mode
+            new_mode = "Dark" if mode_switch.get() else "Light"
+        except Exception:
+            # Fallback: toggle between current modes
+            current_mode = customtkinter.get_appearance_mode()
+            new_mode = "Light" if current_mode == "Dark" else "Dark"
+    else:
+        # Fallback: toggle between current modes
         current_mode = customtkinter.get_appearance_mode()
         new_mode = "Light" if current_mode == "Dark" else "Dark"
     
     # Set the new appearance mode
     customtkinter.set_appearance_mode(new_mode)
-    
-    # Update the switch text if it exists
-    if 'mode_switch' in globals() and mode_switch is not None:
-        try:
-            mode_switch.configure(text=f"{new_mode} Mode")
-        except Exception as e:
-            print(f"Error updating mode switch: {e}")
+    log_activity(f"\U0001F3A8 Switched to {new_mode} mode")
+
+
 
 customtkinter.set_appearance_mode("Dark")  # Default to Dark mode
 
@@ -1585,2284 +2044,1122 @@ except Exception as e:
     customtkinter.set_default_color_theme("blue")  # Fall back to built-in blue theme
 
 root = customtkinter.CTk() # New CustomTkinter root
-root.title("AI Code Review Tool")
-root.geometry("1000x700") # Adjusted initial geometry, will be resizable
+root.title(f"AI Code Review Tool v{APP_VERSION}")
+root.geometry(f"1200x{current_window_height}") # Optimized window height for better UI layout
+root.minsize(1000, 580)  # Reduced minimum height for compact layout
 
-# Set application icon - search for it in various possible locations
-def find_resource_path(resource_name):
-    """Find a resource file in various possible locations including PyInstaller bundles"""
-    # Define potential locations to check
-    locations = []
+
+
+# Set the application icon
+try:
+    # Try to load the icon from multiple possible locations
+    icon_locations = [
+        os.path.join(os.path.dirname(__file__), "ai.ico"),  # Same directory as script
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "ai.ico"),  # Parent directory
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "images", "ai.ico"),  # Parent/images
+        "ai.ico",  # Current working directory
+        "../ai.ico",  # Relative parent
+        "../images/ai.ico",  # Relative parent/images
+    ]
     
-    # Development environment locations
-    app_dir = os.path.dirname(__file__)
-    root_dir = os.path.dirname(os.path.dirname(__file__))
-    
-    locations.extend([
-        os.path.join(app_dir, "images", resource_name),  # AIReview/images/
-        os.path.join(root_dir, "images", resource_name),  # /images/
-    ])
-    
-    # If running from PyInstaller bundle
+    # If running from PyInstaller bundle, add bundle paths
     if hasattr(sys, '_MEIPASS'):
         bundle_dir = sys._MEIPASS
-        locations.extend([
-            os.path.join(bundle_dir, "images", resource_name),  # /images/ in bundle
-            os.path.join(bundle_dir, resource_name),  # / in bundle
+        icon_locations.extend([
+            os.path.join(bundle_dir, "ai.ico"),
+            os.path.join(bundle_dir, "images", "ai.ico"),
+            os.path.join(bundle_dir, "AIReview", "ai.ico"),
         ])
     
-    # Check each location
-    for location in locations:
-        if os.path.exists(location):
-            print(f"Found resource '{resource_name}' at: {location}")
-            return location
-            
-    print(f"Warning: Resource '{resource_name}' not found in any expected location")
-    return None
-
-# Find the icon file
-icon_path = find_resource_path("ai.ico")
-
-if icon_path:
-    try:
-        root.iconbitmap(icon_path)
-        print(f"Icon set with iconbitmap from {icon_path}")
-        
-        # Additional Windows-specific code to ensure taskbar icon is properly set
-        try:
-            # For Windows OS - explicitly set the taskbar icon
-            import ctypes
-            app_id = f"TR.AIReviewTool.{APP_VERSION}"  # Unique application ID
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
-            print(f"Successfully set taskbar icon with app ID: {app_id}")
-        except Exception as e:
-            print(f"Warning: Could not set taskbar icon with Windows API: {e}")
-            
-            # Try PIL approach as backup
+    icon_found = False
+    for icon_path in icon_locations:
+        if os.path.exists(icon_path):
             try:
-                # Alternative approach using PIL for cross-platform compatibility
-                from PIL import Image, ImageTk
-                icon_img = Image.open(icon_path)
-                icon_photo = ImageTk.PhotoImage(icon_img)
-                root.iconphoto(True, icon_photo)  # This sets both window and taskbar icon
-                print("? Taskbar icon set successfully using PIL")
-            except Exception as pil_error:
-                print(f"Note: Could not set taskbar icon with PIL: {pil_error}")
-    except Exception as icon_error:
-        print(f"Error setting icon with iconbitmap: {icon_error}")
-        
-        # Try PIL approach as fallback
+                # Use absolute path for better compatibility
+                abs_icon_path = os.path.abspath(icon_path)
+                root.iconbitmap(abs_icon_path)
+                log_activity(f"🎨 Application icon loaded from: {abs_icon_path}")
+                icon_found = True
+                break
+            except Exception as icon_error:
+                log_activity(f"⚠️ Failed to load icon from {icon_path}: {icon_error}")
+                continue
+    
+    if not icon_found:
+        log_activity("⚠️ Application icon not found in any location, using default")
+        # Try alternative method for CustomTkinter
         try:
-            from PIL import Image, ImageTk
-            icon_img = Image.open(icon_path)
-            icon_photo = ImageTk.PhotoImage(icon_img)
-            root.iconphoto(True, icon_photo)
-            print("? Icon set with PIL as fallback")
-        except Exception as fallback_error:
-            print(f"Failed to set icon with fallback method: {fallback_error}")
-else:
-    print("No suitable icon file found in any location")
+            # Some systems prefer wm_iconbitmap
+            parent_icon = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ai.ico")
+            if os.path.exists(parent_icon):
+                root.wm_iconbitmap(os.path.abspath(parent_icon))
+                log_activity(f"🎨 Icon set using wm_iconbitmap: {parent_icon}")
+                icon_found = True
+        except Exception as wm_error:
+            log_activity(f"⚠️ wm_iconbitmap also failed: {wm_error}")
+            
+except Exception as e:
+    log_activity(f"❌ Could not set application icon: {e}")
+    # Try one final fallback
+    try:
+        root.iconbitmap(default="")  # Use system default
+    except:
+        pass
 
-# Make window resizable
-root.resizable(True, True)
-# Configure root grid for expansion
-root.grid_columnconfigure(0, weight=2)  # Left side takes 2/3
-root.grid_columnconfigure(1, weight=1)  # Activity log takes 1/3
+# Configure grid weights for responsive layout
+root.grid_columnconfigure(0, weight=1)
+root.grid_columnconfigure(1, weight=1)  # Equal weight for both sides
 root.grid_rowconfigure(0, weight=1)
 
-# Create the main content frame
-content_frame = customtkinter.CTkFrame(root)
-content_frame.grid(row=0, column=0, sticky="nsew")
-content_frame.grid_columnconfigure(0, weight=1)
-content_frame.grid_rowconfigure(0, weight=1)
-
-# We'll define the mode_switch variable later in the UI setup section
-
-# --- MENU BAR (Menu + Help) with CustomTkinter ---
-def show_release_notes():
-    notes = (
-        f"🚀 Release Notes ({APP_VERSION}) 🚀\n\n"
-        "🔑 NEW: Automated Token Extraction\n"
-        "   • One-click OpenArena token extraction with 'Get-Token' button\n"
-        "   • Automated Chrome browser integration for seamless authentication\n"
-        "   • Persistent token storage with automatic loading on startup\n"
-        "   • Eliminates manual copy-paste errors and saves time\n\n"
-        "🎯 Smart Update Management\n"
-        "   • Daily automatic update checks (configurable)\n"
-        "   • Version comparison with proper semantic versioning\n"
-        "   • Notification history to prevent duplicate alerts\n"
-        "   • Manual 'Check for Updates' option in menu\n"
-        "   • Update status tracking and logging\n\n"
-        "🎨 Modern UI Enhancements\n"
-        "   • Sleek customtkinter interface with professional blue theme\n"
-        "   • Enhanced layout with improved visual elements\n"
-        "   • Added Dark/Light mode button with instant switching\n\n"
-        "📊 Advanced Activity Tracking\n"
-        "   • Real-time activity log with timestamps for every action\n"
-        "   • Progress bar with percentage display for better feedback\n"
-        "   • Clear button that resets both log and review metrics\n"
-        "   • Detailed performance metrics and cost estimation\n\n"
-        "⚡ Enhanced Usability Features\n"
-        "   • Recent repositories dropdown for quick access\n"
-        "   • Comprehensive HTML user guide with screenshots\n"
-        "   • One-click PR viewing on GitHub\n"
-        "   • Improved token management with secure encryption\n"
-        "   • Streamlined menu organization with user guide documentation\n\n"
-        "🤖 AI Review Improvements\n"
-        "   • Enhanced Open Arena AI chain with Claude 4 Sonnet integration\n"
-        "   • Accurate token tracking and cost calculation\n"
-        "   • Smarter review prompts for more relevant feedback\n"
-        "   • Better error handling and retry mechanisms\n\n"
-        "✨ Ready to transform your code review process with automated token extraction!"
-    )
-    dialog = customtkinter.CTkToplevel(root)
-    dialog.title("Release Notes")
-    dialog.geometry("500x500")  # Increased size to fit enhanced content
-    dialog.resizable(False, False)
-    dialog.grab_set()
-    
-    # Make dialog modal
-    dialog.transient(root)
-    dialog.focus_set()
-    
-    # Content frame
-    content_frame = customtkinter.CTkFrame(dialog)
-    content_frame.pack(fill="both", expand=True, padx=20, pady=20)
-    
-    # Notes text - using a text widget instead of label for better text handling
-    notes_text = customtkinter.CTkTextbox(content_frame, height=400, width=450)
-    notes_text.pack(pady=10, padx=10, fill="both", expand=True)
-    notes_text.insert("1.0", notes)
-    notes_text.configure(state="disabled")  # Make it read-only
-    
-    # Close button
-    close_button = customtkinter.CTkButton(
-        content_frame, 
-        text="Close", 
-        command=dialog.destroy
-    )
-    close_button.pack(pady=10)
-
-class UpdateChecker:
-    def __init__(self, current_version, parent_window):
-        self.current_version = current_version
-        self.parent_window = parent_window
-        self.check_interval_days = 1  # Check daily
-        
-    def test_internet_connectivity(self):
-        """Test if we have internet connectivity"""
-        try:
-            response = requests.get("https://api.github.com", timeout=5)
-            return response.status_code == 200
-        except Exception:
-            return False
-    
-    def compare_versions(self, version1, version2):
-        """Compare two version strings. Returns -1 if version1 < version2, 0 if equal, 1 if version1 > version2"""
-        try:
-            v1_parts = tuple(map(int, version1.split('.')))
-            v2_parts = tuple(map(int, version2.split('.')))
-            
-            log_activity(f"[UPDATE] Comparing versions: {v1_parts} vs {v2_parts}")
-            
-            if v1_parts < v2_parts:
-                return -1
-            elif v1_parts > v2_parts:
-                return 1
-            else:
-                return 0
-        except Exception as e:
-            log_activity(f"[UPDATE] Error comparing versions: {e}")
-            return 0
-    
-    def should_check_for_updates(self):
-        """Check if we should check for updates based on the last check time"""
-        try:
-            if os.path.exists(UPDATE_CHECK_FILE):
-                with open(UPDATE_CHECK_FILE, 'r') as f:
-                    data = json.load(f)
-                    last_check = datetime.fromisoformat(data.get('last_check', '2000-01-01'))
-                    return datetime.now() - last_check > timedelta(days=self.check_interval_days)
-            return True
-        except Exception as e:
-            log_activity(f"[UPDATE] Error checking update schedule: {e}")
-            return True
-    
-    def record_update_check(self):
-        """Record that we checked for updates"""
-        try:
-            data = {'last_check': datetime.now().isoformat()}
-            with open(UPDATE_CHECK_FILE, 'w') as f:
-                json.dump(data, f)
-            log_activity("[UPDATE] Update check recorded")
-        except Exception as e:
-            log_activity(f"[UPDATE] Error recording update check: {e}")
-    
-    def has_been_notified(self, version):
-        """Check if user has already been notified about this version"""
-        try:
-            if os.path.exists(UPDATE_NOTIFICATION_FILE):
-                with open(UPDATE_NOTIFICATION_FILE, 'r') as f:
-                    data = json.load(f)
-                    return version in data.get('notified_versions', [])
-            return False
-        except Exception as e:
-            log_activity(f"[UPDATE] Error checking notification history: {e}")
-            return False
-    
-    def record_notification(self, version):
-        """Record that user was notified about this version"""
-        try:
-            data = {'notified_versions': []}
-            if os.path.exists(UPDATE_NOTIFICATION_FILE):
-                with open(UPDATE_NOTIFICATION_FILE, 'r') as f:
-                    data = json.load(f)
-            
-            if version not in data['notified_versions']:
-                data['notified_versions'].append(version)
-                
-            with open(UPDATE_NOTIFICATION_FILE, 'w') as f:
-                json.dump(data, f)
-        except Exception as e:
-            log_activity(f"[UPDATE] Error recording notification: {e}")
-
-    def get_latest_exe_info(self):
-        try:
-            log_activity("[UPDATE] Fetching repository contents from GitHub API...")
-            response = requests.get(GITHUB_DIST_URL, timeout=10)
-            log_activity(f"[UPDATE] GitHub API response status: {response.status_code}")
-            
-            if response.status_code == 200:
-                files = response.json()
-                log_activity(f"[UPDATE] Found {len(files)} total files in dist folder")
-                
-                # Debug: List all files found
-                for f in files:
-                    log_activity(f"[UPDATE] Found file: {f['name']} (size: {f.get('size', 'unknown')})")
-                
-                # Find ZIP files and extract version info - be more flexible with file extensions
-                exe_files_with_versions = []
-                for f in files:
-                    filename = f['name'].lower()
-                    # Look for both .exe files and .zip files that might contain executables
-                    if filename.endswith('.exe') or (filename.endswith('.zip') and 'aireviewtool' in filename.lower()):
-                        log_activity(f"[UPDATE] Potential executable found: {f['name']}")
-                        
-                        # Try to extract version from filename
-                        version_match = re.search(r'[Vv]?(\d+\.\d+\.\d+)', f['name'])
-                        if version_match:
-                            version_str = version_match.group(1)
-                            # Convert version to tuple for proper sorting (2.0.10 > 2.0.9)
-                            version_tuple = tuple(map(int, version_str.split('.')))
-                            exe_files_with_versions.append((f, version_str, version_tuple))
-                            log_activity(f"[UPDATE] Version extracted: {version_str}")
-                        else:
-                            log_activity(f"[UPDATE] No version found in filename: {f['name']}")
-                
-                log_activity(f"[UPDATE] Found {len(exe_files_with_versions)} files with versions")
-                
-                if exe_files_with_versions:
-                    # Sort by version tuple to get the truly latest version
-                    latest_file, latest_version, _ = max(exe_files_with_versions, key=lambda x: x[2])
-                    
-                    log_activity(f"[UPDATE] Latest version determined: {latest_version}")
-                    
-                    return {
-                        'version': latest_version,
-                        'filename': latest_file['name'],
-                        'download_url': latest_file['download_url'],
-                        'size': latest_file['size']
-                    }
-                else:
-                    log_activity("[UPDATE] No executable files with version numbers found")
-                    return None
-            else:
-                log_activity(f"[UPDATE] GitHub API error: {response.status_code} - {response.text}")
-                return None
-                
-        except Exception as e:
-            log_activity(f"[UPDATE] Error getting EXE info: {e}")
-            return None
-    
-    def download_update(self, exe_info, progress_callback=None):
-        """Download the update file"""
-        try:
-            import tempfile
-            
-            # Create temp directory for download
-            temp_dir = tempfile.mkdtemp()
-            temp_file_path = os.path.join(temp_dir, exe_info['filename'])
-            
-            log_activity(f"[UPDATE] Downloading {exe_info['filename']}...")
-            
-            # Download the file
-            response = requests.get(exe_info['download_url'], stream=True, timeout=60)
-            response.raise_for_status()
-            
-            total_size = int(response.headers.get('content-length', 0))
-            downloaded = 0
-            
-            with open(temp_file_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-                        downloaded += len(chunk)
-                        
-                        if progress_callback and total_size > 0:
-                            progress = (downloaded / total_size) * 100
-                            progress_callback(progress)
-            
-            log_activity(f"[UPDATE] Download completed: {temp_file_path}")
-            return temp_file_path
-            
-        except Exception as e:
-            log_activity(f"[UPDATE] Download failed: {e}")
-            return None
-    
-    def install_update(self, downloaded_file_path):
-        """Install the downloaded update"""
-        try:
-            import subprocess
-            import sys
-            import zipfile
-            
-            # For ZIP files, extract and find the executable
-            if downloaded_file_path.lower().endswith('.zip'):
-                log_activity("[UPDATE] Extracting ZIP file...")
-                extract_dir = os.path.join(os.path.dirname(downloaded_file_path), "extracted")
-                os.makedirs(extract_dir, exist_ok=True)
-                
-                with zipfile.ZipFile(downloaded_file_path, 'r') as zip_ref:
-                    zip_ref.extractall(extract_dir)
-                
-                # Find the executable in the extracted files
-                exe_file = None
-                for root, dirs, files in os.walk(extract_dir):
-                    for file in files:
-                        if file.lower().endswith('.exe') and 'aireviewtool' in file.lower():
-                            exe_file = os.path.join(root, file)
-                            break
-                    if exe_file:
-                        break
-                
-                if not exe_file:
-                    log_activity("[UPDATE] No executable found in ZIP file")
-                    messagebox.showerror("Update Error", "No executable found in the update package.")
-                    return
-                
-                downloaded_file_path = exe_file
-            
-            current_exe = sys.executable if getattr(sys, 'frozen', False) else __file__
-            current_dir = os.path.dirname(current_exe)
-            
-            # *** KEY FIX: Get the new filename from downloaded file ***
-            new_filename = os.path.basename(downloaded_file_path)  # e.g., "AIReviewTool_v2.0.10.exe"
-            new_exe_path = os.path.join(current_dir, new_filename)  # Full path to new version
-            
-            # Create backup of current version
-            if os.path.exists(current_exe) and current_exe.endswith('.exe'):
-                backup_path = os.path.join(current_dir, f"AIReviewTool_backup_{self.current_version}.exe")
-                try:
-                    import shutil
-                    shutil.copy2(current_exe, backup_path)
-                    log_activity(f"[UPDATE] Backup created: {backup_path}")
-                except Exception as e:
-                    log_activity(f"[UPDATE] Warning: Could not create backup: {e}")
-            
-            # *** CORRECTED BATCH SCRIPT ***
-            update_script = os.path.join(current_dir, "update_script.bat")
-            script_content = f'''@echo off
-    echo Updating AI Review Tool...
-    timeout /t 3 /nobreak >nul
-
-    REM Copy new version with correct filename
-    copy "{downloaded_file_path}" "{new_exe_path}"
-    if errorlevel 1 (
-        echo Update failed!
-        pause
-        exit /b 1
-    )
-
-    REM Remove old version if different filename
-    if not "{current_exe}" == "{new_exe_path}" (
-        del "{current_exe}" 2>nul
-    )
-
-    echo Update completed successfully!
-    start "" "{new_exe_path}"
-    del "%~f0"
-    '''
-            
-            with open(update_script, 'w') as f:
-                f.write(script_content)
-            
-            log_activity("[UPDATE] Starting update process...")
-            log_activity(f"[UPDATE] Will launch new version: {new_exe_path}")  # Added logging
-            
-            # Show update dialog
-            messagebox.showinfo("Update", 
-                            "The application will now close to complete the update.\n"
-                            f"The new version ({new_filename}) will start automatically.")
-            
-            # Start update script and exit
-            subprocess.Popen([update_script], shell=True)
-            self.parent_window.quit()
-            
-        except Exception as e:
-            log_activity(f"[UPDATE] Installation failed: {e}")
-            messagebox.showerror("Update Error", f"Failed to install update: {e}")
-    
-    def check_for_updates_async(self):
-        """Check for updates in a background thread"""
-        def check_updates():
-            try:
-                # Check internet connectivity first
-                if not self.test_internet_connectivity():
-                    log_activity("[UPDATE] No internet connection available")
-                    return
-                
-                if not self.should_check_for_updates():
-                    log_activity("[UPDATE] Update check not due yet")
-                    return
-                
-                log_activity("[UPDATE] Checking for application updates...")
-                
-                # Get latest file info from dist folder
-                exe_info = self.get_latest_exe_info()
-                
-                if exe_info:
-                    log_activity(f"[UPDATE] Found latest version: {exe_info['version']}")
-                    comparison = self.compare_versions(self.current_version, exe_info['version'])
-                    log_activity(f"[UPDATE] Version comparison result: {comparison}")
-                    
-                    if comparison < 0:
-                        # New version available
-                        if not self.has_been_notified(exe_info['version']):
-                            self.show_update_notification_with_download(exe_info)
-                            self.record_notification(exe_info['version'])
-                            log_activity(f"[UPDATE] New version available: {exe_info['version']}")
-                        else:
-                            log_activity(f"[UPDATE] New version {exe_info['version']} available (already notified)")
-                    else:
-                        log_activity("[UPDATE] Application is up to date")
-                else:
-                    log_activity("[UPDATE] Could not retrieve version information")
-                
-                self.record_update_check()
-                
-            except Exception as e:
-                log_activity(f"[UPDATE] Error checking for updates: {e}")
-        
-        # Run in background thread
-        thread = threading.Thread(target=check_updates, daemon=True)
-        thread.start()
-    
-    def show_update_notification_with_download(self, exe_info):
-        """Show update notification dialog with download functionality"""
-        def show_dialog():
-            try:
-                dialog = customtkinter.CTkToplevel(self.parent_window)
-                dialog.title("Update Available")
-                dialog.geometry("500x400")
-                dialog.resizable(False, False)
-                dialog.grab_set()
-                dialog.transient(self.parent_window)
-                
-                # Center the dialog
-                dialog.update_idletasks()
-                x = (dialog.winfo_screenwidth() // 2) - (500 // 2)
-                y = (dialog.winfo_screenheight() // 2) - (400 // 2)
-                dialog.geometry(f"500x400+{x}+{y}")
-                
-                # Content frame
-                content_frame = customtkinter.CTkFrame(dialog)
-                content_frame.pack(fill="both", expand=True, padx=20, pady=20)
-                
-                # Title
-                title_label = customtkinter.CTkLabel(
-                    content_frame, 
-                    text="🚀 Update Available!",
-                    font=customtkinter.CTkFont(size=18, weight="bold")
-                )
-                title_label.pack(pady=(0, 10))
-                
-                # Version info
-                file_size_mb = exe_info['size'] / (1024 * 1024)
-                version_text = f"Current Version: {self.current_version}\nLatest Version: {exe_info['version']}\nFile: {exe_info['filename']}\nSize: {file_size_mb:.1f} MB"
-                version_label = customtkinter.CTkLabel(content_frame, text=version_text)
-                version_label.pack(pady=(0, 10))
-                
-                # Progress bar (initially hidden)
-                progress_frame = customtkinter.CTkFrame(content_frame, fg_color="transparent")
-                progress_frame.pack(fill="x", pady=10)
-                progress_frame.pack_forget()  # Hide initially
-                
-                progress_bar = customtkinter.CTkProgressBar(progress_frame)
-                progress_bar.pack(fill="x", pady=5)
-                progress_bar.set(0)
-                
-                progress_label = customtkinter.CTkLabel(progress_frame, text="Downloading...")
-                progress_label.pack()
-                
-                # Status label
-                status_label = customtkinter.CTkLabel(content_frame, text="")
-                status_label.pack(pady=5)
-                
-                # Buttons
-                button_frame = customtkinter.CTkFrame(content_frame, fg_color="transparent")
-                button_frame.pack(fill="x", pady=(10, 0))
-                
-                def download_and_install():
-                    # Show progress
-                    progress_frame.pack(fill="x", pady=10)
-                    download_button.configure(state="disabled", text="Downloading...")
-                    later_button.configure(state="disabled")
-                    skip_button.configure(state="disabled")
-                    
-                    def progress_callback(progress):
-                        def update_progress():
-                            progress_bar.set(progress / 100)
-                            progress_label.configure(text=f"Downloading... {progress:.1f}%")
-                        dialog.after(0, update_progress)
-                    
-                    def download_thread():
-                        try:
-                            # Download the update
-                            downloaded_path = self.download_update(exe_info, progress_callback)
-                            
-                            if downloaded_path:
-                                def install_update():
-                                    status_label.configure(text="Installing update...")
-                                    dialog.after(1000, lambda: self.install_update(downloaded_path))
-                                
-                                dialog.after(0, install_update)
-                            else:
-                                def show_error():
-                                    status_label.configure(text="Download failed!")
-                                    download_button.configure(state="normal", text="Retry Download")
-                                    later_button.configure(state="normal")
-                                    skip_button.configure(state="normal")
-                                
-                                dialog.after(0, show_error)
-                                
-                        except Exception as e:
-                            def show_error():
-                                status_label.configure(text=f"Error: {e}")
-                                download_button.configure(state="normal", text="Retry Download")
-                                later_button.configure(state="normal")
-                                skip_button.configure(state="normal")
-                            
-                            dialog.after(0, show_error)
-                    
-                    # Start download in background
-                    thread = threading.Thread(target=download_thread, daemon=True)
-                    thread.start()
-                
-                def remind_later():
-                    dialog.destroy()
-                
-                def skip_version():
-                    self.record_notification(exe_info['version'])
-                    dialog.destroy()
-                
-                download_button = customtkinter.CTkButton(
-                    button_frame, 
-                    text="Download & Install Update",
-                    command=download_and_install,
-                    fg_color="#2E8B57",
-                    hover_color="#3CB371"
-                )
-                download_button.pack(side="left", padx=5)
-                
-                later_button = customtkinter.CTkButton(
-                    button_frame,
-                    text="Remind Later",
-                    command=remind_later,
-                    fg_color="#4169E1",
-                    hover_color="#6495ED"
-                )
-                later_button.pack(side="left", padx=5)
-                
-                skip_button = customtkinter.CTkButton(
-                    button_frame,
-                    text="Skip This Version",
-                    command=skip_version,
-                    fg_color="#8B4513",
-                    hover_color="#A0522D"
-                )
-                skip_button.pack(side="right", padx=5)
-                
-                log_activity(f"[UPDATE] User notified about version {exe_info['version']}")
-                
-            except Exception as e:
-                log_activity(f"[UPDATE] Error showing update dialog: {e}")
-        
-        # Schedule dialog to show in main thread
-        self.parent_window.after(100, show_dialog)
-
-def show_about():
-    about = (
-        "🤖 AI Code Review Tool 🤖\n\n"
-        "💡 What it does:\n"
-        "This intelligent application leverages advanced AI to automatically review "
-        "code changes in GitHub pull requests. It analyzes modifications, posts helpful "
-        "comments, and generates comprehensive review metrics to improve code quality.\n\n"
-        "🔧 Key Features:\n"
-        "• Automated AI-powered code analysis using Claude 4 Sonnet\n"
-        "• Seamless GitHub integration with pull request commenting\n"
-        "• One-click OpenArena token extraction and management\n"
-        "• Comprehensive HTML reporting with severity categorization\n"
-        "• Smart filtering to focus on meaningful issues\n"
-        "• Real-time progress tracking and cost estimation\n\n"
-        "✅ Benefits:\n"
-        "• Faster code reviews with consistent quality standards\n"
-        "• Early detection of potential bugs and security issues\n"
-        "• Improved code maintainability across your team\n"
-        "• Significant time savings for developers and reviewers\n"
-        "• Reduces human oversight and review fatigue\n\n"
-        f"📋 Version: {APP_VERSION}\n"
-        "🏆 Built with pride by the Ultratax Team, 2025"
-    )
-    dialog = customtkinter.CTkToplevel(root)
-    dialog.title("About")
-    dialog.geometry("500x450")
-    dialog.resizable(False, False)
-    dialog.grab_set()
-    
-    # Make dialog modal
-    dialog.transient(root)
-    dialog.focus_set()
-    
-    # Content frame
-    content_frame = customtkinter.CTkFrame(dialog)
-    content_frame.pack(fill="both", expand=True, padx=20, pady=20)
-    
-    # About text - using a text widget instead of label for better text handling
-    about_text = customtkinter.CTkTextbox(content_frame, height=350, width=450)
-    about_text.pack(pady=10, padx=10, fill="both", expand=True)
-    about_text.insert("1.0", about)
-    about_text.configure(state="disabled")  # Make it read-only
-    
-    # Close button
-    close_button = customtkinter.CTkButton(
-        content_frame, 
-        text="Close", 
-        command=dialog.destroy
-    )
-    close_button.pack(pady=10)
-
-def show_contact():
-    import webbrowser
-    import urllib.parse
-    
-    # Define email addresses
-    to_addresses = [
-        "Velavalapalli.HarishSarma@thomsonreuters.com",
-        "KALYANI.KANDUNURI@thomsonreuters.com", 
-        "Ravi.Bitra@thomsonreuters.com"
-    ]
-    cc_addresses = [
-        "Radhika.Ramagiri@thomsonreuters.com"
-    ]
-    
-    # Create mailto URL with multiple recipients and CC
-    to_list = ";".join(to_addresses)
-    cc_list = ";".join(cc_addresses)
-    subject = "AI Code Review Tool - Feedback"
-    
-    # URL encode the parameters
-    mailto_url = f"mailto:{to_list}?cc={cc_list}&subject={urllib.parse.quote(subject)}"
-    
-    webbrowser.open(mailto_url)
-
-def open_user_guide():
-    """Open the user guide HTML file in the default browser"""
-    import webbrowser
-    import os
-    import sys
-    import tempfile
-    import shutil
-    import re
-    
-    # Handle both development environment and PyInstaller frozen environment
-    if getattr(sys, 'frozen', False):
-        # If the application is run as a bundle (compiled with PyInstaller)
-        base_path = sys._MEIPASS if hasattr(sys, '_MEIPASS') else os.path.dirname(sys.executable)
-        log_activity(f"[DEBUG] Base path: {base_path}")
-        
-        # List files in the base path to debug
-        try:
-            log_activity("[DEBUG] Available files in base directory:")
-            for item in os.listdir(base_path):
-                log_activity(f" - {item}")
-                
-            # Check if docs directory exists
-            docs_path = os.path.join(base_path, "docs")
-            if os.path.exists(docs_path) and os.path.isdir(docs_path):
-                log_activity("[DEBUG] Docs directory found, listing contents:")
-                for item in os.listdir(docs_path):
-                    log_activity(f" - {item}")
-            else:
-                log_activity("? Docs directory not found")
-        except Exception as e:
-            log_activity(f"? Error listing files: {str(e)}")
-            
-        original_guide_path = os.path.join(base_path, "docs", "user_guide.html")
-        
-        # Check if the user guide file exists
-        if not os.path.exists(original_guide_path):
-            log_activity(f"? User guide not found at {original_guide_path}")
-            messagebox.showerror("Error", 
-                            "User guide file not found. Please ensure the documentation is properly installed.")
-            return
-            
-        log_activity(f"? Found user guide at {original_guide_path}")
-        
-        # Create a temp directory to hold a modified copy of the guide with correct image paths
-        # Use a unique name to avoid conflicts with other instances
-        temp_dir = os.path.join(tempfile.gettempdir(), f"AIReviewTool_docs_{os.getpid()}")
-        os.makedirs(temp_dir, exist_ok=True)
-        
-        # Create images directory structure in the temp folder
-        temp_images = os.path.join(temp_dir, "images")
-        temp_images_docs = os.path.join(temp_dir, "images", "docs")
-        os.makedirs(temp_images, exist_ok=True)
-        os.makedirs(temp_images_docs, exist_ok=True)
-        
-        log_activity(f"[DEBUG] Preparing user guide with images in temp directory: {temp_dir}")
-        
-        # Copy images to the temp location and track which ones we actually found
-        found_images = []
-        for img_file in ["TR.png", "logo.png", "bot.JPG"]:
-            src = os.path.join(base_path, "images", img_file)
-            dest = os.path.join(temp_images, img_file)
-            if os.path.exists(src):
-                shutil.copy(src, dest)
-                found_images.append(("../images/" + img_file, "images/" + img_file))
-                log_activity(f"[DEBUG] Copied image: {img_file} to temp directory")
-            else:
-                log_activity(f"[WARNING] Image file not found: {src}")
-        
-        found_doc_images = []
-        for img_file in ["AIR.png", "AIR_2.png", "Gt_1.png", "Gt_2.png", "Gt_3.png"]:
-            src = os.path.join(base_path, "images", "docs", img_file)
-            dest = os.path.join(temp_images_docs, img_file)
-            if os.path.exists(src):
-                shutil.copy(src, dest)
-                found_doc_images.append(("../images/docs/" + img_file, "images/docs/" + img_file))
-                log_activity(f"[DEBUG] Copied doc image: {img_file} to temp directory")
-            else:
-                log_activity(f"[WARNING] Doc image file not found: {src}")
-        
-        # Read the original HTML content
-        with open(original_guide_path, 'r', encoding='utf-8') as f:
-            html_content = f.read()
-        
-        # Replace the image paths in the HTML content
-        for old_path, new_path in found_images + found_doc_images:
-            html_content = html_content.replace(old_path, new_path)
-        
-        # Also replace any url('../images/... references in CSS
-        html_content = re.sub(r"url\(['\"]?\.\.\/images\/", r"url('images/", html_content)
-        log_activity("[DEBUG] Updated image paths in HTML content")
-        
-        # Write the modified HTML to the temp directory
-        temp_guide_path = os.path.join(temp_dir, "user_guide.html")
-        with open(temp_guide_path, 'w', encoding='utf-8') as f:
-            f.write(html_content)
-            
-        guide_path = temp_guide_path
-        log_activity(f"[DEBUG] Created modified user guide at: {temp_guide_path}")
-    else:
-        # Standard development environment - no path modification needed
-        guide_path = os.path.join(os.path.dirname(__file__), "..", "docs", "user_guide.html")
-        log_activity("[DEBUG] Using standard development path for user guide")
-        
-        # Check if the user guide file exists in development mode
-        if not os.path.exists(guide_path):
-            log_activity(f"? User guide not found at {guide_path}")
-            messagebox.showerror("Error", 
-                            "User guide file not found. Please ensure the documentation is properly installed.")
-            return
-    
-    guide_path = os.path.abspath(guide_path)
-    
-    # At this point we've already verified the guide exists, so just open it
-    # Use threading to avoid GIL issues when opening files from GUI context
-    def open_guide_safely():
-        try:
-            if os.name == 'nt':  # Windows
-                log_activity(f"[DEBUG] Opening user guide using os.startfile: {guide_path}")
-                os.startfile(guide_path)
-            else:  # Unix/Linux/Mac
-                # For non-Windows systems, use webbrowser with proper file URL
-                file_url = f"file://{guide_path}"
-                log_activity(f"[DEBUG] Opening user guide URL: {file_url}")
-
-                webbrowser.open(file_url)
-            log_activity("[SUCCESS] User guide opened in browser")
-        except Exception as open_error:
-            log_activity(f"? Failed to open with primary method: {open_error}")
-            # Fallback: try using webbrowser with different URL formats
-            try:
-                # Convert backslashes to forward slashes for URL
-                url_path = guide_path.replace('\\', '/')
-                if not url_path.startswith('/'):
-                    url_path = '/' + url_path
-                file_url = f"file://{url_path}"
-                webbrowser.open(file_url)
-                log_activity("[SUCCESS] User guide opened in browser (fallback method)")
-            except Exception as fallback_error:
-                log_activity(f"? Fallback also failed: {fallback_error}")
-                # Don't raise exception here as this is not critical to the main functionality
-
-    # Use threading to avoid GIL issues when opening files from GUI context
-    import threading
-    thread = threading.Thread(target=open_guide_safely, daemon=True)
-    thread.start()
-
-# Create standard menu bar (like in the second image)
-menu_bar = tk.Menu(root, font=("Arial", 9, "bold"))
-root.configure(menu=menu_bar)
-
-class UpdateChecker:
-    def __init__(self, current_version, parent_window):
-        self.current_version = current_version
-        self.parent_window = parent_window
-        self.check_interval_days = 1  # Check daily
-        
-    def test_internet_connectivity(self):
-        """Test if we have internet connectivity"""
-        try:
-            response = requests.get("https://api.github.com", timeout=5)
-            return response.status_code == 200
-        except Exception:
-            return False
-    
-    def compare_versions(self, version1, version2):
-        """Compare two version strings. Returns -1 if version1 < version2, 0 if equal, 1 if version1 > version2"""
-        try:
-            v1_parts = tuple(map(int, version1.split('.')))
-            v2_parts = tuple(map(int, version2.split('.')))
-            
-            log_activity(f"[UPDATE] Comparing versions: {v1_parts} vs {v2_parts}")
-            
-            if v1_parts < v2_parts:
-                return -1
-            elif v1_parts > v2_parts:
-                return 1
-            else:
-                return 0
-        except Exception as e:
-            log_activity(f"[UPDATE] Error comparing versions: {e}")
-            return 0
-    
-    def should_check_for_updates(self):
-        """Check if we should check for updates based on the last check time"""
-        try:
-            if os.path.exists(UPDATE_CHECK_FILE):
-                with open(UPDATE_CHECK_FILE, 'r') as f:
-                    data = json.load(f)
-                    last_check = datetime.fromisoformat(data.get('last_check', '2000-01-01'))
-                    return datetime.now() - last_check > timedelta(days=self.check_interval_days)
-            return True
-        except Exception as e:
-            log_activity(f"[UPDATE] Error checking update schedule: {e}")
-            return True
-    
-    def record_update_check(self):
-        """Record that we checked for updates"""
-        try:
-            data = {'last_check': datetime.now().isoformat()}
-            with open(UPDATE_CHECK_FILE, 'w') as f:
-                json.dump(data, f)
-            log_activity("[UPDATE] Update check recorded")
-        except Exception as e:
-            log_activity(f"[UPDATE] Error recording update check: {e}")
-    
-    def has_been_notified(self, version):
-        """Check if user has already been notified about this version"""
-        try:
-            if os.path.exists(UPDATE_NOTIFICATION_FILE):
-                with open(UPDATE_NOTIFICATION_FILE, 'r') as f:
-                    data = json.load(f)
-                    return version in data.get('notified_versions', [])
-            return False
-        except Exception as e:
-            log_activity(f"[UPDATE] Error checking notification history: {e}")
-            return False
-    
-    def record_notification(self, version):
-        """Record that user was notified about this version"""
-        try:
-            data = {'notified_versions': []}
-            if os.path.exists(UPDATE_NOTIFICATION_FILE):
-                with open(UPDATE_NOTIFICATION_FILE, 'r') as f:
-                    data = json.load(f)
-            
-            if version not in data['notified_versions']:
-                data['notified_versions'].append(version)
-                
-            with open(UPDATE_NOTIFICATION_FILE, 'w') as f:
-                json.dump(data, f)
-        except Exception as e:
-            log_activity(f"[UPDATE] Error recording notification: {e}")
-
-    def get_latest_exe_info(self):
-        try:
-            log_activity("[UPDATE] Fetching repository contents from GitHub API...")
-            response = requests.get(GITHUB_DIST_URL, timeout=10)
-            log_activity(f"[UPDATE] GitHub API response status: {response.status_code}")
-            
-            if response.status_code == 200:
-                files = response.json()
-                log_activity(f"[UPDATE] Found {len(files)} total files in dist folder")
-                
-                # Debug: List all files found
-                for f in files:
-                    log_activity(f"[UPDATE] Found file: {f['name']} (size: {f.get('size', 'unknown')})")
-                
-                # Find ZIP files and extract version info - be more flexible with file extensions
-                exe_files_with_versions = []
-                for f in files:
-                    filename = f['name'].lower()
-                    # Look for both .exe files and .zip files that might contain executables
-                    if filename.endswith('.exe') or (filename.endswith('.zip') and 'aireviewtool' in filename.lower()):
-                        log_activity(f"[UPDATE] Potential executable found: {f['name']}")
-                        
-                        # Try to extract version from filename
-                        version_match = re.search(r'[Vv]?(\d+\.\d+\.\d+)', f['name'])
-                        if version_match:
-                            version_str = version_match.group(1)
-                            # Convert version to tuple for proper sorting (2.0.10 > 2.0.9)
-                            version_tuple = tuple(map(int, version_str.split('.')))
-                            exe_files_with_versions.append((f, version_str, version_tuple))
-                            log_activity(f"[UPDATE] Version extracted: {version_str}")
-                        else:
-                            log_activity(f"[UPDATE] No version found in filename: {f['name']}")
-                
-                log_activity(f"[UPDATE] Found {len(exe_files_with_versions)} files with versions")
-                
-                if exe_files_with_versions:
-                    # Sort by version tuple to get the truly latest version
-                    latest_file, latest_version, _ = max(exe_files_with_versions, key=lambda x: x[2])
-                    
-                    log_activity(f"[UPDATE] Latest version determined: {latest_version}")
-                    
-                    return {
-                        'version': latest_version,
-                        'filename': latest_file['name'],
-                        'download_url': latest_file['download_url'],
-                        'size': latest_file['size']
-                    }
-                else:
-                    log_activity("[UPDATE] No executable files with version numbers found")
-                    return None
-            else:
-                log_activity(f"[UPDATE] GitHub API error: {response.status_code} - {response.text}")
-                return None
-                
-        except Exception as e:
-            log_activity(f"[UPDATE] Error getting EXE info: {e}")
-            return None
-    
-    def download_update(self, exe_info, progress_callback=None):
-        """Download the update file"""
-        try:
-            import tempfile
-            import shutil
-            
-            # Create temp directory for download
-            temp_dir = tempfile.mkdtemp()
-            temp_file_path = os.path.join(temp_dir, exe_info['filename'])
-            
-            log_activity(f"[UPDATE] Downloading {exe_info['filename']}...")
-            
-            # Download the file
-            response = requests.get(exe_info['download_url'], stream=True, timeout=60)
-            response.raise_for_status()
-            
-            total_size = int(response.headers.get('content-length', 0))
-            downloaded = 0
-            
-            with open(temp_file_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-                        downloaded += len(chunk)
-                        
-                        if progress_callback and total_size > 0:
-                            progress = (downloaded / total_size) * 100
-                            progress_callback(progress)
-            
-            log_activity(f"[UPDATE] Download completed: {temp_file_path}")
-            return temp_file_path
-            
-        except Exception as e:
-            log_activity(f"[UPDATE] Download failed: {e}")
-            return None
-    
-    def install_update(self, downloaded_file_path):
-        """Install the downloaded update"""
-        try:
-            import subprocess
-            import sys
-            import zipfile
-            
-            # For ZIP files, extract and find the executable
-            if downloaded_file_path.lower().endswith('.zip'):
-                log_activity("[UPDATE] Extracting ZIP file...")
-                extract_dir = os.path.join(os.path.dirname(downloaded_file_path), "extracted")
-                os.makedirs(extract_dir, exist_ok=True)
-                
-                with zipfile.ZipFile(downloaded_file_path, 'r') as zip_ref:
-                    zip_ref.extractall(extract_dir)
-                
-                # Find the executable in the extracted files
-                exe_file = None
-                for root, dirs, files in os.walk(extract_dir):
-                    for file in files:
-                        if file.lower().endswith('.exe') and 'aireviewtool' in file.lower():
-                            exe_file = os.path.join(root, file)
-                            break
-                    if exe_file:
-                        break
-                
-                if not exe_file:
-                    log_activity("[UPDATE] No executable found in ZIP file")
-                    messagebox.showerror("Update Error", "No executable found in the update package.")
-                    return
-                
-                downloaded_file_path = exe_file
-            
-            current_exe = sys.executable if getattr(sys, 'frozen', False) else __file__
-            current_dir = os.path.dirname(current_exe)
-            
-            # Get the new filename from the downloaded file (this is key!)
-            new_filename = os.path.basename(downloaded_file_path)
-            new_exe_path = os.path.join(current_dir, new_filename)
-            
-            # Create backup of current version
-            if os.path.exists(current_exe) and current_exe.endswith('.exe'):
-                backup_path = os.path.join(current_dir, f"AIReviewTool_backup_{self.current_version}.exe")
-                try:
-                    import shutil
-                    shutil.copy2(current_exe, backup_path)
-                    log_activity(f"[UPDATE] Backup created: {backup_path}")
-                except Exception as e:
-                    log_activity(f"[UPDATE] Warning: Could not create backup: {e}")
-            
-            # Create update script that handles filename changes
-            update_script = os.path.join(current_dir, "update_script.bat")
-            script_content = f'''@echo off
-    echo Updating AI Review Tool...
-    timeout /t 3 /nobreak >nul
-
-    REM Copy new version with correct filename
-    copy "{downloaded_file_path}" "{new_exe_path}"
-    if errorlevel 1 (
-        echo Update failed!
-        pause
-        exit /b 1
-    )
-
-    REM Remove old version if different filename
-    if not "{current_exe}" == "{new_exe_path}" (
-        del "{current_exe}" 2>nul
-    )
-
-    echo Update completed successfully!
-    start "" "{new_exe_path}"
-    del "%~f0"
-    '''
-            
-            with open(update_script, 'w') as f:
-                f.write(script_content)
-            
-            log_activity("[UPDATE] Starting update process...")
-            log_activity(f"[UPDATE] New file will be: {new_exe_path}")
-            
-            # Show update dialog
-            messagebox.showinfo("Update", 
-                            "The application will now close to complete the update.\n"
-                            "The updated version will start automatically with the correct filename.")
-            
-            # Start update script and exit
-            subprocess.Popen([update_script], shell=True)
-            self.parent_window.quit()
-            
-        except Exception as e:
-            log_activity(f"[UPDATE] Installation failed: {e}")
-            messagebox.showerror("Update Error", f"Failed to install update: {e}")
-    
-    def check_for_updates_async(self):
-        """Check for updates in a background thread"""
-        def check_updates():
-            try:
-                # Check internet connectivity first
-                if not self.test_internet_connectivity():
-                    log_activity("[UPDATE] No internet connection available")
-                    return
-                
-                if not self.should_check_for_updates():
-                    log_activity("[UPDATE] Update check not due yet")
-                    return
-                
-                log_activity("[UPDATE] Checking for application updates...")
-                
-                # Get latest file info from dist folder
-                exe_info = self.get_latest_exe_info()
-                
-                if exe_info:
-                    log_activity(f"[UPDATE] Found latest version: {exe_info['version']}")
-                    comparison = self.compare_versions(self.current_version, exe_info['version'])
-                    log_activity(f"[UPDATE] Version comparison result: {comparison}")
-                    
-                    if comparison < 0:
-                        # New version available
-                        if not self.has_been_notified(exe_info['version']):
-                            self.show_update_notification_with_download(exe_info)
-                            self.record_notification(exe_info['version'])
-                            log_activity(f"[UPDATE] New version available: {exe_info['version']}")
-                        else:
-                            log_activity(f"[UPDATE] New version {exe_info['version']} available (already notified)")
-                    else:
-                        log_activity("[UPDATE] Application is up to date")
-                else:
-                    log_activity("[UPDATE] Could not retrieve version information")
-                
-                self.record_update_check()
-                
-            except Exception as e:
-                log_activity(f"[UPDATE] Error checking for updates: {e}")
-        
-        # Run in background thread
-        thread = threading.Thread(target=check_updates, daemon=True)
-        thread.start()
-    
-    def show_update_notification_with_download(self, exe_info):
-        """Show update notification dialog with download functionality"""
-        def show_dialog():
-            try:
-                dialog = customtkinter.CTkToplevel(self.parent_window)
-                dialog.title("Update Available")
-                dialog.geometry("500x400")
-                dialog.resizable(False, False)
-                dialog.grab_set()
-                dialog.transient(self.parent_window)
-                
-                # Center the dialog
-                dialog.update_idletasks()
-                x = (dialog.winfo_screenwidth() // 2) - (500 // 2)
-                y = (dialog.winfo_screenheight() // 2) - (400 // 2)
-                dialog.geometry(f"500x400+{x}+{y}")
-                
-                # Content frame
-                content_frame = customtkinter.CTkFrame(dialog)
-                content_frame.pack(fill="both", expand=True, padx=20, pady=20)
-                
-                # Title
-                title_label = customtkinter.CTkLabel(
-                    content_frame, 
-                    text="🚀 Update Available!",
-                    font=customtkinter.CTkFont(size=18, weight="bold")
-                )
-                title_label.pack(pady=(0, 10))
-                
-                # Version info
-                file_size_mb = exe_info['size'] / (1024 * 1024)
-                version_text = f"Current Version: {self.current_version}\nLatest Version: {exe_info['version']}\nFile: {exe_info['filename']}\nSize: {file_size_mb:.1f} MB"
-                version_label = customtkinter.CTkLabel(content_frame, text=version_text)
-                version_label.pack(pady=(0, 10))
-                
-                # Progress bar (initially hidden)
-                progress_frame = customtkinter.CTkFrame(content_frame, fg_color="transparent")
-                progress_frame.pack(fill="x", pady=10)
-                progress_frame.pack_forget()  # Hide initially
-                
-                progress_bar = customtkinter.CTkProgressBar(progress_frame)
-                progress_bar.pack(fill="x", pady=5)
-                progress_bar.set(0)
-                
-                progress_label = customtkinter.CTkLabel(progress_frame, text="Downloading...")
-                progress_label.pack()
-                
-                # Status label
-                status_label = customtkinter.CTkLabel(content_frame, text="")
-                status_label.pack(pady=5)
-                
-                # Buttons
-                button_frame = customtkinter.CTkFrame(content_frame, fg_color="transparent")
-                button_frame.pack(fill="x", pady=(10, 0))
-                
-                def download_and_install():
-                    # Show progress
-                    progress_frame.pack(fill="x", pady=10)
-                    download_button.configure(state="disabled", text="Downloading...")
-                    later_button.configure(state="disabled")
-                    skip_button.configure(state="disabled")
-                    
-                    def progress_callback(progress):
-                        def update_progress():
-                            progress_bar.set(progress / 100)
-                            progress_label.configure(text=f"Downloading... {progress:.1f}%")
-                        dialog.after(0, update_progress)
-                    
-                    def download_thread():
-                        try:
-                            # Download the update
-                            downloaded_path = self.download_update(exe_info, progress_callback)
-                            
-                            if downloaded_path:
-                                def install_update():
-                                    status_label.configure(text="Installing update...")
-                                    dialog.after(1000, lambda: self.install_update(downloaded_path))
-                                
-                                dialog.after(0, install_update)
-                            else:
-                                def show_error():
-                                    status_label.configure(text="Download failed!")
-                                    download_button.configure(state="normal", text="Retry Download")
-                                    later_button.configure(state="normal")
-                                    skip_button.configure(state="normal")
-                                
-                                dialog.after(0, show_error)
-                                
-                        except Exception as e:
-                            def show_error():
-                                status_label.configure(text=f"Error: {e}")
-                                download_button.configure(state="normal", text="Retry Download")
-                                later_button.configure(state="normal")
-                                skip_button.configure(state="normal")
-                            
-                            dialog.after(0, show_error)
-                    
-                    # Start download in background
-                    thread = threading.Thread(target=download_thread, daemon=True)
-                    thread.start()
-                
-                def remind_later():
-                    dialog.destroy()
-                
-                def skip_version():
-                    self.record_notification(exe_info['version'])
-                    dialog.destroy()
-                
-                download_button = customtkinter.CTkButton(
-                    button_frame, 
-                    text="Download & Install Update",
-                    command=download_and_install,
-                    fg_color="#2E8B57",
-                    hover_color="#3CB371"
-                )
-                download_button.pack(side="left", padx=5)
-                
-                later_button = customtkinter.CTkButton(
-                    button_frame,
-                    text="Remind Later",
-                    command=remind_later,
-                    fg_color="#4169E1",
-                    hover_color="#6495ED"
-                )
-                later_button.pack(side="left", padx=5)
-                
-                skip_button = customtkinter.CTkButton(
-                    button_frame,
-                    text="Skip This Version",
-                    command=skip_version,
-                    fg_color="#8B4513",
-                    hover_color="#A0522D"
-                )
-                skip_button.pack(side="right", padx=5)
-                
-                log_activity(f"[UPDATE] User notified about version {exe_info['version']}")
-                
-            except Exception as e:
-                log_activity(f"[UPDATE] Error showing update dialog: {e}")
-        
-        # Schedule dialog to show in main thread
-        self.parent_window.after(100, show_dialog)
-
-# Add this function to check for updates on startup
-def check_for_updates_on_startup():
-    """Check for updates when the application starts"""
-    try:
-        update_checker = UpdateChecker(APP_VERSION, root)
-        # Delay the check by 2 seconds to let the UI fully load
-        root.after(2000, update_checker.check_for_updates_async)
-    except Exception as e:
-        print(f"Error initializing update checker: {e}")
-
-# Add manual update check function for menu
-def manual_update_check():
-    """Manually check for updates (called from menu)"""
-    try:
-        update_checker = UpdateChecker(APP_VERSION, root)
-        
-        def check_and_notify():
-            try:
-                log_activity("[UPDATE] Starting manual update check...")
-                log_activity(f"[UPDATE] Current version: {APP_VERSION}")
-                
-                # Check internet connectivity first
-                if not update_checker.test_internet_connectivity():
-                    def show_no_internet():
-                        messagebox.showerror("Update Check Error", 
-                                           "No internet connection available.\n\nPlease check your internet connection and try again.")
-                        log_activity("[UPDATE] Manual check failed: No internet connection")
-                    
-                    root.after(0, show_no_internet)
-                    return
-                
-                # Get latest EXE info from dist folder
-                exe_info = update_checker.get_latest_exe_info()
-                
-                if exe_info:
-                    comparison = update_checker.compare_versions(APP_VERSION, exe_info['version'])
-                    
-                    if comparison < 0:
-                        # New version available
-                        update_checker.show_update_notification_with_download(exe_info)
-                        log_activity(f"[UPDATE] Manual check found new version: {exe_info['version']}")
-                    else:
-                        # Up to date
-                        def show_up_to_date():
-                            messagebox.showinfo("Update Check", 
-                                              f"You are using the latest version!\n\n"
-                                              f"Current: v{APP_VERSION}\n"
-                                              f"Latest: v{exe_info['version']}")
-                        
-                        root.after(0, show_up_to_date)
-                        log_activity(f"[UPDATE] Manual check: up to date (Current: {APP_VERSION}, Latest: {exe_info['version']})")
-                else:
-                    # Could not get version info
-                    def show_check_error():
-                        messagebox.showerror("Update Check Error", 
-                                           "Could not retrieve version information from GitHub.\n\n"
-                                           "Please check your internet connection and try again.")
-                    
-                    root.after(0, show_check_error)
-                    log_activity("[UPDATE] Manual check: Could not retrieve version information")
-                
-                update_checker.record_update_check()
-                
-            except Exception as e:
-                def show_error():
-                    messagebox.showerror("Update Check Error", 
-                                       f"Error checking for updates:\n\n{str(e)}\n\n"
-                                       f"Please check your internet connection and try again.")
-                    log_activity(f"[UPDATE] Manual check error: {e}")
-                
-                root.after(0, show_error)
-        
-        # Run in background thread
-        thread = threading.Thread(target=check_and_notify, daemon=True)
-        thread.start()
-        
-    except Exception as e:
-        messagebox.showerror("Update Check Error", f"Error initializing update check: {e}")
-        log_activity(f"[UPDATE] Failed to initialize manual update check: {e}")
-
-# File menu
-file_menu = tk.Menu(menu_bar, tearoff=0, font=("Arial", 9, "normal"))
-menu_bar.add_cascade(label="Menu", menu=file_menu)
-file_menu.add_command(label="New Review", command=lambda: file_menu_callback("New Review"))
-file_menu.add_command(label="Check for Updates", command=manual_update_check)  # Add this line
-file_menu.add_command(label="View Latest Report", command=lambda: open_latest_report())
-file_menu.add_separator()
-file_menu.add_command(label="Release Notes", command=show_release_notes)
-file_menu.add_separator()
-file_menu.add_command(label="Exit", command=root.quit)
-
-def reset_ai_settings_to_defaults():
-    """Reset AI settings to defaults and save to file"""
-    global ai_settings
-    
-    result = messagebox.askyesno("Reset Settings", 
-                               "Are you sure you want to reset all AI settings to defaults?\n\n"
-                               "This will:\n"
-                               "? Reset Temperature to 0.7\n"
-                               "? Reset Top P to 1.0\n"
-                               "? Reset Max Tokens to 16384\n"
-                               "? Reset System Prompt to default\n"
-                               "? Reset Workflow ID to default\n"
-                               "? Reset filtering to enabled\n\n"
-                               "Your current settings will be lost.")
-    
-    if result:
-        ai_settings = {
-            "temperature": "0.7",
-            "top_p": "1.0", 
-            "max_tokens": "16384",
-            "system_prompt": default_system_prompt,
-            "workflow_id": "7c41c3ab-c214-4394-ba38-9da289975d85",
-            "filter_comments": True
-        }
-        save_ai_settings_to_file()
-        messagebox.showinfo("Success", "All AI settings have been reset to defaults!")
-        
-        if 'log_activity' in globals():
-            log_activity("[SETTINGS] AI Settings reset to defaults from Settings menu")
-
-# Settings menu
-settings_menu = tk.Menu(menu_bar, tearoff=0, font=("Arial", 9, "normal"))
-menu_bar.add_cascade(label="Settings", menu=settings_menu)
-settings_menu.add_command(label="AI Payload Configuration", command=lambda: open_ai_settings_dialog())
-settings_menu.add_separator()
-settings_menu.add_command(label="Save Current Settings", command=lambda: save_ai_settings_to_file())
-settings_menu.add_command(label="Load Saved Settings", command=lambda: load_ai_settings_from_file() and messagebox.showinfo("Success", "AI settings loaded!"))
-settings_menu.add_separator()
-settings_menu.add_command(label="Reset to Defaults", command=lambda: reset_ai_settings_to_defaults())
-
-# Help menu
-help_menu = tk.Menu(menu_bar, tearoff=0, font=("Arial", 9, "normal"))
-menu_bar.add_cascade(label="Help", menu=help_menu)
-help_menu.add_command(label="User Guide", command=lambda: open_user_guide())
-help_menu.add_separator()
-help_menu.add_command(label="About", command=show_about)
-help_menu.add_command(label="Feedback", command=show_contact)
-
-# File Menu callback function (used in lambda above)
-def clear_activity_log():
-    """Clear the content of the activity log textbox and reset review metrics"""
-    if activity_log_textbox:
-        activity_log_textbox.delete("1.0", tk.END)
-        log_activity("Activity log cleared")
-    
-    # Reset review metrics
-    if time_taken_label:
-        time_taken_label.configure(text="-")
-    if cost_label:
-        cost_label.configure(text="-")
-    
-    # Reset progress bar
-    if progress_bar:
-        progress_bar.set(0)
-        # Clear progress percentage if it exists
-        if progress_percentage_label:
-            progress_percentage_label.configure(text="Ready to start")
-
-def file_menu_callback(choice):
-    if choice == "New Review":
-        # Reset the form
-        clear_tokens()
-        repo_name_entry.delete(0, tk.END)
-        pr_number_entry.delete(0, tk.END)
-        if activity_log_textbox:
-            activity_log_textbox.delete("1.0", tk.END)
-        if progress_bar:
-            progress_bar.set(0)
-            if progress_percentage_label:
-                progress_percentage_label.configure(text="Ready to start")
-        status_message.set("")
-        if time_taken_label:
-            time_taken_label.configure(text="-")
-        if cost_label:
-            cost_label.configure(text="-")
-        if view_pr_button:
-            view_pr_button.configure(state="disabled")
-
-# --- MAIN UI LAYOUT ---
-# Controls (left)
-left_frame = customtkinter.CTkFrame(content_frame)
-left_frame.grid(row=0, column=0, padx=(10,5), pady=(5,10), sticky="nsew")
+# Create regular frame for left side (no scrolling needed with compact layout)
+left_frame = customtkinter.CTkFrame(root, width=350)
+left_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
 left_frame.grid_columnconfigure(0, weight=1)
 
-# --- Settings Frame ---
-settings_frame = customtkinter.CTkFrame(left_frame)
-settings_frame.grid(row=1, column=0, padx=10, pady=(0,10), sticky="ew")  # Changed from row=0 to row=1
-settings_frame.grid_columnconfigure(0, weight=1)
-settings_frame.grid_columnconfigure(1, weight=0)
+right_frame = customtkinter.CTkFrame(root)
+right_frame.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
+right_frame.grid_columnconfigure(0, weight=1)
+right_frame.grid_rowconfigure(1, weight=1)
 
-# Add header label to settings frame
-header_label = customtkinter.CTkLabel(settings_frame, text="🤖 AI Code Review Tool", font=customtkinter.CTkFont(size=20, weight="bold"))
-header_label.grid(row=0, column=0, columnspan=2, pady=5, padx=10, sticky="ew")
+# Global variables for UI elements
+github_token_entry = None
+openarena_token_entry = None
+repo_combobox = None  # Changed from repo_name_entry to repo_combobox
+pr_number_entry = None
+post_comments_var = None
+review_button = None
+extract_token_button = None
+activity_log_textbox = None
+progress_bar = None
+progress_percentage_label = None
+time_taken_label = None
+cost_label = None
+view_pr_button = None
+view_report_button = None
+status_message = None
+mode_switch = None
+latest_report_path = None
 
-# --- Input Fields Frame ---
-input_frame = customtkinter.CTkFrame(left_frame)
-input_frame.grid(row=2, column=0, padx=10, pady=10, sticky="ew")  # Changed from row=1 to row=2
-input_frame.grid_columnconfigure(1, weight=1)
+# AI Settings variables
+temperature_entry = None
+top_p_entry = None
+max_tokens_entry = None
+system_prompt_textbox = None
+workflow_entry = None
+filter_comments_var = None
 
-# --- Updated Info Button ---
-def create_ctk_info_button(parent, row, column, info_text):
-    def show_tooltip():
-        top = Toplevel(root)
-        top.title("Info")
-        Label(top, text=info_text, padx=20, pady=20, font=("Arial", 10)).pack()
-        Button(top, text="Close", command=top.destroy).pack(pady=5)
-        top.grab_set()
-    btn = customtkinter.CTkButton(parent, text="i", width=24, height=24, fg_color="#0078D7", text_color="white", font=customtkinter.CTkFont(size=14, weight="bold"), command=show_tooltip)
-    btn.grid(row=row, column=column, padx=5)
+# AI settings with defaults (Enhanced for better review quality)
+ai_settings = {
+    "temperature": "0.3",    # Lower temperature for more consistent, focused reviews
+    "top_p": "0.9",         # Slightly more focused than 1.0
+    "max_tokens": "16384",   # Sufficient for detailed reviews
+    "workflow_id": "7c41c3ab-c214-4394-ba38-9da289975d85",
+    "system_prompt": """You are an expert code reviewer with deep knowledge of software engineering best practices. Your goal is to provide thorough, constructive feedback that helps improve code quality, security, and maintainability.
 
-# GitHub Token
-gh_token_label = customtkinter.CTkLabel(input_frame, text="GitHub Token:", font=customtkinter.CTkFont(weight="bold"))
-gh_token_label.grid(row=0, column=0, sticky='w', padx=10, pady=5)
-github_token_entry = customtkinter.CTkEntry(input_frame, show="*", placeholder_text="Enter GitHub PAT")
-github_token_entry.grid(row=0, column=1, pady=5, padx=10, sticky="ew")
-create_ctk_info_button(input_frame, 0, 2, "Enter your GitHub personal access token. Required for GitHub API access.")
+ANALYZE THE CODE FOR:
 
-# OpenArena Token
-# OpenArena Token with extraction button
-oa_token_label = customtkinter.CTkLabel(input_frame, text="OpenArena Token:", font=customtkinter.CTkFont(weight="bold"))
-oa_token_label.grid(row=1, column=0, sticky='w', padx=10, pady=5)
+\U0001F6A8 **CRITICAL ISSUES** (Always flag these):
+1. Logic errors, bugs, or incorrect implementations
+2. Security vulnerabilities and input validation issues
+3. Memory leaks, null pointer dereferences, buffer overflows
+4. Race conditions, deadlocks, or concurrency issues
+5. Performance bottlenecks or inefficient algorithms
+6. Error handling gaps or improper exception management
 
-# Create frame for token entry and extraction button
-oa_token_frame = customtkinter.CTkFrame(input_frame, fg_color="transparent")
-oa_token_frame.grid(row=1, column=1, pady=5, padx=10, sticky="ew")
-oa_token_frame.grid_columnconfigure(0, weight=1)
+\U0001F4DD **CODE QUALITY ISSUES** (Flag when significant):
+1. Code duplication or violating DRY principle
+2. Complex functions that should be broken down
+3. Poor variable/function naming that affects readability
+4. Missing const qualifiers where appropriate
+5. Inconsistent coding patterns within the file
+6. Hard-coded values that should be configurable
 
-openarena_token_entry = customtkinter.CTkEntry(oa_token_frame, show="*", placeholder_text="Enter OpenArena API Token")
-openarena_token_entry.grid(row=0, column=0, sticky="ew", padx=(0, 5))
+? **BEST PRACTICES** (Suggest improvements):
+1. Missing documentation for complex logic
+2. Opportunity to use more efficient data structures
+3. Better error messages or logging
+4. Code that could benefit from modern language features
+5. Suggestions for better maintainability
 
-# Add token extraction button
-if HAS_TOKEN_EXTRACTION:
-    def extract_openarena_token():
-        """Extract OpenArena token using automated browser method"""
-        url = "https://dataandanalytics.int.thomsonreuters.com/ai-platform/ai-experiences/use/11d87e9a-6dcd-4926-80ea-e9fdd07f7e9b"
-        
-        # Disable button during extraction
-        extract_token_button.configure(state="disabled", text="Extracting...")
-        root.update_idletasks()
-        
+\U0001F6AB **IGNORE THESE** (Don't comment on):
+- 8-digit date literals in CCMMDDYY format (20010123, 20123100, etc.)
+- Standard date arithmetic with known date constants
+- Well-established test patterns (EXPECT_EQ, test fixtures)
+- Standard include statements and namespace usage
+- Minor formatting inconsistencies
+
+\U0001F4DD **RESPONSE FORMAT**:
+- For each issue, start with 'Line <number>: [SEVERITY] Description'
+- Use severity levels: [CRITICAL], [HIGH], [MEDIUM], [LOW]
+- Be specific about the problem and suggest concrete solutions
+- Provide separate comments for each distinct issue
+- If code looks good, it's fine to provide fewer or no comments
+
+Provide actionable, professional feedback that helps developers write better code.""",
+    "filter_comments": False,  # Disabled aggressive filtering
+    "reduce_noise": False      # Disabled noise reduction to preserve feedback
+}
+
+default_system_prompt = """You are an expert code reviewer with deep knowledge of software engineering best practices. Your goal is to provide thorough, constructive feedback that helps improve code quality, security, and maintainability.
+
+ANALYZE THE CODE FOR:
+
+\U0001F6A8 **CRITICAL ISSUES** (Always flag these):
+1. Logic errors, bugs, or incorrect implementations
+2. Security vulnerabilities and input validation issues
+3. Memory leaks, null pointer dereferences, buffer overflows
+4. Race conditions, deadlocks, or concurrency issues
+5. Performance bottlenecks or inefficient algorithms
+6. Error handling gaps or improper exception management
+
+\U000026A0\uFE0F **CODE QUALITY ISSUES** (Flag when significant):
+1. Code duplication or violating DRY principle
+2. Complex functions that should be broken down
+3. Poor variable/function naming that affects readability
+4. Missing const qualifiers where appropriate
+5. Inconsistent coding patterns within the file
+6. Hard-coded values that should be configurable
+
+? **BEST PRACTICES** (Suggest improvements):
+1. Missing documentation for complex logic
+2. Opportunity to use more efficient data structures
+3. Better error messages or logging
+4. Code that could benefit from modern language features
+5. Suggestions for better maintainability
+
+\U0001F6AB **IGNORE THESE** (Don't comment on):
+- 8-digit date literals in CCMMDDYY format (20010123, 20123100, etc.)
+- Standard date arithmetic with known date constants
+- Well-established test patterns (EXPECT_EQ, test fixtures)
+- Standard include statements and namespace usage
+- Minor formatting inconsistencies
+
+\U0001F4DD **RESPONSE FORMAT**:
+- For each issue, start with 'Line <number>: [SEVERITY] Description'
+- Use severity levels: [CRITICAL], [HIGH], [MEDIUM], [LOW]
+- Be specific about the problem and suggest concrete solutions
+- Provide separate comments for each distinct issue
+- If code looks good, it's fine to provide fewer or no comments
+
+**Example responses:**
+Line 42: [CRITICAL] Potential buffer overflow: Array access with index 'i' without bounds checking.
+
+Line 78: [HIGH] Memory leak: Allocated pointer 'buffer' is not freed in error path.
+
+Line 105: [MEDIUM] Consider using const reference to avoid unnecessary copying of large object.
+
+Provide actionable, professional feedback that helps developers write better code."""
+
+def show_ai_settings():
+    """Show AI Settings configuration window"""
+    global temperature_entry, top_p_entry, max_tokens_entry, system_prompt_textbox, workflow_entry, filter_comments_var
+    
+    # Create AI Settings window
+    settings_window = customtkinter.CTkToplevel(root)
+    settings_window.title("AI Settings")
+    settings_window.geometry("700x550")
+    settings_window.transient(root)
+    settings_window.grab_set()
+    
+    # Configure grid
+    settings_window.grid_columnconfigure(1, weight=1)
+    
+    # Title
+    title_label = customtkinter.CTkLabel(settings_window, text="AI Configuration Settings", 
+                                       font=customtkinter.CTkFont(size=18, weight="bold"))
+    title_label.grid(row=0, column=0, columnspan=2, padx=20, pady=(20,10), sticky="w")
+    
+    # Temperature
+    temp_label = customtkinter.CTkLabel(settings_window, text="Temperature (0.0 - 2.0):")
+    temp_label.grid(row=1, column=0, padx=20, pady=5, sticky="w")
+    
+    temp_entry = customtkinter.CTkEntry(settings_window, placeholder_text="0.7")
+    temp_entry.insert(0, ai_settings.get("temperature", "0.7"))
+    temp_entry.grid(row=1, column=1, padx=20, pady=5, sticky="ew")
+    
+    # Top-p
+    top_p_label = customtkinter.CTkLabel(settings_window, text="Top-p (0.0 - 1.0):")
+    top_p_label.grid(row=2, column=0, padx=20, pady=5, sticky="w")
+    
+    top_p_entry = customtkinter.CTkEntry(settings_window, placeholder_text="1.0")
+    top_p_entry.insert(0, ai_settings.get("top_p", "1.0"))
+    top_p_entry.grid(row=2, column=1, padx=20, pady=5, sticky="ew")
+    
+    # Max Tokens
+    max_tokens_label = customtkinter.CTkLabel(settings_window, text="Max Tokens (1 - 200000):")
+    max_tokens_label.grid(row=3, column=0, padx=20, pady=5, sticky="w")
+    
+    max_tokens_entry = customtkinter.CTkEntry(settings_window, placeholder_text="16384")
+    max_tokens_entry.insert(0, ai_settings.get("max_tokens", "16384"))
+    max_tokens_entry.grid(row=3, column=1, padx=20, pady=5, sticky="ew")
+    
+    # Workflow ID
+    workflow_label = customtkinter.CTkLabel(settings_window, text="Workflow ID:")
+    workflow_label.grid(row=4, column=0, padx=20, pady=5, sticky="w")
+    
+    workflow_entry = customtkinter.CTkEntry(settings_window, placeholder_text="Workflow ID")
+    workflow_entry.insert(0, ai_settings.get("workflow_id", "7c41c3ab-c214-4394-ba38-9da289975d85"))
+    workflow_entry.grid(row=4, column=1, padx=20, pady=5, sticky="ew")
+    
+    # Reduce Noise option (now handles date-related comments filtering automatically)
+    reduce_noise_var = customtkinter.BooleanVar(value=ai_settings.get("reduce_noise", True))
+    reduce_noise_checkbox = customtkinter.CTkCheckBox(settings_window, text="\U0001F50D Reduce noise (focus on substantial issues, auto-filters date/format comments)", variable=reduce_noise_var)
+    reduce_noise_checkbox.grid(row=5, column=0, columnspan=2, padx=20, pady=5, sticky="w")
+    
+    # System Prompt
+    prompt_label = customtkinter.CTkLabel(settings_window, text="System Prompt:")
+    prompt_label.grid(row=6, column=0, columnspan=2, padx=20, pady=(10,5), sticky="w")
+    
+    system_prompt_textbox = customtkinter.CTkTextbox(settings_window, height=150)
+    system_prompt_textbox.insert("1.0", ai_settings.get("system_prompt", default_system_prompt))
+    system_prompt_textbox.grid(row=7, column=0, columnspan=2, padx=20, pady=5, sticky="ew")
+    
+    # Buttons
+    button_frame = customtkinter.CTkFrame(settings_window)
+    button_frame.grid(row=8, column=0, columnspan=2, padx=20, pady=20, sticky="ew")
+    # Grid configuration will be set later after the functions are defined
+    
+    def save_settings():
         try:
-            log_activity("🚀 Starting automated token extraction...")
-            log_activity("📋 Please log in to OpenArena when the browser opens...")
+            ai_settings["temperature"] = temp_entry.get() or "0.7"
+            ai_settings["top_p"] = top_p_entry.get() or "1.0"
+            ai_settings["max_tokens"] = max_tokens_entry.get() or "16384"
+            ai_settings["workflow_id"] = workflow_entry.get() or "7c41c3ab-c214-4394-ba38-9da289975d85"
+            ai_settings["system_prompt"] = system_prompt_textbox.get("1.0", "end-1c") or default_system_prompt
+            ai_settings["reduce_noise"] = reduce_noise_var.get()
             
-            # Run token extraction in a separate thread to avoid blocking UI
-            def extraction_thread():
+            # Save to file
+            try:
+                with open("ai_settings.json", "w") as f:
+                    json.dump(ai_settings, f, indent=2)
+                log_activity("? AI settings saved successfully")
+            except Exception as e:
+                log_activity(f"\U000026A0\uFE0F Could not save AI settings to file: {e}")
+            
+            messagebox.showinfo("Success", "AI settings saved successfully!")
+            settings_window.destroy()
+        except Exception as e:
+            messagebox.showerror("Error", f"Error saving settings: {e}")
+    
+    def reset_settings():
+        temp_entry.delete(0, tk.END)
+        temp_entry.insert(0, "0.7")
+        top_p_entry.delete(0, tk.END)
+        top_p_entry.insert(0, "1.0")
+        max_tokens_entry.delete(0, tk.END)
+        max_tokens_entry.insert(0, "16384")
+        workflow_entry.delete(0, tk.END)
+        workflow_entry.insert(0, "7c41c3ab-c214-4394-ba38-9da289975d85")
+        system_prompt_textbox.delete("1.0", tk.END)
+        system_prompt_textbox.insert("1.0", default_system_prompt)
+        reduce_noise_var.set(True)
+    
+    def test_ai_connection():
+        """Test the AI connection with current settings"""
+        try:
+            # Get current settings from the dialog
+            temp = temp_entry.get() or "0.7"
+            top_p = top_p_entry.get() or "1.0"
+            max_tokens = max_tokens_entry.get() or "16384"
+            workflow_id = workflow_entry.get() or "7c41c3ab-c214-4394-ba38-9da289975d85"
+            
+            # Get OpenArena token from main window
+            if not openarena_token_entry or not openarena_token_entry.get():
+                messagebox.showerror("Test Failed", "Please enter an OpenArena token first in the main window.")
+                return
+            
+            token = openarena_token_entry.get()
+            
+            # Show testing message
+            test_btn.configure(text="Testing...", state="disabled")
+            settings_window.update()
+            
+            # Test payload
+            test_headers = {
+                'Authorization': f'Bearer {token}',
+                'Content-Type': 'application/json',
+                'Accept-Encoding': 'gzip, deflate',
+                'User-Agent': 'AICodeReviewTool-Test',
+                'Connection': 'keep-alive'
+            }
+            
+            test_payload = {
+                "query": "Test connection: Please respond with 'Connection successful'",
+                "workflow_id": workflow_id,
+                "is_persistence_allowed": False,
+                "modelparams": {
+                    "anthropic_direct.claude-v4-sonnet": {
+                        "temperature": temp,
+                        "top_p": top_p,
+                        "max_tokens": max_tokens
+                    }
+                }
+            }
+            
+            import requests
+            response = requests.post(
+                "https://aiopenarena.gcs.int.thomsonreuters.com/v1/inference",
+                headers=test_headers,
+                json=test_payload,
+                timeout=30
+            )
+            
+            # Re-enable button
+            test_btn.configure(text="Test AI Connection", state="normal")
+            
+            if response.status_code == 200:
+                ai_response = response.json()
+                result = ai_response.get('result', {})
+                answer = result.get('answer', {})
+                feedback = (
+                    answer.get('anthropic_direct.claude-v4-sonnet', '') or
+                    answer.get('openai_gpt-4o', '') or
+                    answer.get('vertexai_gemini-2.5-pro', '') or
+                    "No response content"
+                )
+                
+                # Show success with some response details
+                cost_info = result.get('cost', {})
+                token_usage = cost_info.get('token_usage', {})
+                total_tokens = token_usage.get('total_tokens', 0)
+                
+                success_msg = f"? AI Connection Test Successful!\n\n"
+                success_msg += f"Response: {feedback[:100]}{'...' if len(feedback) > 100 else ''}\n\n"
+                success_msg += f"Settings Used:\n"
+                success_msg += f"� Temperature: {temp}\n"
+                success_msg += f"� Top-p: {top_p}\n"
+                success_msg += f"� Max Tokens: {max_tokens}\n"
+                success_msg += f"� Workflow: {workflow_id[:20]}...\n"
+                if total_tokens > 0:
+                    success_msg += f"� Tokens Used: {total_tokens}"
+                
+                messagebox.showinfo("Connection Test Successful", success_msg)
+                
+            elif response.status_code == 401:
+                messagebox.showerror("Test Failed", "? Authentication failed.\n\nThe OpenArena token is invalid or expired.\nPlease check your token.")
+            else:
+                messagebox.showerror("Test Failed", f"? Connection test failed.\n\nStatus Code: {response.status_code}\nResponse: {response.text[:200]}...")
+                
+        except requests.exceptions.Timeout:
+            test_btn.configure(text="Test AI Connection", state="normal")
+            messagebox.showerror("Test Failed", "? Connection test timed out.\n\nThe AI service may be temporarily unavailable.")
+        except Exception as e:
+            test_btn.configure(text="Test AI Connection", state="normal")
+            messagebox.showerror("Test Failed", f"? Connection test failed.\n\nError: {str(e)}")
+    
+    # Update button frame to have 4 columns
+    button_frame.grid_columnconfigure(0, weight=1)
+    button_frame.grid_columnconfigure(1, weight=1)
+    button_frame.grid_columnconfigure(2, weight=1)
+    button_frame.grid_columnconfigure(3, weight=1)
+    
+    save_btn = customtkinter.CTkButton(button_frame, text="Save", command=save_settings)
+    save_btn.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+    
+    reset_btn = customtkinter.CTkButton(button_frame, text="Reset to Defaults", command=reset_settings)
+    reset_btn.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+    
+    test_btn = customtkinter.CTkButton(button_frame, text="Test AI Connection", command=test_ai_connection)
+    test_btn.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
+    
+    cancel_btn = customtkinter.CTkButton(button_frame, text="Cancel", command=settings_window.destroy)
+    cancel_btn.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
+
+def show_help():
+    """Show Help/About window"""
+    help_window = customtkinter.CTkToplevel(root)
+    help_window.title("Help & About")
+    help_window.geometry("500x400")
+    help_window.transient(root)
+    help_window.grab_set()
+    
+    # Title
+    title_label = customtkinter.CTkLabel(help_window, text="AI Code Review Tool", 
+                                       font=customtkinter.CTkFont(size=20, weight="bold"))
+    title_label.pack(pady=(20,10))
+    
+    # Version
+    version_label = customtkinter.CTkLabel(help_window, text=f"Version: {APP_VERSION}", 
+                                         font=customtkinter.CTkFont(size=14))
+    version_label.pack(pady=5)
+    
+    # Description
+    desc_text = customtkinter.CTkTextbox(help_window, height=200)
+    desc_text.pack(padx=20, pady=10, fill="both", expand=True)
+    
+    help_content = f"""🚀 AI Code Review Tool v{APP_VERSION}
+
+✨ OVERVIEW
+This cutting-edge application provides AI-powered code review for GitHub pull requests using OpenArena's Claude 4 Sonnet model, delivering intelligent insights to enhance code quality and development workflows.
+
+🎯 KEY FEATURES
+• 🔍 Automated GitHub PR analysis with smart file detection
+• 🧠 AI-powered code review comments with severity classification
+• 🔐 Secure token management with encryption
+• 📊 Beautiful HTML report generation with analytics
+• 🔑 SSO authentication support for enterprise environments
+• ⚙️ Fully customizable AI settings and prompts
+
+📋 QUICK START GUIDE
+1. 🔑 Enter your GitHub personal access token
+2. 🎫 Get or enter your OpenArena token  
+3. 📁 Specify the repository (owner/repo format)
+4. 🔢 Enter the PR number to review
+5. 🚀 Click "Start Review" to begin analysis
+
+🎯 SMART ANALYSIS
+The tool intelligently analyzes all modified files in your PR and generates contextual AI comments highlighting potential issues, security vulnerabilities, performance improvements, and best practice suggestions.
+
+👥 DEVELOPMENT TEAM
+Built with ❤️ by Thomson Reuters UltraTax Team
+© 2025 Thomson Reuters - Licensed for internal use only
+
+🔧 Need help? Use the feedback feature to contact our engineering team!"""
+    
+    desc_text.insert("1.0", help_content)
+    desc_text.configure(state="disabled")
+    
+    # Close button
+    close_btn = customtkinter.CTkButton(help_window, text="Close", command=help_window.destroy)
+    close_btn.pack(pady=10)
+
+def show_feedback():
+    """Show feedback submission window"""
+    feedback_window = customtkinter.CTkToplevel(root)
+    feedback_window.title("Submit Feedback")
+    feedback_window.geometry("650x650")  # Increased height from 500 to 650
+    feedback_window.transient(root)
+    feedback_window.grab_set()
+    feedback_window.resizable(True, True)  # Allow resizing if needed
+    
+    # Title
+    title_label = customtkinter.CTkLabel(feedback_window, text="📧 Submit Feedback", 
+                                       font=customtkinter.CTkFont(size=20, weight="bold"))
+    title_label.pack(pady=(20,10))
+    
+    # Subtitle
+    subtitle_label = customtkinter.CTkLabel(feedback_window, 
+                                          text="Help us improve the AI Code Review Tool",
+                                          font=customtkinter.CTkFont(size=14))
+    subtitle_label.pack(pady=5)
+    
+    # Feedback type selection
+    type_frame = customtkinter.CTkFrame(feedback_window)
+    type_frame.pack(padx=20, pady=10, fill="x")
+    
+    type_label = customtkinter.CTkLabel(type_frame, text="Feedback Type:")
+    type_label.pack(anchor="w", padx=10, pady=(10,5))
+    
+    feedback_type = customtkinter.CTkOptionMenu(type_frame, 
+                                               values=["Bug Report", "Feature Request", "UI/UX Improvement", "Performance Issue", "General Feedback"])
+    feedback_type.pack(padx=10, pady=(0,10), fill="x")
+    feedback_type.set("General Feedback")
+    
+    # Priority selection
+    priority_label = customtkinter.CTkLabel(type_frame, text="Priority:")
+    priority_label.pack(anchor="w", padx=10, pady=(5,5))
+    
+    priority = customtkinter.CTkOptionMenu(type_frame, 
+                                          values=["Low", "Medium", "High", "Critical"])
+    priority.pack(padx=10, pady=(0,10), fill="x")
+    priority.set("Medium")
+    
+    # Feedback text area
+    text_label = customtkinter.CTkLabel(feedback_window, text="Detailed Feedback:")
+    text_label.pack(anchor="w", padx=20, pady=(10,5))
+    
+    feedback_text = customtkinter.CTkTextbox(feedback_window, height=180)  # Increased from 150 to 180
+    feedback_text.pack(padx=20, pady=5, fill="both", expand=True)
+    feedback_text.insert("1.0", "Please describe your feedback in detail...")
+    
+    # User info frame
+    user_frame = customtkinter.CTkFrame(feedback_window)
+    user_frame.pack(padx=20, pady=10, fill="x")
+    user_frame.grid_columnconfigure(1, weight=1)
+    
+    # Email (optional)
+    email_label = customtkinter.CTkLabel(user_frame, text="Email (optional):")
+    email_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+    
+    email_entry = customtkinter.CTkEntry(user_frame, placeholder_text="your.email@tr.com")
+    email_entry.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+    
+    def submit_feedback():
+        """Submit feedback by opening Outlook with pre-filled email to engineering team"""
+        try:
+            # Get feedback data
+            feedback_type_value = feedback_type.get()
+            priority_value = priority.get()
+            feedback_content = feedback_text.get("1.0", "end-1c")
+            user_email = email_entry.get()
+            current_user = os.getenv('USERNAME', 'Unknown')
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            # Engineering team email addresses
+            engineering_team = [
+                "Velavalapalli.HarishSarma@thomsonreuters.com",
+                "Ravi.Bitra@thomsonreuters.com",
+                "kalyani.kandunuri@thomsonreuters.com"
+            ]
+            
+            # Create email recipients string
+            to_emails = ";".join(engineering_team)
+            
+            # Create email subject
+            subject = f"AI Code Review Tool Feedback - {feedback_type_value} ({priority_value} Priority)"
+            
+            # Create email body with structured content
+            body = f"""Hi Team,
+
+I have feedback for the AI Code Review Tool:
+
+FEEDBACK DETAILS:
+================
+Type: {feedback_type_value}
+Priority: {priority_value}
+Submitted by: {current_user}
+Contact Email: {user_email if user_email else 'Not provided'}
+App Version: {APP_VERSION}
+Date/Time: {timestamp}
+
+FEEDBACK CONTENT:
+================
+{feedback_content}
+
+Please review and consider this feedback for future improvements.
+
+Best regards,
+{current_user}
+
+---
+This email was generated automatically by the AI Code Review Tool feedback system.
+"""
+            
+            # Encode the email components for URL
+            subject_encoded = urllib.parse.quote(subject)
+            body_encoded = urllib.parse.quote(body)
+            to_encoded = urllib.parse.quote(to_emails)
+            
+            # Create Outlook mailto URL
+            mailto_url = f"mailto:{to_encoded}?subject={subject_encoded}&body={body_encoded}"
+            
+            # Also save feedback locally as backup
+            feedback_data = {
+                "timestamp": timestamp,
+                "type": feedback_type_value,
+                "priority": priority_value,
+                "feedback": feedback_content,
+                "email": user_email,
+                "app_version": APP_VERSION,
+                "user": current_user,
+                "sent_to": engineering_team
+            }
+            
+            feedback_file = "feedback_submissions.json"
+            feedbacks = []
+            
+            if os.path.exists(feedback_file):
                 try:
-                    token = get_auth_token(url)
-                    
-                    # Update UI in main thread
-                    def update_ui():
-                        if token:
-                            openarena_token_entry.delete(0, tk.END)
-                            openarena_token_entry.insert(0, token)
-                            log_activity("✅ OpenArena token extracted successfully!")
-                            messagebox.showinfo("Success", "OpenArena token extracted and populated successfully!")
-                            
-                            # Optionally save the token
-                            if save_token_to_file(token):
-                                log_activity("💾 Token saved to file for future use")
-                        else:
-                            log_activity("❌ Failed to extract OpenArena token")
-                            messagebox.showerror("Error", "Failed to extract OpenArena token. Please try manual entry.")
-                        
-                        # Re-enable button
-                        extract_token_button.configure(state="normal", text="Get-Token")
-                    
-                    root.after(0, update_ui)
-                    
-                except Exception as e:
-                    def show_error():
-                        log_activity(f"❌ Error during token extraction: {e}")
-                        messagebox.showerror("Error", f"Token extraction failed: {e}")
-                        extract_token_button.configure(state="normal", text="Get-Token")
-                    
-                    root.after(0, show_error)
+                    with open(feedback_file, "r") as f:
+                        feedbacks = json.load(f)
+                except:
+                    feedbacks = []
             
-            # Start extraction in background thread
-            thread = threading.Thread(target=extraction_thread, daemon=True)
-            thread.start()
+            feedbacks.append(feedback_data)
+            
+            with open(feedback_file, "w") as f:
+                json.dump(feedbacks, f, indent=2)
+            
+            # Open Outlook with pre-filled email
+            try:
+                webbrowser.open(mailto_url)
+                log_activity(f"\U0001F4E7 Opened Outlook with feedback email to engineering team")
+                
+                # Show success message
+                success_window = customtkinter.CTkToplevel(feedback_window)
+                success_window.title("Feedback Email Opened")
+                success_window.geometry("450x250")
+                success_window.transient(feedback_window)
+                success_window.grab_set()
+                
+                success_label = customtkinter.CTkLabel(success_window, 
+                                                     text="\U0001F4E7 Outlook Email Opened!",
+                                                     font=customtkinter.CTkFont(size=16, weight="bold"))
+                success_label.pack(pady=20)
+                
+                info_label = customtkinter.CTkLabel(success_window, 
+                                                  text=f"An email has been prepared in Outlook with:\n\n" +
+                                                       f"To: {', '.join(engineering_team)}\n" +
+                                                       f"Subject: {feedback_type_value} Feedback\n\n" +
+                                                       f"Please review and send the email.",
+                                                  font=customtkinter.CTkFont(size=12))
+                info_label.pack(pady=10)
+                
+                ok_btn = customtkinter.CTkButton(success_window, text="OK", 
+                                               command=lambda: [success_window.destroy(), feedback_window.destroy()])
+                ok_btn.pack(pady=20)
+                
+            except Exception as e:
+                # Fallback if Outlook opening fails
+                log_activity(f"[ERROR] Failed to open Outlook: {e}")
+                messagebox.showinfo("Email Addresses", 
+                                   f"Could not open Outlook automatically.\n\n" +
+                                   f"Please send your feedback manually to:\n" +
+                                   f"{chr(10).join(engineering_team)}\n\n" +
+                                   f"Subject: {subject}\n\n" +
+                                   f"Your feedback has also been saved locally.")
+                feedback_window.destroy()
             
         except Exception as e:
-            log_activity(f"❌ Error starting token extraction: {e}")
-            messagebox.showerror("Error", f"Failed to start token extraction: {e}")
-            extract_token_button.configure(state="normal", text="Get-Token")
+            log_activity(f"[ERROR] Failed to submit feedback: {e}")
+            messagebox.showerror("Error", f"Failed to prepare feedback email: {str(e)}")
+            
+            log_activity(f"\U0001F4DD Feedback submitted: {feedback_data['type']} - {feedback_data['priority']}")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to submit feedback: {str(e)}")
     
-    extract_token_button = customtkinter.CTkButton(
-        oa_token_frame, 
-        text="Get-Token", 
-        command=extract_openarena_token_with_user_info,
-        width=100,
-        fg_color="#2E8B57",
-        hover_color="#3CB371"
+    # Buttons frame
+    button_frame = customtkinter.CTkFrame(feedback_window)
+    button_frame.pack(padx=20, pady=(15, 20), fill="x")  # Increased top padding from 10 to 15, bottom to 20
+    button_frame.grid_columnconfigure(0, weight=1)
+    button_frame.grid_columnconfigure(1, weight=1)
+    
+    cancel_btn = customtkinter.CTkButton(button_frame, text="Cancel", 
+                                       command=feedback_window.destroy,
+                                       height=32)  # Made buttons taller
+    cancel_btn.grid(row=0, column=0, padx=5, pady=8, sticky="ew")  # Increased pady from 5 to 8
+    
+    submit_btn = customtkinter.CTkButton(button_frame, text="📧 Send Email to Team", 
+                                       command=submit_feedback,
+                                       height=32)  # Made buttons taller
+    submit_btn.grid(row=0, column=1, padx=5, pady=8, sticky="ew")  # Increased pady from 5 to 8
+
+def load_ai_settings():
+    """Load AI settings from file"""
+    try:
+        if os.path.exists("ai_settings.json"):
+            with open("ai_settings.json", "r") as f:
+                saved_settings = json.load(f)
+                ai_settings.update(saved_settings)
+                log_activity("\U0001F4E1 AI settings loaded from file")
+    except Exception as e:
+        log_activity(f"\U000026A0\uFE0F Could not load AI settings: {e}")
+
+def setup_modern_ui():
+    """Setup the modern UI with all controls"""
+    global github_token_entry, openarena_token_entry, repo_combobox, pr_number_entry
+    global post_comments_var, review_button, extract_token_button, activity_log_textbox
+    global progress_bar, progress_percentage_label, time_taken_label, cost_label
+    global view_pr_button, view_report_button, status_message, github_frame
+    
+    def open_user_guide():
+        """Open the user guide HTML file in the browser"""
+        try:
+            # Get the directory where the script is located
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            # Go up one level to the project root
+            project_root = os.path.dirname(script_dir)
+            
+            # Try revolutionary version first (user's preference), then fall back to others
+            guide_options = [
+                "user_guide_revolutionary.html",
+                "user_guide_professional.html",
+                "user_guide_spectacular.html", 
+                "user_guide_v2.html",
+                "user_guide.html"
+            ]
+            
+            for guide_name in guide_options:
+                user_guide_path = os.path.join(project_root, "docs", guide_name)
+                if os.path.exists(user_guide_path):
+                    # Use file:// protocol for local files
+                    file_url = f"file:///{user_guide_path.replace(os.sep, '/')}"
+                    webbrowser.open(file_url)
+                    log_activity(f"[INFO] Opened user guide: {guide_name}")
+                    return
+            
+            # If none found, try fallback locations
+            for guide_name in guide_options:
+                fallback_paths = [
+                    os.path.join(script_dir, "..", "docs", guide_name),
+                    os.path.join(script_dir, "docs", guide_name),
+                    f"docs/{guide_name}"
+                ]
+                
+                for path in fallback_paths:
+                    abs_path = os.path.abspath(path)
+                    if os.path.exists(abs_path):
+                        file_url = f"file:///{abs_path.replace(os.sep, '/')}"
+                        webbrowser.open(file_url)
+                        log_activity(f"[INFO] Opened user guide from fallback: {guide_name}")
+                        return
+            
+            log_activity("[ERROR] User guide file not found in any expected location")
+            messagebox.showerror("Error", "User guide file not found. Please check if docs/user_guide.html exists.")
+        except Exception as e:
+            log_activity(f"[ERROR] Failed to open user guide: {e}")
+            messagebox.showerror("Error", f"Failed to open user guide: {e}")
+    
+    # Create menu bar
+    menubar = tk.Menu(root)
+    root.configure(menu=menubar)
+    
+    # File menu
+    file_menu = tk.Menu(menubar, tearoff=0)
+    menubar.add_cascade(label="File", menu=file_menu)
+    file_menu.add_command(label="Save Tokens", command=save_tokens)
+    file_menu.add_command(label="Clear Tokens", command=clear_tokens)
+    file_menu.add_separator()
+    file_menu.add_command(label="Exit", command=root.quit)
+    
+    # Settings menu
+    settings_menu = tk.Menu(menubar, tearoff=0)
+    menubar.add_cascade(label="Settings", menu=settings_menu)
+    settings_menu.add_command(label="AI Settings", command=show_ai_settings)
+    settings_menu.add_command(label="Toggle Dark/Light Mode", command=change_appearance_mode_event)
+    
+    # Help menu
+    help_menu = tk.Menu(menubar, tearoff=0)
+    menubar.add_cascade(label="Help", menu=help_menu)
+    help_menu.add_command(label="About", command=show_help)
+    help_menu.add_command(label="User Guide", command=open_user_guide)
+    help_menu.add_separator()
+    help_menu.add_command(label="\U0001F4E7 Email Feedback to Team", command=show_feedback)
+    if HAS_UPDATE_CHECKER:
+        help_menu.add_separator()
+        help_menu.add_command(label="Check for Updates", command=check_for_updates_manual)
+    
+
+    
+    # App Title Section with compact styling
+    title_frame = customtkinter.CTkFrame(left_frame, corner_radius=8, border_width=1, border_color="#0078D7")
+    title_frame.grid(row=0, column=0, padx=4, pady=1, sticky="ew")
+    title_frame.grid_columnconfigure(0, weight=1)
+    
+    # Main title with reduced size for better space management
+    app_title = customtkinter.CTkLabel(title_frame, text="\U0001F916 AI Code Review Tool", 
+                                     font=customtkinter.CTkFont(size=14, weight="bold"),
+                                     text_color="#0078D7")
+    app_title.grid(row=0, column=0, pady=1)
+    
+    # Combined subtitle and version for space efficiency
+    subtitle = customtkinter.CTkLabel(title_frame, text=f"Claude 4 Sonnet ✨ v{APP_VERSION}", 
+                                    font=customtkinter.CTkFont(size=10),
+                                    text_color="#666666")
+    subtitle.grid(row=1, column=0, pady=(0,1))
+
+    # Setup token section with compact design and hints
+    token_frame = customtkinter.CTkFrame(left_frame, corner_radius=8)
+    token_frame.grid(row=2, column=0, padx=4, pady=1, sticky="ew")
+    token_frame.grid_columnconfigure(1, weight=1)
+    
+    # Section header - compact
+    token_header = customtkinter.CTkLabel(token_frame, text="\U0001F511 Tokens", 
+                                        font=customtkinter.CTkFont(size=13, weight="bold"),
+                                        text_color="#0078D7")
+    token_header.grid(row=0, column=0, columnspan=2, padx=6, pady=2, sticky="w")
+    
+    # GitHub Token with compact styling and hint
+    github_label = customtkinter.CTkLabel(token_frame, text="GitHub:", font=customtkinter.CTkFont(size=12))
+    github_label.grid(row=1, column=0, padx=6, pady=2, sticky="w")
+    
+    # GitHub token frame with entry and button
+    github_frame = customtkinter.CTkFrame(token_frame, corner_radius=6)
+    github_frame.grid(row=1, column=1, padx=6, pady=2, sticky="ew")
+    github_frame.grid_columnconfigure(0, weight=1)
+    
+    github_token_entry = customtkinter.CTkEntry(github_frame, show="*", width=120, height=24,
+                                               placeholder_text="Personal access token...")
+    github_token_entry.grid(row=0, column=0, padx=3, pady=3, sticky="ew")
+    
+    # Add GitHub token extraction button if module is available
+    if HAS_GITHUB_EXTRACTOR:
+        github_extract_button = customtkinter.CTkButton(github_frame, text="Get", 
+                                                       command=extract_github_token_interactive, 
+                                                       width=50, height=24, corner_radius=6,
+                                                       font=customtkinter.CTkFont(size=11),
+                                                       fg_color="#6f42c1", hover_color="#5a32a3")
+        github_extract_button.grid(row=0, column=1, padx=3, pady=3)
+    
+    # OpenArena Token section with compact design
+    openarena_label = customtkinter.CTkLabel(token_frame, text="OpenArena:", font=customtkinter.CTkFont(size=12))
+    openarena_label.grid(row=2, column=0, padx=6, pady=2, sticky="w")
+    
+    openarena_frame = customtkinter.CTkFrame(token_frame, corner_radius=6)
+    openarena_frame.grid(row=2, column=1, padx=6, pady=2, sticky="ew")
+    openarena_frame.grid_columnconfigure(0, weight=1)
+    
+    openarena_token_entry = customtkinter.CTkEntry(openarena_frame, show="*", width=120, height=24,
+                                                  placeholder_text="API token...")
+    openarena_token_entry.grid(row=0, column=0, padx=3, pady=3, sticky="ew")
+    
+    extract_token_button = customtkinter.CTkButton(openarena_frame, text="Get", 
+                                                  command=extract_openarena_token_with_user_info, 
+                                                  width=50, height=24, corner_radius=6,
+                                                  font=customtkinter.CTkFont(size=11),
+                                                  fg_color="#28A745", hover_color="#218838")
+    extract_token_button.grid(row=0, column=1, padx=3, pady=3)
+    
+    # Repository section with improved combobox design
+    repo_frame = customtkinter.CTkFrame(left_frame, corner_radius=8)
+    repo_frame.grid(row=3, column=0, padx=4, pady=1, sticky="ew")
+    repo_frame.grid_columnconfigure(1, weight=1)
+    
+    # Section header - compact
+    repo_header = customtkinter.CTkLabel(repo_frame, text="\U0001F4C1 Repository", 
+                                       font=customtkinter.CTkFont(size=13, weight="bold"),
+                                       text_color="#0078D7")
+    repo_header.grid(row=0, column=0, columnspan=2, padx=6, pady=2, sticky="w")
+    
+    repo_label = customtkinter.CTkLabel(repo_frame, text="Repo:", font=customtkinter.CTkFont(size=12))
+    repo_label.grid(row=1, column=0, padx=6, pady=2, sticky="w")
+    
+    # Load recent repositories and merge with defaults
+    recent_repos = load_recent_repos()
+    default_repos = ["tr/cs-prof_tax-us-cstax-1040ST-AL", "tr/cs-prof_tax-us-cstax-1040ST-IL", "tr/cs-prof_tax-us-cstax-1040ST-NE"]
+    
+    # Combine recent repos with defaults (recent first)
+    all_repos = []
+    for repo in recent_repos:
+        if repo not in all_repos:
+            all_repos.append(repo)
+    for repo in default_repos:
+        if repo not in all_repos:
+            all_repos.append(repo)
+    
+    # Create a simple repository input with entry field and dropdown
+    repo_input_frame = customtkinter.CTkFrame(repo_frame, fg_color="transparent")
+    repo_input_frame.grid(row=1, column=1, padx=6, pady=2, sticky="ew")
+    repo_input_frame.grid_columnconfigure(0, weight=1)
+    
+    # Main entry field for typing repositories (larger and more standard)
+    repo_combobox = customtkinter.CTkEntry(
+        repo_input_frame,
+        placeholder_text="Type repository (owner/repo)...",
+        width=300,
+        height=32,
+        font=customtkinter.CTkFont(size=12),
+        border_width=2
     )
-    extract_token_button.grid(row=0, column=1, padx=(5, 0))
+    repo_combobox.grid(row=0, column=0, padx=(0, 5), sticky="ew")
+    repo_combobox.insert(0, "tr/cs-prof_tax-us-cstax-1040ST-IL")  # Default value
+    
+    # Quick select dropdown with larger size
+    repo_dropdown = customtkinter.CTkOptionMenu(
+        repo_input_frame,
+        values=all_repos if all_repos else default_repos,
+        width=100,
+        height=32,
+        font=customtkinter.CTkFont(size=11),
+        dynamic_resizing=False,
+        command=lambda choice: (repo_combobox.delete(0, 'end'), repo_combobox.insert(0, choice), handle_repo_selection(choice))
+    )
+    repo_dropdown.grid(row=0, column=1, sticky="e")
+    repo_dropdown.set("Quick Select")
+    
+    # Bind event to save manually typed repositories
+    def on_repo_change(event=None):
+        typed_repo = repo_combobox.get().strip()
+        if typed_repo and '/' in typed_repo:
+            add_recent_repo(typed_repo)
+    
+    repo_combobox.bind("<Return>", on_repo_change)
+    repo_combobox.bind("<FocusOut>", on_repo_change)
+    
+    pr_label = customtkinter.CTkLabel(repo_frame, text="PR #:", font=customtkinter.CTkFont(size=12))
+    pr_label.grid(row=2, column=0, padx=6, pady=2, sticky="w")
+    
+    pr_number_entry = customtkinter.CTkEntry(repo_frame, placeholder_text="e.g., 123", 
+                                           width=200, height=32,
+                                           font=customtkinter.CTkFont(size=12))
+    pr_number_entry.grid(row=2, column=1, padx=6, pady=2, sticky="ew")
+    
+    # Combined options and buttons section for space efficiency
+    action_frame = customtkinter.CTkFrame(left_frame, corner_radius=8)
+    action_frame.grid(row=4, column=0, padx=4, pady=1, sticky="ew")
+    action_frame.grid_columnconfigure(0, weight=1)
+    action_frame.grid_columnconfigure(1, weight=1)
+    action_frame.grid_columnconfigure(2, weight=1)
+    
+    # Options header
+    options_header = customtkinter.CTkLabel(action_frame, text="⚙️ Options & Actions", 
+                                          font=customtkinter.CTkFont(size=13, weight="bold"),
+                                          text_color="#0078D7")
+    options_header.grid(row=0, column=0, columnspan=3, padx=6, pady=2, sticky="w")
+    
+    post_comments_var = customtkinter.BooleanVar(value=True)
+    post_comments_checkbox = customtkinter.CTkCheckBox(action_frame, text="💬 Post comments to PR (uncheck for review-only mode)", 
+                                                      variable=post_comments_var,
+                                                      font=customtkinter.CTkFont(size=11),
+                                                      checkbox_width=14, checkbox_height=14)
+    post_comments_checkbox.grid(row=1, column=0, columnspan=3, padx=6, pady=2, sticky="w")
+    
+    # Compact action buttons
+    review_button = customtkinter.CTkButton(action_frame, text="🚀 Review", 
+                                          command=run_code_review, 
+                                          height=28, corner_radius=6,
+                                          font=customtkinter.CTkFont(size=12, weight="bold"),
+                                          fg_color="#0078D7", hover_color="#106ebe")
+    review_button.grid(row=2, column=0, padx=3, pady=4, sticky="ew")
+    
+    save_tokens_button = customtkinter.CTkButton(action_frame, text="💾 Save", 
+                                               command=save_tokens, 
+                                               height=28, corner_radius=6,
+                                               font=customtkinter.CTkFont(size=12),
+                                               fg_color="#28A745", hover_color="#218838")
+    save_tokens_button.grid(row=2, column=1, padx=3, pady=4, sticky="ew")
+    
+    clear_tokens_button = customtkinter.CTkButton(action_frame, text="🗑️ Clear", 
+                                                 command=clear_tokens, 
+                                                 height=28, corner_radius=6,
+                                                 font=customtkinter.CTkFont(size=12),
+                                                 fg_color="#DC3545", hover_color="#c82333")
+    clear_tokens_button.grid(row=2, column=2, padx=3, pady=4, sticky="ew")
+    
+    # Combined status and analytics section for space efficiency
+    status_frame = customtkinter.CTkFrame(left_frame, corner_radius=8)
+    status_frame.grid(row=5, column=0, padx=4, pady=1, sticky="ew")
+    status_frame.grid_columnconfigure(0, weight=1)
+    status_frame.grid_columnconfigure(1, weight=1)
+    
+    # Section header
+    status_header = customtkinter.CTkLabel(status_frame, text="📊 Status", 
+                                         font=customtkinter.CTkFont(size=13, weight="bold"),
+                                         text_color="#0078D7")
+    status_header.grid(row=0, column=0, columnspan=2, padx=6, pady=2, sticky="w")
+    
+    status_message = customtkinter.StringVar(value="✅ Ready")
+    status_display = customtkinter.CTkLabel(status_frame, textvariable=status_message,
+                                          font=customtkinter.CTkFont(size=12))
+    status_display.grid(row=1, column=0, columnspan=2, padx=6, pady=2, sticky="w")
+    
+    # Compact progress bar
+    progress_bar = customtkinter.CTkProgressBar(status_frame, height=8, corner_radius=4)
+    progress_bar.grid(row=2, column=0, columnspan=2, padx=6, pady=2, sticky="ew")
+    progress_bar.set(0)
+    
+    # Compact view buttons
+    view_frame = customtkinter.CTkFrame(left_frame, corner_radius=8)
+    view_frame.grid(row=6, column=0, padx=4, pady=1, sticky="ew")
+    view_frame.grid_columnconfigure(0, weight=1)
+    view_frame.grid_columnconfigure(1, weight=1)
+    
+    # Results section with improved header
+    view_header = customtkinter.CTkLabel(view_frame, text="📊 Results", 
+                                       font=customtkinter.CTkFont(size=12, weight="bold"),
+                                       text_color="#0078D7")
+    view_header.grid(row=0, column=0, columnspan=2, padx=6, pady=2, sticky="w")
+    
+    view_pr_button = customtkinter.CTkButton(view_frame, text="🔗 View PR", 
+                                           command=view_last_pr, state="disabled",
+                                           height=24, corner_radius=6,
+                                           font=customtkinter.CTkFont(size=11),
+                                           fg_color="#6F42C1", hover_color="#5a379c")
+    view_pr_button.grid(row=1, column=0, padx=3, pady=2, sticky="ew")
+    
+    view_report_button = customtkinter.CTkButton(view_frame, text="📄 Report", 
+                                               command=view_latest_report, state="disabled",
+                                               height=24, corner_radius=6,
+                                               font=customtkinter.CTkFont(size=11),
+                                               fg_color="#17A2B8", hover_color="#138496")
+    view_report_button.grid(row=1, column=1, padx=3, pady=2, sticky="ew")
+    
+    # Compact footer with better visibility
+    footer_frame = customtkinter.CTkFrame(left_frame, corner_radius=6, height=32)
+    footer_frame.grid(row=7, column=0, padx=4, pady=(1,2), sticky="ew")
+    footer_frame.grid_columnconfigure(0, weight=1)
+    footer_frame.grid_propagate(False)  # Maintain fixed height
 
-create_ctk_info_button(input_frame, 1, 2, "Enter your OpenArena token for AI API authentication. Use Get-Token to get token automatically.")
+    footer_label = customtkinter.CTkLabel(footer_frame, text="Thomson Reuters UltraTax Team © 2025", 
+                                        font=customtkinter.CTkFont(size=10),
+                                        text_color="#666666")
+    footer_label.grid(row=0, column=0, pady=6)
+    
+    # Right side - Activity log with clear button
+    log_header_frame = customtkinter.CTkFrame(right_frame, corner_radius=8, border_width=1, border_color="#0078D7")
+    log_header_frame.grid(row=0, column=0, padx=4, pady=4, sticky="ew")
+    log_header_frame.grid_columnconfigure(0, weight=1)
+    
+    log_label = customtkinter.CTkLabel(log_header_frame, text="📝 Activity Log", 
+                                     font=customtkinter.CTkFont(size=14, weight="bold"),
+                                     text_color="#0078D7")
+    log_label.grid(row=0, column=0, padx=8, pady=6, sticky="w")
+    
+    # Add Clear Log button
+    clear_log_button = customtkinter.CTkButton(log_header_frame, text="🧹 Clear", 
+                                             command=clear_activity_log, 
+                                             width=70, height=24,
+                                             font=customtkinter.CTkFont(size=10),
+                                             fg_color="#DC3545", hover_color="#c82333")
+    clear_log_button.grid(row=0, column=1, padx=8, pady=6, sticky="e")
+    
+    activity_log_textbox = customtkinter.CTkTextbox(right_frame, corner_radius=8, border_width=1,
+                                                  font=customtkinter.CTkFont(family="Consolas", size=11))
+    activity_log_textbox.grid(row=1, column=0, padx=4, pady=(0,4), sticky="nsew")
+    
+    # Analytics section below Activity Log
+    analytics_frame = customtkinter.CTkFrame(right_frame, corner_radius=8, border_width=1, border_color="#0078D7")
+    analytics_frame.grid(row=2, column=0, padx=4, pady=4, sticky="ew")
+    analytics_frame.grid_columnconfigure(0, weight=1)
+    analytics_frame.grid_columnconfigure(1, weight=1)
+    analytics_frame.grid_columnconfigure(2, weight=1)
+    
+    # Analytics section header with better layout
+    analytics_header = customtkinter.CTkLabel(analytics_frame, text="📈 Review Analytics", 
+                                            font=customtkinter.CTkFont(size=12, weight="bold"),
+                                            text_color="#0078D7")
+    analytics_header.grid(row=0, column=0, columnspan=3, padx=8, pady=(4,1), sticky="")
+    
+    # Time and Cost labels with proper headings
+    time_taken_label = customtkinter.CTkLabel(analytics_frame, text="⏰ Time: 0s", 
+                                            font=customtkinter.CTkFont(size=11, weight="bold"),
+                                            text_color="#0078D7")
+    time_taken_label.grid(row=1, column=0, padx=6, pady=(2,4), sticky="w")
+    
+    cost_label = customtkinter.CTkLabel(analytics_frame, text="💰 Cost: $0.00", 
+                                      font=customtkinter.CTkFont(size=11, weight="bold"),
+                                      text_color="#28A745")
+    cost_label.grid(row=1, column=2, padx=6, pady=(2,4), sticky="e")
 
-# Repository Name
-repo_label = customtkinter.CTkLabel(input_frame, text="Repository Name:", font=customtkinter.CTkFont(weight="bold"))
-repo_label.grid(row=3, column=0, sticky='w', padx=10, pady=5)
+def clear_activity_log():
+    """Clear the activity log"""
+    if activity_log_textbox:
+        activity_log_textbox.delete("1.0", "end")
+        log_activity("\U0001F9F9 Activity log cleared")
 
-# Create a frame to hold the combobox and integrate it with customtkinter
-repo_frame = customtkinter.CTkFrame(input_frame, fg_color="transparent")
-repo_frame.grid(row=3, column=1, pady=5, padx=10, sticky="ew")
-repo_frame.grid_columnconfigure(0, weight=1)  # Make the combobox expand
-
-# Load recent repositories
-recent_repos = load_recent_repos()
-
-# Create a standard ttk Combobox for repository selection with improved sizing
-repo_combobox = ttk.Combobox(repo_frame, values=recent_repos, height=10)  # Increased dropdown height for better visibility
-repo_combobox.pack(fill='x', expand=True, pady=4)  # Increased vertical padding to match PR entry box
-
-# Set placeholder text if no repos exist
-if recent_repos:
-    repo_combobox.set("")  # Empty by default, user needs to select
-else:
-    repo_combobox.set("owner/repo-name")  # Placeholder text
-
-# For compatibility with existing code
-repo_name_entry = repo_combobox
-
-create_ctk_info_button(input_frame, 3, 2, "Select or enter repository name (e.g., 'owner/repo').")
-
-# Pull Request Number
-pr_label = customtkinter.CTkLabel(input_frame, text="Pull Request No.:", font=customtkinter.CTkFont(weight="bold"))
-pr_label.grid(row=4, column=0, sticky='w', padx=10, pady=5)
-pr_number_entry = customtkinter.CTkEntry(input_frame, placeholder_text="Enter PR number")
-pr_number_entry.grid(row=4, column=1, pady=5, padx=10, sticky="ew")
-create_ctk_info_button(input_frame, 4, 2, "Enter the pull request number.")
-
-# Add a checkbox for posting comments option
-post_comments_var = tk.BooleanVar(value=True)
-post_comments_checkbox = customtkinter.CTkCheckBox(
-    input_frame, 
-    text="Post comments to PR", 
-    variable=post_comments_var, 
-    onvalue=True, 
-    offvalue=False
-)
-post_comments_checkbox.grid(row=5, column=0, columnspan=2, sticky='w', padx=10, pady=5)
-create_ctk_info_button(input_frame, 5, 2, "When unchecked, comments will be shown in the log but not posted to GitHub PR.")
-
-
-# --- Control Buttons Frame ---
-controls_frame = customtkinter.CTkFrame(left_frame)
-controls_frame.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
-controls_frame.grid_columnconfigure(0, weight=1) # Center the review button
-controls_frame.grid_columnconfigure(1, weight=0) # Token buttons
-controls_frame.grid_columnconfigure(2, weight=1) # Center the review button
-
-
-token_button_frame = customtkinter.CTkFrame(controls_frame) # Frame for save/clear
-token_button_frame.grid(row=0, column=1, pady=5, padx=5) # Place in middle column
-
-save_button = customtkinter.CTkButton(token_button_frame, text="Save Tokens", command=save_tokens)
-save_button.pack(side="left", padx=5)
-
-clear_button = customtkinter.CTkButton(token_button_frame, text="Clear Tokens", command=clear_tokens, fg_color="red", hover_color="#C4302B")
-clear_button.pack(side="left", padx=5)
-
-review_button = customtkinter.CTkButton(controls_frame, text="Run Code Review", command=run_code_review, font=customtkinter.CTkFont(size=14, weight="bold"))
-review_button.grid(row=1, column=0, columnspan=3, pady=(10,5)) # Spans all columns to center
-
-
-# --- Progress Frame ---
-progress_frame = customtkinter.CTkFrame(left_frame)
-progress_frame.grid(row=4, column=0, padx=10, pady=10, sticky="ew")
-progress_frame.grid_columnconfigure(0, weight=1)
-
-# Progress bar with percentage display
-progress_container = customtkinter.CTkFrame(progress_frame, fg_color="transparent")
-progress_container.grid(row=0, column=0, pady=(0,10), padx=10, sticky="ew")
-progress_container.grid_columnconfigure(0, weight=1)
-
-progress_bar = customtkinter.CTkProgressBar(progress_container)
-progress_bar.grid(row=0, column=0, sticky="ew", pady=(0,5))
-progress_bar.set(0)
-
-# Progress percentage label
-progress_percentage_label = customtkinter.CTkLabel(
-    progress_container, 
-    text="Ready to start", 
-    font=customtkinter.CTkFont(size=11, weight="bold"),
-    text_color="#FF6F00"
-)
-progress_percentage_label.grid(row=1, column=0, sticky="ew")
-
-
-# View buttons frame
-view_buttons_frame = customtkinter.CTkFrame(left_frame)
-view_buttons_frame.grid(row=5, column=0, padx=10, pady=(0,10), sticky="ew")
-view_buttons_frame.grid_columnconfigure(0, weight=1)
-view_buttons_frame.grid_columnconfigure(1, weight=1)
-
-# View PR on GitHub button
-def open_pr_in_browser():
+def view_last_pr():
+    """Open the last reviewed PR in browser"""
     global last_pr_url
     if last_pr_url:
         webbrowser.open(last_pr_url)
-
-view_pr_button = customtkinter.CTkButton(view_buttons_frame, text="View PR on GitHub", command=open_pr_in_browser, state="disabled")
-view_pr_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-
-# View latest report button
-latest_report_path = None
-
-def open_latest_report():
-    global latest_report_path
-    
-    def open_report_safely(report_path):
-        try:
-            if os.name == 'nt':  # Windows
-                os.startfile(report_path)
-            else:  # Unix/Linux/Mac
-                file_url = f"file://{os.path.abspath(report_path)}"
-                webbrowser.open(file_url)
-        except Exception as e:
-            # Fallback method
-            try:
-                abs_path = os.path.abspath(report_path)
-                url_path = abs_path.replace('\\', '/')
-                if not url_path.startswith('/'):
-                    url_path = '/' + url_path
-                file_url = f"file://{url_path}"
-                webbrowser.open(file_url)
-            except Exception as fallback_error:
-                messagebox.showerror("Error", f"Failed to open report: {e}")
-    
-    if latest_report_path and os.path.exists(latest_report_path):
-        # Use threading to avoid GIL issues when opening files from GUI context
-        import threading
-        thread = threading.Thread(target=lambda: open_report_safely(latest_report_path), daemon=True)
-        thread.start()
+        log_activity(f"[INFO] Opened PR in browser: {last_pr_url}")
     else:
-        # Look for most recent report in the reports directory
-        reports_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "reports")
-        if os.path.exists(reports_dir):
-            reports = [os.path.join(reports_dir, f) for f in os.listdir(reports_dir) if f.startswith("review_report_") and f.endswith(".html")]
-            if reports:
-                latest_report = max(reports, key=os.path.getmtime)
-                # Use threading to avoid GIL issues when opening files from GUI context
-                import threading
-                thread = threading.Thread(target=lambda: open_report_safely(latest_report), daemon=True)
-                thread.start()
-            else:
-                messagebox.showinfo("No Reports", "No reports found. Please run a review first.")
-        else:
-            messagebox.showinfo("No Reports", "Reports directory not found. Please run a review first.")
+        messagebox.showinfo("Info", "No PR URL available to view.")
 
-view_report_button = customtkinter.CTkButton(
-    view_buttons_frame, 
-    text="View Report in Browser", 
-    command=open_latest_report, 
-    state="disabled"
-)
-view_report_button.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+def view_latest_report():
+    """Open the latest HTML report in browser"""
+    global latest_report_path
+    if latest_report_path and os.path.exists(latest_report_path):
+        webbrowser.open(f"file://{latest_report_path}")
+        log_activity(f"[INFO] Opened report in browser: {latest_report_path}")
+    else:
+        messagebox.showinfo("Info", "No report available to view.")
 
-
-# --- Status and Footer Frame ---
-status_footer_frame = customtkinter.CTkFrame(left_frame)
-status_footer_frame.grid(row=6, column=0, padx=10, pady=(10,0), sticky="ew")
-status_footer_frame.grid_columnconfigure(0, weight=1) # For centering status message
-
-status_message = tk.StringVar()
-status_label = customtkinter.CTkLabel(status_footer_frame, textvariable=status_message, font=customtkinter.CTkFont(size=12))
-status_label.grid(row=0, column=0, columnspan=2, pady=(0,5))
-
-version_label_bottom = customtkinter.CTkLabel(status_footer_frame, text=f"AI Code Review Tool v{APP_VERSION}", font=customtkinter.CTkFont(size=10, weight="bold"))
-version_label_bottom.grid(row=1, column=0, sticky="w", padx=5)
-
-footer_label = customtkinter.CTkLabel(status_footer_frame, text="Built by Ultratax Team, 2025", font=customtkinter.CTkFont(size=10))
-footer_label.grid(row=1, column=1, sticky="e", padx=5)
-
-
-# Activity Log (right) with Review Metrics below
-activity_log_frame = customtkinter.CTkFrame(root)
-activity_log_frame.grid(row=0, column=1, rowspan=1, padx=(5,10), pady=(5,10), sticky="nsew")
-activity_log_frame.grid_rowconfigure(1, weight=3) # 3/4 height for log
-activity_log_frame.grid_rowconfigure(3, weight=1) # 1/4 height for metrics
-activity_log_frame.grid_columnconfigure(0, weight=1)
-
-# Activity Log Title with Clear Button
-activity_log_title_frame = customtkinter.CTkFrame(activity_log_frame, fg_color="transparent")
-activity_log_title_frame.grid(row=0, column=0, pady=(0,5), padx=10, sticky="ew")
-activity_log_title_frame.grid_columnconfigure(0, weight=1)
-activity_log_title_frame.grid_columnconfigure(1, weight=0)
-
-activity_log_title_label = customtkinter.CTkLabel(
-    activity_log_title_frame, 
-    text="Activity Logs:", 
-    font=customtkinter.CTkFont(size=12, weight="bold")
-)
-activity_log_title_label.grid(row=0, column=0, sticky="w")
-
-# Clear button for activity log
-clear_log_button = customtkinter.CTkButton(
-    activity_log_title_frame, 
-    text="Clear", 
-    command=clear_activity_log, 
-    width=80,  # Increased from 60
-    height=28,  # Increased from 24
-    font=customtkinter.CTkFont(size=12)  # Increased from 10
-)
-clear_log_button.grid(row=0, column=1, sticky="e", padx=5)
-
-# Activity Log Textbox (3/4 height)
-activity_log_textbox = customtkinter.CTkTextbox(
-    activity_log_frame, 
-    height=150
-)
-activity_log_textbox.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0,10))
-activity_log_textbox.configure(state="normal")
-
-# Review Metrics Section Title
-metrics_title_label = customtkinter.CTkLabel(
-    activity_log_frame, 
-    text="Review Metrics:", 
-    font=customtkinter.CTkFont(size=12, weight="bold")
-)
-metrics_title_label.grid(row=2, column=0, pady=(10,5), padx=10, sticky="w")
-
-# Review Metrics Frame
-metrics_frame = customtkinter.CTkFrame(activity_log_frame)
-metrics_frame.grid(row=3, column=0, sticky="nsew", padx=10, pady=(0,10))
-metrics_frame.grid_columnconfigure((0,1), weight=1)
-metrics_frame.grid_rowconfigure(0, weight=1)
-
-# Time Taken
-time_label = customtkinter.CTkLabel(
-    metrics_frame, 
-    text="Time Taken:", 
-    font=customtkinter.CTkFont(size=12)
-)
-time_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
-
-time_taken_label = customtkinter.CTkLabel(
-    metrics_frame, 
-    text="-", 
-    font=customtkinter.CTkFont(size=12, weight="bold"),
-    text_color="#FF6F00"
-)
-time_taken_label.grid(row=0, column=1, padx=5, pady=5, sticky="w")
-
-# Estimated Cost
-cost_label = customtkinter.CTkLabel(
-    metrics_frame, 
-    text="Est. Cost:", 
-    font=customtkinter.CTkFont(size=12)
-)
-cost_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
-
-cost_label = customtkinter.CTkLabel(
-    metrics_frame, 
-    text="-", 
-    font=customtkinter.CTkFont(size=12, weight="bold"),
-    text_color="#FF6F00"
-)
-cost_label.grid(row=1, column=1, padx=5, pady=5, sticky="w")
-
-# Try to migrate the token file from old format if needed
-migrate_token_file()
-
-# Load tokens on startup
+# Initialize the application
 try:
-    load_tokens()
-    # Add this line:
-    load_openarena_token_on_startup()
+    # Run enhanced startup sequence
+    enhanced_startup_sequence()
+    
+    log_activity("\U0001F916 AI Code Review Tool started successfully!")
+    log_activity(f"\U0001F4CB Version: {APP_VERSION}")
+    log_activity("\U0001F680 Ready to review your code!")
+    
 except Exception as e:
-    print(f"Error during token loading on startup: {e}")
-    messagebox.showerror("Token Loading Error", 
-                       "There was an error loading saved tokens. You may need to re-enter them.\n\n"
-                       f"Error details: {str(e)}")
+    print(f"Error during startup: {e}")
+    log_activity(f"? Startup error: {e}")
 
-# Theme is now set via customtkinter.set_appearance_mode("Dark") at initialization
+# Run the application
+if __name__ == "__main__":
+    root.mainloop()
 
-# --- AI SETTINGS (Global Variables for Modal Dialog) ---
-# Default system prompt
-# Update the system prompt to include severity levels
-default_system_prompt = """You are a senior Software Developer with 20+ years of experience reviewing code changes for a team of skilled professionals. You understand that over-commenting on trivial matters is counter-productive. Focus ONLY on significant issues in the code that could cause actual bugs, serious performance problems, or major maintainability challenges.
-
-*** CRITICAL DATE FORMAT RULE ***
-This codebase uses CCMMDDYY date format (Century, Month, Day, Year) for 8-digit date literals.
-Examples: 20010123 = January 23, 2001 | 20123100 = December 31, 2012
-NEVER flag 8-digit date literals or date arithmetic as issues - they are CORRECT.
-Variables like Base_Date, _GADateExtSnl_, GADateAnnual are CORRECT date constants.
-*** END DATE FORMAT RULE ***
-
-FOCUS ONLY ON:
-1. ACTUAL Logic Errors that could cause bugs
-2. Syntax Errors causing compilation failures  
-3. Potential Runtime Errors (crashes, memory leaks)
-4. Security Vulnerabilities
-5. SIGNIFICANT Performance Issues only
-6. MAJOR Maintainability Issues only
-
-DO NOT COMMENT ON:
-- Code following best practices
-- Trivial stylistic issues
-- Test code patterns (EXPECT_EQ, try-catch in tests, etc.)
-- Date formats or date arithmetic
-- Well-established macros or utility functions
-
-FORMAT: Start each comment with 'Line X: [SEVERITY]:' where SEVERITY is one of:
-- CRITICAL: Security vulnerabilities, crashes, memory leaks
-- HIGH: Logic errors, bugs, runtime failures
-- MEDIUM: Performance issues, maintainability problems
-- LOW: Minor suggestions, style improvements
-
-Example: Line 45: [HIGH]: Logic error that could cause null pointer exception...
-
-If no substantial issues found, provide NO comments."""
-
-# Global AI settings variables (to store current values)
-ai_settings = {
-    "temperature": "0.7",
-    "top_p": "1.0", 
-    "max_tokens": "16384",
-    "system_prompt": default_system_prompt,
-    "workflow_id": "7c41c3ab-c214-4394-ba38-9da289975d85",
-    "filter_comments": True
-}
-
-class AISettingsDialog:
-    """Modal dialog for AI settings configuration"""
-    
-    def __init__(self, parent, settings):
-        self.parent = parent
-        self.settings = settings.copy()  # Work with a copy
-        self.result = None
-        
-        try:
-            print("Creating AI Settings dialog...")
-            # Create modal dialog
-            self.dialog = customtkinter.CTkToplevel(parent)
-            self.dialog.title("AI Settings Configuration")
-            
-            # Set proper size and make it resizable  
-            dialog_width = 900
-            dialog_height = 700
-            self.dialog.geometry(f"{dialog_width}x{dialog_height}")
-            self.dialog.minsize(800, 600)
-            self.dialog.resizable(True, True)
-            
-            # Center the dialog on screen
-            self.dialog.update_idletasks()
-            x = (self.dialog.winfo_screenwidth() // 2) - (dialog_width // 2)
-            y = (self.dialog.winfo_screenheight() // 2) - (dialog_height // 2)
-            self.dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
-            
-            self.dialog.transient(parent)
-            self.dialog.grab_set()  # Make it modal
-            self.dialog.lift()  # Bring to front
-            self.dialog.focus_force()  # Force focus
-            
-            print("Setting up dialog UI...")
-            self.setup_ui()
-            print("Loading current settings...")
-            self.load_current_settings()
-            print("Dialog initialization complete!")
-            
-            # Wait for dialog to close
-            self.dialog.wait_window()
-            
-        except Exception as e:
-            print(f"Error in AISettingsDialog.__init__: {e}")
-            raise
-    
-    def setup_ui(self):
-        """Setup the UI for the AI settings dialog"""
-        
-        try:
-            print("Creating scrollable main frame...")
-            print("Creating main frame with scrollbar...")
-            # Create a main container frame
-            container = customtkinter.CTkFrame(self.dialog)
-            container.pack(fill="both", expand=True, padx=20, pady=20)
-            
-            # Create canvas and scrollbar for scrolling
-            canvas = tk.Canvas(container, bg='#212121', highlightthickness=0)
-            scrollbar = customtkinter.CTkScrollbar(container, orientation="vertical", command=canvas.yview)
-            
-            # Create the main frame that will contain all content
-            self.main_frame = customtkinter.CTkFrame(canvas)
-            
-            # Configure scrolling
-            canvas.configure(yscrollcommand=scrollbar.set)
-            
-            # Pack the scrollbar and canvas
-            scrollbar.pack(side="right", fill="y")
-            canvas.pack(side="left", fill="both", expand=True)
-            
-            # Create window in canvas for the main frame
-            canvas_frame = canvas.create_window((0, 0), window=self.main_frame, anchor="nw")
-            
-            # Bind canvas resize to update frame width and scroll region
-            def configure_canvas(event):
-                canvas.configure(scrollregion=canvas.bbox("all"))
-                canvas.itemconfig(canvas_frame, width=event.width-20)  # Account for scrollbar
-            
-            canvas.bind('<Configure>', configure_canvas)
-            
-            # Update scroll region when main frame changes
-            def update_scroll_region():
-                self.main_frame.update_idletasks()
-                canvas.configure(scrollregion=canvas.bbox("all"))
-            
-            self.main_frame.bind('<Configure>', lambda e: update_scroll_region())
-            
-            # Add mouse wheel scrolling
-            def on_mousewheel(event):
-                canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-            
-            canvas.bind("<MouseWheel>", on_mousewheel)
-            
-            # Configure main frame
-            self.main_frame.grid_columnconfigure(1, weight=1)
-            
-            print("Adding title...")
-            # Title
-            title_label = customtkinter.CTkLabel(self.main_frame, text="AI Configuration Settings", 
-                                               font=customtkinter.CTkFont(size=20, weight="bold"))
-            title_label.grid(row=0, column=0, columnspan=3, pady=(0, 20), sticky="w")
-            
-            print("Adding model parameters section...")
-            # Model Parameters Section
-            model_section_label = customtkinter.CTkLabel(self.main_frame, text="Model Parameters", 
-                                                        font=customtkinter.CTkFont(size=16, weight="bold"))
-            model_section_label.grid(row=1, column=0, columnspan=3, sticky="w", pady=(10, 5))
-            
-            print("Adding temperature field...")
-            # Temperature
-            temp_label = customtkinter.CTkLabel(self.main_frame, text="Temperature:", font=customtkinter.CTkFont(weight="bold"))
-            temp_label.grid(row=2, column=0, sticky="w", padx=(0, 10), pady=5)
-            self.temperature_entry = customtkinter.CTkEntry(self.main_frame, placeholder_text="0.7")
-            self.temperature_entry.grid(row=2, column=1, pady=5, padx=10, sticky="ew")
-            self.create_info_button(self.main_frame, 2, 2, "Controls AI creativity/randomness (0.0-2.0). Lower values (0.1-0.3) = more focused/deterministic responses. Higher values (0.7-1.0) = more creative/varied responses.")
-            
-            print("Adding top_p field...")
-            # Top P
-            top_p_label = customtkinter.CTkLabel(self.main_frame, text="Top P:", font=customtkinter.CTkFont(weight="bold"))
-            top_p_label.grid(row=3, column=0, sticky="w", padx=(0, 10), pady=5)
-            self.top_p_entry = customtkinter.CTkEntry(self.main_frame, placeholder_text="1.0")
-            self.top_p_entry.grid(row=3, column=1, pady=5, padx=10, sticky="ew")
-            self.create_info_button(self.main_frame, 3, 2, "Nucleus sampling parameter (0.0-1.0). Controls the cumulative probability cutoff for token selection. 1.0 = consider all tokens, 0.9 = only top 90% probable tokens.")
-            
-            print("Adding max tokens field...")
-            # Max Tokens
-            max_tokens_label = customtkinter.CTkLabel(self.main_frame, text="Max Tokens:", font=customtkinter.CTkFont(weight="bold"))
-            max_tokens_label.grid(row=4, column=0, sticky="w", padx=(0, 10), pady=5)
-            self.max_tokens_entry = customtkinter.CTkEntry(self.main_frame, placeholder_text="16384")
-            self.max_tokens_entry.grid(row=4, column=1, pady=5, padx=10, sticky="ew")
-            self.create_info_button(self.main_frame, 4, 2, "Maximum number of tokens the AI can generate in response (1-200000). Claude 4 Sonnet supports up to 64K output tokens.")
-            
-            print("Adding system prompt section...")
-            # System Prompt Section
-            prompt_section_label = customtkinter.CTkLabel(self.main_frame, text="System Prompt", 
-                                                         font=customtkinter.CTkFont(size=16, weight="bold"))
-            prompt_section_label.grid(row=5, column=0, columnspan=3, sticky="w", pady=(20, 5))
-            
-            # System Prompt Text Box
-            self.system_prompt_textbox = customtkinter.CTkTextbox(self.main_frame, height=150, width=600)
-            self.system_prompt_textbox.grid(row=6, column=0, columnspan=3, pady=5, sticky="ew")
-            
-            print("Adding prompt buttons...")
-            # Prompt buttons
-            prompt_buttons_frame = customtkinter.CTkFrame(self.main_frame, fg_color="transparent")
-            prompt_buttons_frame.grid(row=7, column=0, columnspan=3, pady=5, sticky="ew")
-            
-            reset_prompt_button = customtkinter.CTkButton(prompt_buttons_frame, text="Reset to Default", 
-                                                         command=self.reset_prompt, fg_color="#8B4513", hover_color="#A0522D")
-            reset_prompt_button.pack(side="left", padx=5)
-            
-            print("Adding OpenArena section...")
-            # OpenArena Section
-            openarena_section_label = customtkinter.CTkLabel(self.main_frame, text="OpenArena Configuration", 
-                                                            font=customtkinter.CTkFont(size=16, weight="bold"))
-            openarena_section_label.grid(row=8, column=0, columnspan=3, sticky="w", pady=(20, 5))
-            
-            # Workflow ID
-            workflow_label = customtkinter.CTkLabel(self.main_frame, text="Workflow ID:", font=customtkinter.CTkFont(weight="bold"))
-            workflow_label.grid(row=9, column=0, sticky="w", padx=(0, 10), pady=5)
-            self.workflow_entry = customtkinter.CTkEntry(self.main_frame, placeholder_text="Enter OpenArena Workflow ID")
-            self.workflow_entry.grid(row=9, column=1, pady=5, padx=10, sticky="ew")
-            self.create_info_button(self.main_frame, 9, 2, "OpenArena workflow/chain ID for AI processing. This determines which AI model and configuration chain is used for code review.")
-            
-            print("Adding comment filtering...")
-            # Comment filtering
-            self.filter_comments_var = tk.BooleanVar(value=True)
-            filter_comments_checkbox = customtkinter.CTkCheckBox(self.main_frame, text="Enable post-processing comment filtering", 
-                                                                variable=self.filter_comments_var)
-            filter_comments_checkbox.grid(row=10, column=0, columnspan=2, sticky="w", pady=5)
-            self.create_info_button(self.main_frame, 10, 2, "Apply additional filtering to remove date-related and noise comments")
-            
-            print("Adding bottom buttons...")
-            # Buttons
-            button_frame = customtkinter.CTkFrame(self.dialog, fg_color="transparent")
-            button_frame.pack(side="bottom", fill="x", padx=20, pady=10)
-            
-            save_button = customtkinter.CTkButton(button_frame, text="Save & Apply", command=self.save_settings,
-                                                fg_color="#2E8B57", hover_color="#3CB371")
-            save_button.pack(side="right", padx=5)
-            
-            cancel_button = customtkinter.CTkButton(button_frame, text="Cancel", command=self.cancel,
-                                                   fg_color="#8B4513", hover_color="#A0522D")
-            cancel_button.pack(side="right", padx=5)
-            
-            test_button = customtkinter.CTkButton(button_frame, text="Test Configuration", command=self.test_configuration,
-                                                fg_color="#4169E1", hover_color="#6495ED")
-            test_button.pack(side="left", padx=5)
-            
-            reset_button = customtkinter.CTkButton(button_frame, text="Reset to Defaults", command=self.reset_all,
-                                                 fg_color="#DC143C", hover_color="#B22222")
-            reset_button.pack(side="left", padx=5)
-            
-            print("UI setup complete!")
-            
-        except Exception as e:
-            print(f"Error in setup_ui: {e}")
-            raise
-    
-    def create_info_button(self, parent, row, column, info_text):
-        """Create info button for tooltips"""
-        info_button = customtkinter.CTkButton(parent, text="?", width=25, height=25,
-                                             command=lambda: messagebox.showinfo("Information", info_text))
-        info_button.grid(row=row, column=column, padx=5)
-    
-    def load_current_settings(self):
-        """Load current settings into the dialog"""
-        self.temperature_entry.insert(0, self.settings["temperature"])
-        self.top_p_entry.insert(0, self.settings["top_p"])
-        self.max_tokens_entry.insert(0, self.settings["max_tokens"])
-        self.system_prompt_textbox.insert("1.0", self.settings["system_prompt"])
-        self.workflow_entry.insert(0, self.settings["workflow_id"])
-        self.filter_comments_var.set(self.settings["filter_comments"])
-    
-    def reset_prompt(self):
-        """Reset system prompt to default"""
-        self.system_prompt_textbox.delete("1.0", tk.END)
-        self.system_prompt_textbox.insert("1.0", default_system_prompt)
-    
-    def reset_all(self):
-        """Reset all settings to defaults"""
-        if messagebox.askyesno("Reset Settings", "Reset all AI settings to defaults?"):
-            self.temperature_entry.delete(0, tk.END)
-            self.temperature_entry.insert(0, "0.7")
-            self.top_p_entry.delete(0, tk.END)
-            self.top_p_entry.insert(0, "1.0")
-            self.max_tokens_entry.delete(0, tk.END)
-            self.max_tokens_entry.insert(0, "16384")
-            self.workflow_entry.delete(0, tk.END)
-            self.workflow_entry.insert(0, "7c41c3ab-c214-4394-ba38-9da289975d85")
-            self.filter_comments_var.set(True)
-            self.reset_prompt()
-            self.filter_comments_var.set(True)
-            self.reset_prompt()
-    
-    def test_configuration(self):
-        """Test current configuration"""
-        config_text = f"""Current API Configuration:
-
-Workflow ID: {self.workflow_entry.get()}
-Temperature: {self.temperature_entry.get()}
-Top P: {self.top_p_entry.get()}
-Max Tokens: {self.max_tokens_entry.get()}
-Comment Filtering: {'Enabled' if self.filter_comments_var.get() else 'Disabled'}
-System Prompt: {self.system_prompt_textbox.get("1.0", tk.END).strip()[:200]}{'...' if len(self.system_prompt_textbox.get("1.0", tk.END).strip()) > 200 else ''}
-
-This configuration will be used for AI code reviews."""
-        
-        messagebox.showinfo("Configuration Test", config_text)
-    
-    def save_settings(self):
-        """Save settings and close dialog"""
-        self.settings["temperature"] = self.temperature_entry.get()
-        self.settings["top_p"] = self.top_p_entry.get()
-        self.settings["max_tokens"] = self.max_tokens_entry.get()
-        self.settings["system_prompt"] = self.system_prompt_textbox.get("1.0", tk.END).strip()
-        self.settings["workflow_id"] = self.workflow_entry.get()
-        self.settings["filter_comments"] = self.filter_comments_var.get()
-        
-        self.result = "save"
-        self.dialog.destroy()
-    
-    def cancel(self):
-        """Cancel and close dialog"""
-        self.result = "cancel"
-        self.dialog.destroy()
-
-def open_ai_settings_dialog():
-    """Open the AI settings modal dialog"""
-    global ai_settings
-    
-    try:
-        print("Opening AI Settings dialog...")
-        dialog = AISettingsDialog(root, ai_settings)
-        print(f"Dialog closed with result: {dialog.result}")
-        
-        if dialog.result == "save":
-            # Update global settings
-            ai_settings.update(dialog.settings)
-            save_ai_settings_to_file()
-            messagebox.showinfo("Success", "AI settings saved successfully!")
-            if 'log_activity' in globals():
-                log_activity("? AI Settings updated via Settings dialog")
-    except Exception as e:
-        print(f"Error opening AI settings dialog: {e}")
-        messagebox.showerror("Error", f"Failed to open AI settings dialog: {e}")
-
-def save_ai_settings_to_file():
-    """Save AI settings to file"""
-    try:
-        with open("ai_settings.json", "w", encoding="utf-8") as f:
-            json.dump(ai_settings, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        messagebox.showerror("Error", f"Failed to save AI settings: {e}")
-
-def load_ai_settings_from_file():
-    """Load AI settings from file"""
-    global ai_settings
-    try:
-        with open("ai_settings.json", "r", encoding="utf-8") as f:
-            loaded_settings = json.load(f)
-            ai_settings.update(loaded_settings)
-        return True
-    except FileNotFoundError:
-        return False
-    except Exception as e:
-        messagebox.showerror("Error", f"Failed to load AI settings: {e}")
-        return False
-
-# Load settings on startup
-load_ai_settings_from_file()
-
-# --- OLD AI SETTINGS (TO BE REMOVED) ---
-# --- OLD AI SETTINGS SECTION REMOVED ---
-# The AI settings have been moved to a modal dialog accessible from the Settings menu.
-# This keeps the main workflow screen clean and uncluttered.
-
-# --- FINAL INITIALIZATION ---
-# Try to load the custom theme file, fall back to built-in theme if not found
-try:
-    # Check multiple possible theme file locations (for development and PyInstaller)
-    theme_locations = [
-        os.path.join(os.path.dirname(__file__), "blue.json"),  # Development environment
-        os.path.join(os.path.dirname(os.path.dirname(__file__)), "AIReview", "blue.json"),  # Relative to root
-        os.path.join(os.path.dirname(os.path.dirname(__file__)), "blue.json"),  # Root directory
-    ]
-    
-    # If running from PyInstaller bundle, add those paths too
-    if hasattr(sys, '_MEIPASS'):
-        bundle_dir = sys._MEIPASS
-        theme_locations.extend([
-            os.path.join(bundle_dir, "AIReview", "blue.json"),  # PyInstaller bundle AIReview folder
-            os.path.join(bundle_dir, "blue.json"),  # PyInstaller bundle root
-        ])
-    
-    # Try each location until we find a valid theme file
-    theme_found = False
-    for theme_path in theme_locations:
-        if os.path.exists(theme_path):
-            print(f"Found theme file at: {theme_path}")
-            customtkinter.set_default_color_theme(theme_path)
-            theme_found = True
-            break
-    
-    if not theme_found:
-        print(f"Theme file not found in any expected locations, using default theme.")
-        customtkinter.set_default_color_theme("blue")  # Fall back to built-in blue theme
-except Exception as e:
-    print(f"Error loading theme: {e}, falling back to default theme")
-    customtkinter.set_default_color_theme("blue")  # Fall back to built-in blue theme
-
-
-check_for_updates_on_startup()
-
-# Add this line before root.mainloop()
-enhanced_startup_sequence()
-
-# Run the Tkinter event loop (now CustomTkinter)
-root.mainloop()

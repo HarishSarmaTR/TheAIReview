@@ -99,5 +99,15 @@
     "corner_radius": 4,
     "width": 20,
     "height": 20
+  },
+  "CTkScrollableFrame": {
+    "label_fg_color": ["#f2f5fa", "#1e2730"],
+    "fg_color": ["#f2f5fa", "#1e2730"],
+    "border_color": ["#e1e6eb", "#2c3540"],
+    "corner_radius": 6,
+    "border_width": 1,
+    "scrollbar_fg_color": ["#c8d0da", "#3c4654"],
+    "scrollbar_button_color": ["#0078d4", "#0066b4"],
+    "scrollbar_button_hover_color": ["#006bc7", "#005aa0"]
   }
 }

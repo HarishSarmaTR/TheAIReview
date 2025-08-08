@@ -1,0 +1,72 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>AI Code Review - tr/cs-prof_tax-us-cstax-1040ST-IL PR #117</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
+            h1 { color: #0078D7; }
+            h2 { color: #0078D7; margin-top: 30px; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+            .file-section { margin-bottom: 30px; background: #f9f9f9; padding: 15px; border-radius: 5px; }
+            .comment { margin-bottom: 15px; padding: 10px; background: #fff; border-left: 4px solid #0078D7; }
+            .line-number { font-weight: bold; color: #0078D7; }
+            .severity { font-weight: bold; color: #FF0000; }
+            .content { margin-top: 5px; white-space: pre-wrap; }
+            .pr-link { margin-bottom: 20px; }
+            .pr-link a { color: #0078D7; text-decoration: none; }
+            .pr-link a:hover { text-decoration: underline; }
+            .summary { margin-top: 20px; padding: 15px; background: #e6f3ff; border-radius: 5px; }
+            .review-info { margin-bottom: 25px; padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #28a745; }
+            .timestamp { color: #666; font-size: 14px; font-style: italic; }
+        </style>
+    </head>
+    <body>
+        <h1>AI Code Review Report</h1>
+        
+        <div class="review-info">
+            <div class="timestamp">Review completed on August 08, 2025 at 12:30:05 AM</div>
+        </div>
+        
+        <div class="pr-link">
+            <strong>Repository:</strong> tr/cs-prof_tax-us-cstax-1040ST-IL | <strong>PR #:</strong> 117
+            <br>
+            <a href="https://github.com/tr/cs-prof_tax-us-cstax-1040ST-IL/pull/117" target="_blank">View PR on GitHub</a>
+        </div>
+        
+        <div class="summary">
+            <strong>Total files with comments:</strong> 2
+            <br>
+            <strong>Total comments:</strong> 2
+        </div>
+    
+        <h2>src/calc/__test_ILdbk.h</h2>
+        <div class="file-section">
+        
+            <div class="comment">
+                <div class="line-number">Line 126</div>
+                <div class="severity">Severity: 🟠 High</div>
+                <div class="content">Line 126: Logical error: The generic template function returns `nullptr` for all types, which could cause null pointer dereferences if calling code doesn't properly check the return value before use, especially since the context shows DBK access should follow strict null-checking rules.
+
+Line 132: Logical error: The generic template function returns `nullptr` for all types, which violates the expected behavior of `chgDBK` that should create a new data block if one doesn't exist, as documented in the context.
+
+Line 136-137: Potential macro collision: These `#define` statements unconditionally override the global `chgDBK` and `getDBK` functions, which could cause issues if other code in the same compilation unit expects the original platform functions, leading to unexpected behavior or linking errors.</div>
+            </div>
+            </div>
+        <h2>src/calc/__test_il4562.cpp</h2>
+        <div class="file-section">
+        
+            <div class="comment">
+                <div class="line-number">Line 41</div>
+                <div class="severity">Severity: 🟠 High</div>
+                <div class="content">Line 41-44: The chgDBK template specialization returns a pointer to a global object without any initialization or validation. According to the DBK usage rules in the context, every pointer should be tested for NULL with Assert_() before use, but this implementation bypasses that safety mechanism by always returning a non-null pointer to uninitialized data.
+
+Line 46-53: The getDBK template specialization modifies global state (line 50) within what should be a read-only accessor function. The function name and const return type suggest it should only retrieve data, but it's actually initializing/modifying the global DBK object, which violates the expected behavior of a getter function.
+
+Line 540: Potential runtime error accessing uninitialized memory. The code accesses `testIL4562dbk::g_pILDeprDBK.track_transfered_assets[R(632)].postal_code` but there's no guarantee that the array index R(632) has been properly initialized or that it's within valid bounds of the track_transfered_assets container.
+
+Line 625: Potential runtime error with the same unvalidated array access to `testIL4562dbk::g_pILDeprDBK.track_transfered_assets[R(632)].orig_IL_asset`. The code doesn't verify that R(632) is a valid index before accessing the array element.</div>
+            </div>
+            </div>
+    </body>
+    </html>
+    

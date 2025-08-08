@@ -1,0 +1,72 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>AI Code Review - tr/cs-prof_tax-us-cstax-1040ST-IL PR #117</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
+            h1 { color: #0078D7; }
+            h2 { color: #0078D7; margin-top: 30px; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+            .file-section { margin-bottom: 30px; background: #f9f9f9; padding: 15px; border-radius: 5px; }
+            .comment { margin-bottom: 15px; padding: 10px; background: #fff; border-left: 4px solid #0078D7; }
+            .line-number { font-weight: bold; color: #0078D7; }
+            .severity { font-weight: bold; color: #FF0000; }
+            .content { margin-top: 5px; white-space: pre-wrap; }
+            .pr-link { margin-bottom: 20px; }
+            .pr-link a { color: #0078D7; text-decoration: none; }
+            .pr-link a:hover { text-decoration: underline; }
+            .summary { margin-top: 20px; padding: 15px; background: #e6f3ff; border-radius: 5px; }
+            .review-info { margin-bottom: 25px; padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #28a745; }
+            .timestamp { color: #666; font-size: 14px; font-style: italic; }
+        </style>
+    </head>
+    <body>
+        <h1>AI Code Review Report</h1>
+        
+        <div class="review-info">
+            <div class="timestamp">Review completed on August 08, 2025 at 12:54:57 AM</div>
+        </div>
+        
+        <div class="pr-link">
+            <strong>Repository:</strong> tr/cs-prof_tax-us-cstax-1040ST-IL | <strong>PR #:</strong> 117
+            <br>
+            <a href="https://github.com/tr/cs-prof_tax-us-cstax-1040ST-IL/pull/117" target="_blank">View PR on GitHub</a>
+        </div>
+        
+        <div class="summary">
+            <strong>Total files with comments:</strong> 2
+            <br>
+            <strong>Total comments:</strong> 2
+        </div>
+    
+        <h2>src/calc/__test_ILdbk.h</h2>
+        <div class="file-section">
+        
+            <div class="comment">
+                <div class="line-number">Line 126</div>
+                <div class="severity">Severity: 🟠 High</div>
+                <div class="content">Looking at this code, I can see it's a test implementation that overrides DBK functions with template specializations. Based on the context provided about DBK usage patterns, I can identify one significant issue:
+
+Line 126 and 132: Logic error: The generic template implementations return nullptr unconditionally, but according to the DBK usage guidelines in the context, all pointers should be tested for NULL with Assert_() before use. Code that calls these functions will likely fail assertions or crash when trying to use the returned nullptr, making this unsuitable even for testing scenarios where you want to simulate missing DBKs.</div>
+            </div>
+            </div>
+        <h2>src/calc/__test_il4562.cpp</h2>
+        <div class="file-section">
+        
+            <div class="comment">
+                <div class="line-number">Line 41</div>
+                <div class="severity">Severity: 🟠 High</div>
+                <div class="content">Line 41: Template specialization issue: The `chgDBK` function template specialization returns a pointer to a global object without proper initialization or validation. According to the DBK documentation, DBKs should be properly initialized and checked for NULL with Assert_().
+
+Line 46: Template specialization issue: The `getDBK` function template specialization modifies global state by setting `g_pILDeprDBK.track_transfered_assets[R(632)].postal_code` inside what should be a read-only getter function. This violates the expected behavior where `getDBK` should only read data.
+
+Line 50: Logic error: The code accesses `g_pILDeprDBK.track_transfered_assets[R(632)]` without verifying that the index `R(632)` is valid or that the container has been properly sized. This could cause out-of-bounds access.
+
+Line 540: Potential runtime error: Direct access to `testIL4562dbk::g_pILDeprDBK.track_transfered_assets[R(632)].postal_code.c_str()` without validating that the index `R(632)` exists in the container or that the postal_code string is not empty.
+
+Line 625: Logic error: The condition `!Res_ && testIL4562dbk::g_pILDeprDBK.track_transfered_assets[R(632)].orig_IL_asset` accesses the global DBK object without bounds checking on the `R(632)` index, which could lead to undefined behavior if the index is out of range.</div>
+            </div>
+            </div>
+    </body>
+    </html>
+    

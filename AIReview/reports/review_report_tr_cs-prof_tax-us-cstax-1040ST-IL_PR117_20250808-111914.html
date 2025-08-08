@@ -1,0 +1,70 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>AI Code Review - tr/cs-prof_tax-us-cstax-1040ST-IL PR #117</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
+            h1 { color: #0078D7; }
+            h2 { color: #0078D7; margin-top: 30px; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+            .file-section { margin-bottom: 30px; background: #f9f9f9; padding: 15px; border-radius: 5px; }
+            .comment { margin-bottom: 15px; padding: 10px; background: #fff; border-left: 4px solid #0078D7; }
+            .line-number { font-weight: bold; color: #0078D7; }
+            .severity { font-weight: bold; color: #FF0000; }
+            .content { margin-top: 5px; white-space: pre-wrap; }
+            .pr-link { margin-bottom: 20px; }
+            .pr-link a { color: #0078D7; text-decoration: none; }
+            .pr-link a:hover { text-decoration: underline; }
+            .summary { margin-top: 20px; padding: 15px; background: #e6f3ff; border-radius: 5px; }
+            .review-info { margin-bottom: 25px; padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #28a745; }
+            .timestamp { color: #666; font-size: 14px; font-style: italic; }
+        </style>
+    </head>
+    <body>
+        <h1>AI Code Review Report</h1>
+        
+        <div class="review-info">
+            <div class="timestamp">Review completed on August 08, 2025 at 11:19:14 AM</div>
+        </div>
+        
+        <div class="pr-link">
+            <strong>Repository:</strong> tr/cs-prof_tax-us-cstax-1040ST-IL | <strong>PR #:</strong> 117
+            <br>
+            <a href="https://github.com/tr/cs-prof_tax-us-cstax-1040ST-IL/pull/117" target="_blank">View PR on GitHub</a>
+        </div>
+        
+        <div class="summary">
+            <strong>Total files with comments:</strong> 2
+            <br>
+            <strong>Total comments:</strong> 2
+        </div>
+    
+        <h2>src/calc/__test_ILdbk.h</h2>
+        <div class="file-section">
+        
+            <div class="comment">
+                <div class="line-number">Line 126</div>
+                <div class="severity">Severity: 🟠 High</div>
+                <div class="content">Looking at this code, I can see it's a test fixture that provides mock implementations of DBK functions. Based on the context provided about DBK usage patterns, I can identify one significant issue:
+
+Line 126 and 132: Logic error: The generic template implementations return nullptr unconditionally, but according to the DBK usage guidelines in the context, every pointer should be tested with Assert_() and proper null checks should be in place. However, the specialized templates (lines 128 and 134) are only declared but not defined, which means they could potentially return valid pointers. This creates inconsistent behavior where some calls return nullptr and others may return valid pointers, making it difficult to write reliable tests that follow the established DBK patterns.</div>
+            </div>
+            </div>
+        <h2>src/calc/__test_il4562.cpp</h2>
+        <div class="file-section">
+        
+            <div class="comment">
+                <div class="line-number">Line 41</div>
+                <div class="severity">Severity: 🟠 High</div>
+                <div class="content">Line 41-44: Logic error in template specialization: The `chgDBK<ILDeprDBK>` function ignores the `unit` parameter and always returns the same global object. According to the context documentation, DBKs are identified by form, unit number, and lifetime, so different units should have different data blocks.
+
+Line 46-53: Logic error in template specialization: The `getDBK<ILDeprDBK>` function modifies the global object (line 50) despite returning a const pointer. This violates the const contract and could lead to unexpected side effects when code expects read-only access.
+
+Line 540: Potential runtime error: Direct array access `testIL4562dbk::g_pILDeprDBK.track_transfered_assets[R(632)]` without bounds checking could cause out-of-bounds access if `R(632)` returns an invalid index.
+
+Line 625: Potential runtime error: Same unbounded array access issue as line 540 - `testIL4562dbk::g_pILDeprDBK.track_transfered_assets[R(632)].orig_IL_asset` could access invalid memory if `R(632)` is out of bounds.</div>
+            </div>
+            </div>
+    </body>
+    </html>
+    

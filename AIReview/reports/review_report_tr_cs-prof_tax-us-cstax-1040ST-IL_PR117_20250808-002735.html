@@ -1,0 +1,59 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>AI Code Review - tr/cs-prof_tax-us-cstax-1040ST-IL PR #117</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
+            h1 { color: #0078D7; }
+            h2 { color: #0078D7; margin-top: 30px; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+            .file-section { margin-bottom: 30px; background: #f9f9f9; padding: 15px; border-radius: 5px; }
+            .comment { margin-bottom: 15px; padding: 10px; background: #fff; border-left: 4px solid #0078D7; }
+            .line-number { font-weight: bold; color: #0078D7; }
+            .severity { font-weight: bold; color: #FF0000; }
+            .content { margin-top: 5px; white-space: pre-wrap; }
+            .pr-link { margin-bottom: 20px; }
+            .pr-link a { color: #0078D7; text-decoration: none; }
+            .pr-link a:hover { text-decoration: underline; }
+            .summary { margin-top: 20px; padding: 15px; background: #e6f3ff; border-radius: 5px; }
+            .review-info { margin-bottom: 25px; padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #28a745; }
+            .timestamp { color: #666; font-size: 14px; font-style: italic; }
+        </style>
+    </head>
+    <body>
+        <h1>AI Code Review Report</h1>
+        
+        <div class="review-info">
+            <div class="timestamp">Review completed on August 08, 2025 at 12:27:35 AM</div>
+        </div>
+        
+        <div class="pr-link">
+            <strong>Repository:</strong> tr/cs-prof_tax-us-cstax-1040ST-IL | <strong>PR #:</strong> 117
+            <br>
+            <a href="https://github.com/tr/cs-prof_tax-us-cstax-1040ST-IL/pull/117" target="_blank">View PR on GitHub</a>
+        </div>
+        
+        <div class="summary">
+            <strong>Total files with comments:</strong> 1
+            <br>
+            <strong>Total comments:</strong> 1
+        </div>
+    
+        <h2>src/calc/__test_ILdbk.h</h2>
+        <div class="file-section">
+        
+            <div class="comment">
+                <div class="line-number">Line 126</div>
+                <div class="severity">Severity: 🟠 High</div>
+                <div class="content">Looking at this code, I can see it's a test-specific override mechanism for DBK functions. Based on the context provided about DBK usage patterns and the code structure, I'll identify actual issues:
+
+Line 126: Logic error: The generic template returns nullptr unconditionally, which violates the DBK usage pattern described in the documentation. According to the handbook, every pointer used should be tested with Assert_(), but returning nullptr from getDBK will cause assertions to fail even for valid requests during testing.
+
+Line 132: Logic error: The generic template returns nullptr unconditionally, which breaks the expected DBK behavior. The documentation states that chgDBK should create a new data block if one doesn't exist, but this implementation will always return nullptr, causing null pointer dereferences when test code expects valid DBK pointers.
+
+Line 136-137: Potential macro collision: These #define statements override global DBK functions without checking if they're already defined elsewhere. This could cause unexpected behavior if other parts of the codebase also define these macros or if the conditional compilation flag is used in multiple files.</div>
+            </div>
+            </div>
+    </body>
+    </html>
+    

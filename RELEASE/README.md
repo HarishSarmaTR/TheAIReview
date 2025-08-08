@@ -2,7 +2,8 @@
 
 ### This Python-based tool leverages the GitHub API and OpenArena AI to automate code reviews on pull requests. Designed exclusively for Thomson Reuters employees, it enhances the code review process by extracting modified lines, sending them for AI-based analysis, and posting insightful comments and suggestions directly on GitHub PRs.
 
-![image](https://github.com/user-attachments/assets/440beffb-aa4b-4593-98b4-e9988e249b20)
+<img width="1017" height="952" alt="image" src="https://github.com/user-attachments/assets/e8e5938a-7bdf-48a6-8431-7edf0184b8e8" />
+
 
 ## Available Versions
 

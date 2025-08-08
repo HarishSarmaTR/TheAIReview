@@ -26,7 +26,17 @@
 
 ## Available Versions
 
-1. **V2.0.0 (Latest)**
+1. **V2.1.1 (Latest)**
+   - Enhanced UI with improved emoji integration throughout the interface
+   - Fixed emoji display issues (replaced ?? placeholders with proper emojis)
+   - Improved feedback window visibility and sizing (650x650 for better user experience)
+   - Enhanced "Post comments to PR" checkbox with helpful description
+   - Updated About section with structured content and professional formatting
+   - Better tooltip explanations for user interface elements
+   - All UI elements now display proper emojis for enhanced visual appeal
+   - Refined Claude 4 Sonnet branding with elegant sparkles emoji
+
+2. **V2.1.0**
    - Modern UI with customtkinter components
    - Enhanced background image and visual aesthetics
    - Improved activity log with timestamped entries and scrollable text widget
@@ -40,7 +50,21 @@
    - Real-time review metrics (time taken and cost estimation)
    - Professional blue theme with dark/light mode support
 
-2. **v1.0.1**
+3. **V2.0.0**
+   - Modern UI with customtkinter components
+   - Enhanced background image and visual aesthetics
+   - Improved activity log with timestamped entries and scrollable text widget
+   - Progress bar with percentage display for better user feedback
+   - "Clear" button that resets both activity log and review metrics
+   - Fixed Claude 4 Sonnet cost calculation with detailed token tracking
+   - Enhanced AI review prompt for more relevant feedback
+   - Better error handling and improved UI experience
+   - Comprehensive HTML user guide with screenshots
+   - Recent repositories dropdown for quick access
+   - Real-time review metrics (time taken and cost estimation)
+   - Professional blue theme with dark/light mode support
+
+4. **v1.0.1**
    - Original stable version with basic UI
    - Core functionality for GitHub PR review
    - Token encryption for security
@@ -53,9 +77,11 @@
    ```
 
 2. **Run Specific Version**
-   - Latest Version: `.\dist\AIReviewTool_V2.0.0.exe` or `.\run_ai_review.ps1`
+   - Latest Version: `.\dist\AIReviewTool_V2.1.1.exe` or `.\run_ai_review.ps1`
+   - Previous Version: `.\dist\AIReviewTool_V2.1.0.exe`
    - v1.0.1: `.\dist\AIReviewTool_v1.0.1.exe` or `.\run_v1.0.1.ps1`
 
 3. **Build Specific Version**
-   - Latest Version: `.\build_executable.ps1`
+   - Latest Version: `.\build_v2.1.1.ps1`
+   - Previous Version: `.\build_v2.1.0.ps1`
    - v1.0.1: `.\build_v1.0.1_simple.ps1`
