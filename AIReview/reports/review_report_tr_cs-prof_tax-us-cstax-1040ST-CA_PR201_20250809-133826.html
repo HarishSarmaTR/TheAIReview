@@ -1,0 +1,163 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>AI Code Review - tr/cs-prof_tax-us-cstax-1040ST-CA PR #201</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
+            h1 { color: #0078D7; }
+            h2 { color: #0078D7; margin-top: 30px; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+            .file-section { margin-bottom: 30px; background: #f9f9f9; padding: 15px; border-radius: 5px; }
+            .comment { margin-bottom: 15px; padding: 10px; background: #fff; border-left: 4px solid #0078D7; border-radius: 3px; }
+            .line-number { font-weight: bold; color: #0078D7; }
+            .severity { font-weight: bold; color: #FF0000; }
+            .content { margin-top: 5px; white-space: pre-wrap; }
+            .code-snippet { 
+                margin-top: 10px; 
+                padding: 10px; 
+                background: #f8f8f8; 
+                border-left: 3px solid #28a745; 
+                border-radius: 3px;
+                font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+                font-size: 13px;
+                white-space: pre;
+                overflow-x: auto;
+            }
+            .snippet-title { 
+                font-weight: bold; 
+                color: #28a745; 
+                margin-bottom: 5px; 
+                font-family: Arial, sans-serif;
+            }
+            .pr-link { margin-bottom: 20px; }
+            .pr-link a { color: #0078D7; text-decoration: none; }
+            .pr-link a:hover { text-decoration: underline; }
+            .summary { margin-top: 20px; padding: 15px; background: #e6f3ff; border-radius: 5px; }
+            .review-info { margin-bottom: 25px; padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #28a745; }
+            .timestamp { color: #666; font-size: 14px; font-style: italic; }
+        </style>
+    </head>
+    <body>
+        <h1>AI Code Review Report</h1>
+        
+        <div class="review-info">
+            <div class="timestamp">Review completed on August 09, 2025 at 01:38:26 PM</div>
+        </div>
+        
+        <div class="pr-link">
+            <strong>Repository:</strong> tr/cs-prof_tax-us-cstax-1040ST-CA | <strong>PR #:</strong> 201
+            <br>
+            <a href="https://github.com/tr/cs-prof_tax-us-cstax-1040ST-CA/pull/201" target="_blank">View PR on GitHub</a>
+        </div>
+        
+        <div class="summary">
+            <strong>Total files with comments:</strong> 2
+            <br>
+            <strong>Total comments:</strong> 6
+        </div>
+    
+        <h2>src/calc/CAP1.CPP</h2>
+        <div class="file-section">
+        
+            <div class="comment">
+                <div class="line-number">Line 311</div>
+                <div class="severity">Severity: 🟡 Medium</div>
+                <div class="content">Looking at the code changes, I can see two lines that set carry values using different approaches. Based on the context provided about carry usage in this system, I'll analyze each line for potential issues.</div>
+                <div class="code-snippet">
+                    <div class="snippet-title">Code Context:</div>     308:     SetCarry(AMTIExcl3805VAMT_, R(330));
+     309:     SetCarry(HomeMtgAdj_, R(303));
+     310: 
+>>>  311:     SetCarry(SchP540P1Subt1_, Add_Refs({313, 335, 336}) - R(330));
+     312:     SetCarry(AMTInfo1_, R(335) + R(336) - R(330));
+     313:     SetCarry(AMTIInfo_, CS[AMTInfo1_] - _K(IDPhaseOut_));
+     314:     SetCarry(ItemDedInPartI_, Add(301, 304) - R(305) + R(306) + R(355));
+                </div>
+                
+            </div>
+            
+            <div class="comment">
+                <div class="line-number">Line 311</div>
+                <div class="severity">Severity: 🟡 Medium</div>
+                <div class="content">Line 311: Inconsistent function usage: This line uses `Add_Refs({313, 335, 336})` while line 312 uses manual addition `R(335) + R(336)` for overlapping references. If `Add_Refs` is the preferred method for summing multiple references, line 312 should be consistent. However, if both approaches are valid, then the calculation logic appears correct - both lines subtract R(330) from their respective sums.</div>
+                <div class="code-snippet">
+                    <div class="snippet-title">Code Context:</div>     308:     SetCarry(AMTIExcl3805VAMT_, R(330));
+     309:     SetCarry(HomeMtgAdj_, R(303));
+     310: 
+>>>  311:     SetCarry(SchP540P1Subt1_, Add_Refs({313, 335, 336}) - R(330));
+     312:     SetCarry(AMTInfo1_, R(335) + R(336) - R(330));
+     313:     SetCarry(AMTIInfo_, CS[AMTInfo1_] - _K(IDPhaseOut_));
+     314:     SetCarry(ItemDedInPartI_, Add(301, 304) - R(305) + R(306) + R(355));
+                </div>
+                
+            </div>
+            
+            <div class="comment">
+                <div class="line-number">Line 312</div>
+                <div class="severity">Severity: 🟡 Medium</div>
+                <div class="content">Line 312: The calculation `R(335) + R(336) - R(330)` appears mathematically sound, but there's a potential issue with the dependency on line 311's result. Since line 311 calculates `SchP540P1Subt1_` using references 313, 335, and 336, and line 312 immediately uses some of the same references (335, 336), this could create a data dependency issue if the carry system doesn't handle immediate availability of newly set carry values properly.</div>
+                <div class="code-snippet">
+                    <div class="snippet-title">Code Context:</div>     309:     SetCarry(HomeMtgAdj_, R(303));
+     310: 
+     311:     SetCarry(SchP540P1Subt1_, Add_Refs({313, 335, 336}) - R(330));
+>>>  312:     SetCarry(AMTInfo1_, R(335) + R(336) - R(330));
+     313:     SetCarry(AMTIInfo_, CS[AMTInfo1_] - _K(IDPhaseOut_));
+     314:     SetCarry(ItemDedInPartI_, Add(301, 304) - R(305) + R(306) + R(355));
+     315:     SetCarry(F3510Exclusions_, Add(301, 304) - R(305) + R(306) + R(355) + R(317) + R(300) + R(329));
+                </div>
+                
+            </div>
+            </div>
+        <h2>src/calc/__test_CADBK.h</h2>
+        <div class="file-section">
+        
+            <div class="comment">
+                <div class="line-number">Line 67</div>
+                <div class="severity">Severity: ⚠️ High</div>
+                <div class="content">Line 67: Forward declaration of `SchPGlobalDBK` is incomplete - this struct is declared but never defined in the visible code, which could cause linker errors if the actual struct definition is missing.</div>
+                <div class="code-snippet">
+                    <div class="snippet-title">Code Context:</div>      64: #endif
+      65: 
+      66: #if _CSTAX_TEST_CAP1DBKs == 1
+>>>   67: struct SchPGlobalDBK;
+      68: struct DoingSchPGlobalDBK;
+      69: 
+      70: namespace testCAP1DBKs
+                </div>
+                
+            </div>
+            
+            <div class="comment">
+                <div class="line-number">Line 101</div>
+                <div class="severity">Severity: ⚠️ High</div>
+                <div class="content">Line 101: Template specialization for `chgDBK<DoingSchPGlobalDBK>(int unit)` references `DoingSchPGlobalDBK` which is only forward declared at line 68. If the complete struct definition is not available, this will cause compilation errors when the template is instantiated.</div>
+                <div class="code-snippet">
+                    <div class="snippet-title">Code Context:</div>      98:     template <> const ICA::Form99* getDBK<ICA::Form99>();
+      99:     template <> const ICA::AGR_DBK* getDBK<ICA::AGR_DBK>(int unit);
+     100:     template <> const INT_DIV_REC* getDBK<INT_DIV_REC>(int unit);
+>>>  101:     template <> DoingSchPGlobalDBK* chgDBK<DoingSchPGlobalDBK>(int unit);
+     102:     template <> DoingSchPGlobalDBK* chgDBK<DoingSchPGlobalDBK>();
+     103: };    // namespace testCAP1DBKs
+     104: 
+                </div>
+                
+            </div>
+            
+            <div class="comment">
+                <div class="line-number">Line 102</div>
+                <div class="severity">Severity: ⚠️ High</div>
+                <div class="content">Line 102: Template specialization for `chgDBK<DoingSchPGlobalDBK>()` has the same issue as line 101 - it depends on the incomplete type `DoingSchPGlobalDBK` which could lead to compilation failures when used.</div>
+                <div class="code-snippet">
+                    <div class="snippet-title">Code Context:</div>      99:     template <> const ICA::AGR_DBK* getDBK<ICA::AGR_DBK>(int unit);
+     100:     template <> const INT_DIV_REC* getDBK<INT_DIV_REC>(int unit);
+     101:     template <> DoingSchPGlobalDBK* chgDBK<DoingSchPGlobalDBK>(int unit);
+>>>  102:     template <> DoingSchPGlobalDBK* chgDBK<DoingSchPGlobalDBK>();
+     103: };    // namespace testCAP1DBKs
+     104: 
+     105: #define getDBK testCAP1DBKs::getDBK
+                </div>
+                
+            </div>
+            </div>
+    </body>
+    </html>
+    

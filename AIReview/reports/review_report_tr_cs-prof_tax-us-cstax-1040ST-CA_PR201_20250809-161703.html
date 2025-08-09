@@ -1,0 +1,143 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>AI Code Review - tr/cs-prof_tax-us-cstax-1040ST-CA PR #201</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
+            h1 { color: #0078D7; }
+            h2 { color: #0078D7; margin-top: 30px; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+            .file-section { margin-bottom: 30px; background: #f9f9f9; padding: 15px; border-radius: 5px; }
+            .comment { margin-bottom: 15px; padding: 10px; background: #fff; border-left: 4px solid #0078D7; }
+            .line-number { font-weight: bold; color: #0078D7; }
+            .severity { font-weight: bold; color: #FF0000; }
+            .content { margin-top: 5px; white-space: pre-wrap; }
+            .pr-link { margin-bottom: 20px; }
+            .pr-link a { color: #0078D7; text-decoration: none; }
+            .pr-link a:hover { text-decoration: underline; }
+            .summary { margin-top: 20px; padding: 15px; background: #e6f3ff; border-radius: 5px; }
+            .review-info { margin-bottom: 25px; padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #28a745; }
+            .timestamp { color: #666; font-size: 14px; font-style: italic; }
+            .code-snippet { margin-top: 8px; padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 12px; white-space: pre-wrap; color: #333; }
+            .snippet-label { font-size: 11px; color: #666; margin-bottom: 3px; font-weight: bold; }
+        </style>
+    </head>
+    <body>
+        <h1>AI Code Review Report</h1>
+        
+        <div class="review-info">
+            <div class="timestamp">Review completed on August 09, 2025 at 04:17:03 PM</div>
+        </div>
+        
+        <div class="pr-link">
+            <strong>Repository:</strong> tr/cs-prof_tax-us-cstax-1040ST-CA | <strong>PR #:</strong> 201
+            <br>
+            <a href="https://github.com/tr/cs-prof_tax-us-cstax-1040ST-CA/pull/201" target="_blank">View PR on GitHub</a>
+        </div>
+        
+        <div class="summary">
+            <strong>Total files with comments:</strong> 3
+            <br>
+            <strong>Total comments:</strong> 11
+        </div>
+    
+        <h2>src/calc/CAP1.CPP</h2>
+        <div class="file-section">
+        
+            <div class="comment">
+                <div class="line-number">Line 311</div>
+                <div class="severity">Severity: 🟡 Medium</div>
+                <div class="content">Looking at this code snippet, I can identify one actual issue:</div>
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">SetCarry(AMTInfo1_, R(335) + R(336) - R(330));</div>
+            </div>
+            
+            <div class="comment">
+                <div class="line-number">Line 312</div>
+                <div class="severity">Severity: ⚠️ High</div>
+                <div class="content">Line 312: Logical inconsistency: The variable `AMTIInfo_` is being set twice with different calculations. Line -311 sets it to `R(335) + R(336) - R(337) - R(330)`, but line 312 overwrites it with `CS[AMTInfo1_] - _K(IDPhaseOut_)`. This suggests either the first assignment is unnecessary (wasted computation) or there's a logic error where the wrong carry variable is being used in one of these assignments.</div>
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">SetCarry(AMTIInfo_, CS[AMTInfo1_] - _K(IDPhaseOut_));</div>
+            </div>
+            </div>
+        <h2>src/calc/__test_CADBK.h</h2>
+        <div class="file-section">
+        
+            <div class="comment">
+                <div class="line-number">Line 67</div>
+                <div class="severity">Severity: 🟡 Medium</div>
+                <div class="content">Looking at the provided code and context, I can see this involves DBK (Data Block) template specializations. Based on the context from the Programmer Training Handbook, I need to check for issues with the DBK implementation.</div>
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">struct DoingSchPGlobalDBK;</div>
+            </div>
+            
+            <div class="comment">
+                <div class="line-number">Line 67</div>
+                <div class="severity">Severity: ⚠️ High</div>
+                <div class="content">Line 67: The forward declaration `struct DoingSchPGlobalDBK;` is incomplete - there's no indication this struct derives from the required `DBK_PodBase` or `DBK_NonPodBase` base class as specified in the documentation, which could cause compilation errors when the template specializations are instantiated.</div>
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">struct DoingSchPGlobalDBK;</div>
+            </div>
+            
+            <div class="comment">
+                <div class="line-number">Line 101</div>
+                <div class="severity">Severity: 🟢 Low</div>
+                <div class="content">Line 101: The template specialization uses `int unit` parameter type, but according to the documentation, DBK functions should use `short Unit` parameter type for consistency with the platform's DBK API functions like `getDBK<T>(short Form, short Unit)`.</div>
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">template <> DoingSchPGlobalDBK* chgDBK<DoingSchPGlobalDBK>(int unit);</div>
+            </div>
+            </div>
+        <h2>src/calc/__test_CAP1.cpp</h2>
+        <div class="file-section">
+        
+            <div class="comment">
+                <div class="line-number">Line 89</div>
+                <div class="severity">Severity: ⚠️ High</div>
+                <div class="content">Line 89: The global pointer `g_DoingSchPGlobal` is initialized to nullptr but the template specializations for `chgDBK<DoingSchPGlobalDBK>()` at lines 91-94 and 96-99 return this pointer directly without null checks, which could lead to null pointer dereferences if the calling code doesn't expect nullptr.</div>
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">DoingSchPGlobalDBK* g_DoingSchPGlobal = nullptr;</div>
+            </div>
+            
+            <div class="comment">
+                <div class="line-number">Line 93</div>
+                <div class="severity">Severity: 🟢 Low</div>
+                <div class="content">Line 93: The `chgDBK` function returns a raw pointer that could be nullptr, but according to the documentation context, DBK functions should follow the rule that "Every pointer that is used gets tested for NULL with an Assert_()". This implementation violates that safety pattern.</div>
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">return g_DoingSchPGlobal;</div>
+            </div>
+            
+            <div class="comment">
+                <div class="line-number">Line 98</div>
+                <div class="severity">Severity: 🟡 Medium</div>
+                <div class="content">Line 98: Same issue as line 93 - returning a potentially null pointer without any safety checks or assertions.</div>
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">return g_DoingSchPGlobal;</div>
+            </div>
+            
+            <div class="comment">
+                <div class="line-number">Line 286</div>
+                <div class="severity">Severity: 🟡 Medium</div>
+                <div class="content">Line 286: Memory management concern - the local `schPGlobalDBK` object is assigned to a global pointer that could outlive the scope of this test function, potentially leading to dangling pointer access if other code tries to use `testCAP1DBKs::g_SchPGlobal` after this test completes.</div>
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">testCAP1DBKs::g_SchPGlobal = &schPGlobalDBK;</div>
+            </div>
+            
+            <div class="comment">
+                <div class="line-number">Line 301</div>
+                <div class="severity">Severity: 🟡 Medium</div>
+                <div class="content">Line 301: Same memory management issue as line 286 - the local `doingSchPGlobalDBK` object's address is assigned to a global pointer that could be accessed after the object goes out of scope.</div>
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">testCAP1DBKs::g_DoingSchPGlobal = &doingSchPGlobalDBK;</div>
+            </div>
+            
+            <div class="comment">
+                <div class="line-number">Line 367</div>
+                <div class="severity">Severity: 🟡 Medium</div>
+                <div class="content">Line 367: Same memory management issue repeated in the second test function - local `doingSchPGlobalDBK` object's address assigned to global pointer.</div>
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">testCAP1DBKs::g_DoingSchPGlobal = &doingSchPGlobalDBK;</div>
+            </div>
+            </div>
+    </body>
+    </html>
+    

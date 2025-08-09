@@ -114,5 +114,51 @@
     "reviews_conducted": 0,
     "repositories_accessed": [],
     "pr_numbers_reviewed": []
+  },
+  {
+    "session_id": "693614f7189d793f",
+    "start_time": "2025-08-09T11:35:33.393801",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "192.168.100.103",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview\\AIReview"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-08-09T11:35:33.393801",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-09T11:36:44.389318",
+        "type": "CODE_REVIEW",
+        "details": "Starting code review for tr/cs-prof_tax-us-cstax-1040ST-CA PR #201",
+        "repo_name": "tr/cs-prof_tax-us-cstax-1040ST-CA",
+        "pr_number": "201"
+      }
+    ],
+    "reviews_conducted": 1,
+    "repositories_accessed": [
+      "tr/cs-prof_tax-us-cstax-1040ST-CA"
+    ],
+    "pr_numbers_reviewed": [
+      "201"
+    ]
   }
 ]

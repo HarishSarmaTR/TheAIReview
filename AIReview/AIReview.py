@@ -621,7 +621,7 @@ current_window_height = 640  # Further reduced for better footer visibility
 TOKEN_FILE = "tokens.txt"
 
 # Define the version as a static date-based version
-APP_VERSION = "2.1.1" # Updated for emoji enhancements and improved feedback UI
+APP_VERSION = "2.1.2" # Updated with tool file filtering, code snippets in reports, and enhanced AI focus
                       # Versioning format: Major.Minor.Patch
                       # Major: Significant changes or new features
                       # Minor: Backward-compatible changes or improvements
@@ -952,11 +952,11 @@ def run_code_review():
         top_p = top_p_entry.get() or "1.0"
         max_tok = max_tokens_entry.get() or "16384"
         workflow = workflow_entry.get() or "default"
-        filtering = ai_settings.get("filter_comments", True)
+        filtering = ai_settings.get("filter_comments", False)  # Fixed: Use False as default
         noise_reduction = ai_settings.get("reduce_noise", True)
         log_activity(f"[CONFIG] AI Settings: Temp={temp}, Top-P={top_p}, Max-Tokens={max_tok}, Filtering={'On' if filtering else 'Off'}, Noise Reduction={'On' if noise_reduction else 'Off'}")
     else:
-        filtering = ai_settings.get("filter_comments", True)
+        filtering = ai_settings.get("filter_comments", False)  # Fixed: Use False as default
         noise_reduction = ai_settings.get("reduce_noise", True)
         log_activity(f"[CONFIG] AI Settings: Filtering={'On' if filtering else 'Off'}, Noise Reduction={'On' if noise_reduction else 'Off'}")
     
@@ -1263,19 +1263,28 @@ def review_code(diff, openarena_token):
             system_prompt = default_system_prompt
         
         payload = {
-            "query": f"""Please perform a comprehensive code review of the following code changes. Analyze the code for bugs, security issues, performance problems, and maintainability concerns.
+            "query": f"""Review the following MODIFIED CODE LINES ONLY and provide line-specific feedback.
 
-CODE CHANGES TO REVIEW:
+IMPORTANT: These are the ONLY lines that were changed in this PR. Focus your review on these specific changes and their immediate impact.
+
+MODIFIED LINES TO REVIEW:
 {diff}
 
-REVIEW REQUIREMENTS:
-1. Focus on identifying actual issues that could impact functionality, security, or maintainability
-2. Provide specific line-by-line feedback where improvements are needed
-3. Use the format 'Line <number>: [SEVERITY] Description' for each issue
-4. Be thorough but practical - flag genuine concerns that developers should address
-5. Suggest concrete solutions for identified problems
+CRITICAL REQUIREMENTS:
+1. ONLY review the lines shown above - these are the actual changes made in this PR
+2. ONLY provide feedback on real code issues in these specific changed lines
+3. For each issue found, use EXACTLY this format: 'Line <number>: [SEVERITY] Description'
+4. If no issues found in the changed lines, respond with: 'Line 0: [INFO] No reviewable issues found in modified lines'
+5. Use severity levels: [CRITICAL], [HIGH], [MEDIUM], [LOW], [INFO]
+6. Focus on: logic errors, security vulnerabilities, performance issues, maintainability problems
+7. DO NOT comment on: date literals (20241231, etc.), standard patterns, or unchanged surrounding code
 
-Please provide detailed, actionable feedback to help improve this code.""",
+EXAMPLES OF CORRECT FORMAT:
+Line 42: [HIGH] Memory leak: Allocated pointer not freed in error path
+Line 78: [MEDIUM] Consider using const reference to avoid unnecessary copying
+Line 105: [LOW] Variable name could be more descriptive
+
+Provide your review now:""",
             "workflow_id": workflow_id,
             "is_persistence_allowed": False,
             "modelparams": {
@@ -1647,7 +1656,8 @@ def create_comments_html_report(comments, pr_url, repo_name, pr_number):
         comments_by_file[filename].append({
             "line_number": comment["line_number"],
             "content": comment["content"],
-            "severity": severity
+            "severity": severity,
+            "code_snippet": comment.get("code_snippet", "")  # Include code snippet
         })
     
     # Create timestamps for filename and display
@@ -1674,6 +1684,8 @@ def create_comments_html_report(comments, pr_url, repo_name, pr_number):
             .summary {{ margin-top: 20px; padding: 15px; background: #e6f3ff; border-radius: 5px; }}
             .review-info {{ margin-bottom: 25px; padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #28a745; }}
             .timestamp {{ color: #666; font-size: 14px; font-style: italic; }}
+            .code-snippet {{ margin-top: 8px; padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 12px; white-space: pre-wrap; color: #333; }}
+            .snippet-label {{ font-size: 11px; color: #666; margin-bottom: 3px; font-weight: bold; }}
         </style>
     </head>
     <body>
@@ -1704,11 +1716,18 @@ def create_comments_html_report(comments, pr_url, repo_name, pr_number):
         """
         
         for comment in file_comments:
+            # Build code snippet section if available
+            code_snippet_html = ""
+            if comment.get("code_snippet") and comment["code_snippet"].strip():
+                code_snippet_html = f"""
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">{comment["code_snippet"]}</div>"""
+            
             html_content += f"""
             <div class="comment">
                 <div class="line-number">Line {comment["line_number"]}</div>
                 <div class="severity">Severity: {comment["severity"]}</div>
-                <div class="content">{comment["content"]}</div>
+                <div class="content">{comment["content"]}</div>{code_snippet_html}
             </div>
             """
         
@@ -1798,10 +1817,24 @@ def main(repo_name, pr_number, post_comments=True):
 
         # Define patterns to ignore
         ignore_patterns = ["*.vcxproj", "*.vcxproj.filters"]
+        
+        # Define tool file patterns to skip (as requested by user)
+        tool_file_patterns = [
+            "*/tool/*",      # Any file in a 'tool' directory
+            "**/tool/**",    # Any file in any 'tool' subdirectory  
+            "*/tools/*",     # Also skip 'tools' directories
+            "**/tools/**"    # Any file in any 'tools' subdirectory
+        ]
 
         files_to_review = list(pr.get_files())
         total_files_in_pr = len(files_to_review)
         log_activity(f"Found {total_files_in_pr} files in PR #{pr.number}.")
+        
+        # Log all files for debugging
+        log_activity(f"[DEBUG] All files in PR:")
+        for i, file in enumerate(files_to_review, 1):
+            log_activity(f"[DEBUG] {i}. {file.filename}")
+        
         
         if progress_bar:
             progress_bar.set(0) # Initialize progress bar
@@ -1813,133 +1846,252 @@ def main(repo_name, pr_number, post_comments=True):
             current_file_num += 1
             log_activity(f"Processing file {current_file_num}/{total_files_in_pr}: {file.filename}")
             
-            if progress_bar:
-                progress_value = float(current_file_num) / total_files_in_pr
-                progress_bar.set(progress_value)
-                if progress_percentage_label:
-                    percentage = int(progress_value * 100)
-                    progress_percentage_label.configure(text=f"{percentage}%")
-                root.update_idletasks()
+            try:
+                if progress_bar:
+                    progress_value = float(current_file_num) / total_files_in_pr
+                    progress_bar.set(progress_value)
+                    if progress_percentage_label:
+                        percentage = int(progress_value * 100)
+                        progress_percentage_label.configure(text=f"{percentage}%")
+                    root.update_idletasks()
 
-            # Check if the file matches any of the ignore patterns
-            if any(fnmatch.fnmatch(file.filename, pattern) for pattern in ignore_patterns):
-                log_activity(f"[SKIP] Skipping file: {file.filename} (matches ignore patterns)")
-                continue
-            
-            reviewed_files_count += 1 # Count as reviewed even if no comments are made, but processing attempted
+                # Check if the file matches any of the ignore patterns
+                if any(fnmatch.fnmatch(file.filename, pattern) for pattern in ignore_patterns):
+                    log_activity(f"[SKIP] Skipping file: {file.filename} (matches ignore patterns)")
+                    continue
+                
+                # Check if the file is a tool file (as requested by user)
+                if any(fnmatch.fnmatch(file.filename, pattern) for pattern in tool_file_patterns):
+                    log_activity(f"[SKIP] Skipping tool file: {file.filename} (tool files don't need code review)")
+                    continue
+                
+                reviewed_files_count += 1 # Count as reviewed even if no comments are made, but processing attempted
 
-            diff = file.patch
-            # Extract exact modified lines
-            modified_lines = get_modified_lines_from_patch(diff)
-            
-            # Log raw diff for debugging if needed
-            if not modified_lines:
-                log_activity(f"Raw patch for debugging:\n{diff[:500]}{'...' if len(diff) > 500 else ''}")
+                diff = file.patch
+                if not diff:
+                    log_activity(f"[SKIP] No patch data available for {file.filename}")
+                    continue
+                    
+                # Extract exact modified lines with error handling
+                try:
+                    modified_lines = get_modified_lines_from_patch(diff)
+                except Exception as patch_error:
+                    log_activity(f"[ERROR] Failed to parse patch for {file.filename}: {patch_error}")
+                    modified_lines = {}
                 
-            # Convert extracted lines into a formatted string for AI review
-            diff_text = "\\n".join([f"{line_num}: {content}" for line_num, content in modified_lines.items()])
+                # Log raw diff for debugging if needed
+                if not modified_lines:
+                    log_activity(f"Raw patch for debugging:\n{diff[:500]}{'...' if len(diff) > 500 else ''}")
+                    
+                # Convert extracted lines into a formatted string for AI review
+                try:
+                    diff_text = "\n".join([f"{line_num}: {content}" for line_num, content in modified_lines.items()])
+                except Exception as format_error:
+                    log_activity(f"[ERROR] Failed to format diff text for {file.filename}: {format_error}")
+                    continue
             
-            # Debug: Show what line numbers are being sent to AI
-            if modified_lines:
-                line_numbers_sent = [line for line in modified_lines.keys() if line > 0]
-                log_activity(f"[DEBUG] Sending line numbers to AI: {sorted(line_numbers_sent)}")
-            
-            # Debug output to see what changes were detected
-            if modified_lines:
-                added_count = sum(1 for k in modified_lines.keys() if k > 0)
-                removed_count = sum(1 for k in modified_lines.keys() if k < 0)
-                log_activity(f"Found {len(modified_lines)} modified lines in {file.filename} ({added_count} added/modified, {removed_count} removed)")
-            else:
-                log_activity(f"[DEBUG] No modified lines detected in {file.filename} patch")
-            
-            if not diff_text.strip():
-                log_activity(f"No reviewable changes found in {file.filename} after parsing patch.")
-                continue
+                # Debug: Show what line numbers are being sent to AI
+                if modified_lines:
+                    line_numbers_sent = [line for line in modified_lines.keys() if line > 0]
+                    log_activity(f"[DEBUG] Sending line numbers to AI: {sorted(line_numbers_sent)}")
                 
-            # Send modified lines to AI
-            review_result = review_code(diff_text, openarena_token)
-            
-            if isinstance(review_result, tuple) and len(review_result) >= 3:
-                comments_text, file_cost, file_tokens = review_result
-            else:
-                comments_text = review_result
-                file_cost = 0.0
-                file_tokens = 0
+                # Debug output to see what changes were detected
+                if modified_lines:
+                    added_count = sum(1 for k in modified_lines.keys() if k > 0)
+                    removed_count = sum(1 for k in modified_lines.keys() if k < 0)
+                    log_activity(f"Found {len(modified_lines)} modified lines in {file.filename} ({added_count} added/modified, {removed_count} removed)")
+                else:
+                    log_activity(f"[DEBUG] No modified lines detected in {file.filename} patch")
                 
-            if not comments_text:
-                log_activity(f"No AI feedback for {file.filename}")
-                continue
+                if not diff_text.strip():
+                    log_activity(f"No reviewable changes found in {file.filename} after parsing patch.")
+                    continue
+                    
+                # Send modified lines to AI
+                review_result = review_code(diff_text, openarena_token)
                 
-            # If we received valid feedback but no token count (API limitation),
-            # estimate tokens based on the text length (1 token ~= 4 chars for English text)
-            if file_tokens == 0 and comments_text:
-                # Estimate input tokens from diff size (roughly)
-                estimated_input_tokens = len(diff_text) // 4
-                # Estimate output tokens from comments size
-                estimated_output_tokens = len(comments_text) // 4
-                # Calculate estimated cost
-                estimated_cost = calculate_claude_cost(estimated_input_tokens, estimated_output_tokens)
-                log_activity(f"[ESTIMATION] No token data from API. Estimating based on text length.")
-                log_activity(f"[ESTIMATION] Estimated tokens - Input: {estimated_input_tokens}, Output: {estimated_output_tokens}")
-                log_activity(f"[ESTIMATION] Estimated cost: ${estimated_cost:.5f}")
-                file_cost = estimated_cost
-                file_tokens = estimated_input_tokens + estimated_output_tokens
-                
-            # Track accumulated costs
-            total_cost += file_cost
-            total_tokens += file_tokens
+                # Safely handle the review result
+                if review_result is None:
+                    log_activity(f"[ERROR] review_code returned None for {file.filename}")
+                    continue
+                elif isinstance(review_result, tuple) and len(review_result) >= 3:
+                    comments_text, file_cost, file_tokens = review_result
+                elif isinstance(review_result, tuple) and len(review_result) == 2:
+                    comments_text, file_cost = review_result
+                    file_tokens = 0
+                elif isinstance(review_result, str):
+                    comments_text = review_result
+                    file_cost = 0.0
+                    file_tokens = 0
+                else:
+                    log_activity(f"[ERROR] Unexpected review_result type for {file.filename}: {type(review_result)}")
+                    continue
+                    
+                if not comments_text or comments_text == "":
+                    log_activity(f"No AI feedback for {file.filename}")
+                    continue
+                    
+                # If we received valid feedback but no token count (API limitation),
+                # estimate tokens based on the text length (1 token ~= 4 chars for English text)
+                if file_tokens == 0 and comments_text:
+                    # Estimate input tokens from diff size (roughly)
+                    estimated_input_tokens = len(diff_text) // 4
+                    # Estimate output tokens from comments size
+                    estimated_output_tokens = len(comments_text) // 4
+                    # Calculate estimated cost
+                    estimated_cost = calculate_claude_cost(estimated_input_tokens, estimated_output_tokens)
+                    log_activity(f"[ESTIMATION] No token data from API. Estimating based on text length.")
+                    log_activity(f"[ESTIMATION] Estimated tokens - Input: {estimated_input_tokens}, Output: {estimated_output_tokens}")
+                    log_activity(f"[ESTIMATION] Estimated cost: ${estimated_cost:.5f}")
+                    file_cost = estimated_cost
+                    file_tokens = estimated_input_tokens + estimated_output_tokens
+                    
+                # Track accumulated costs
+                total_cost += file_cost
+                total_tokens += file_tokens
 
-            # Process AI feedback comments
-            comment_lines = comments_text.split('\\n')
-            
-            # Apply additional filtering to catch any date-related comments that slipped through (if enabled)
-            if ai_settings.get("filter_comments", True):
-                comment_lines = filter_review_comments(comment_lines, file.filename)
-            
-            # Store the comments for this file (for potential browser viewing)
-            if comment_lines:
-                all_comments.extend([{
-                    "file": file.filename, 
-                    "line_number": re.findall(r'\d+', line)[0] if re.findall(r'\d+', line) else "N/A",
-                    "content": line
-                } for line in comment_lines if line.strip()])
-            
-            # Post comments if enabled - FIX: Only post if post_comments is True
-            if post_comments and comment_lines:
-                posted_comments_for_file = post_comments_on_pr(pr, comment_lines, file.filename, modified_lines)
-                all_posted_comments_total_count += len(posted_comments_for_file)
-                log_activity(f"[POSTED] Posted {len(posted_comments_for_file)} comments to GitHub for {file.filename}")
-            else:
-                # Count the comments without posting but don't log content to keep activity log clean
-                comment_count = len([line for line in comment_lines if line.strip()])
-                if comment_count > 0:
-                    if post_comments:
-                        log_activity(f"[INFO] Found {comment_count} comments for {file.filename} but none were posted")
-                    else:
-                        log_activity(f"[GENERATED] Found {comment_count} AI comments for {file.filename} (not posted - checkbox unchecked)")
-                    all_posted_comments_total_count += comment_count
+                # Process AI feedback comments
+                comment_lines = comments_text.split('\n')  # Fixed: Use actual newline character
+                log_activity(f"[DEBUG] Found {len(comment_lines)} raw comment lines for {file.filename}")
+                
+                # Apply additional filtering to catch any date-related comments that slipped through (if enabled)
+                if ai_settings.get("filter_comments", False):  # Fixed: Use False as default to match ai_settings
+                    comment_lines_before = len(comment_lines)
+                    comment_lines = filter_review_comments(comment_lines, file.filename)
+                    log_activity(f"[DEBUG] Filtering reduced comments from {comment_lines_before} to {len(comment_lines)} for {file.filename}")
+                
+                # Store the comments for this file (for potential browser viewing)
+                if comment_lines:
+                    valid_comments = [line for line in comment_lines if line and line.strip()]
+                    log_activity(f"[DEBUG] Adding {len(valid_comments)} valid comments to all_comments for {file.filename}")
+                    
+                    for line in valid_comments:
+                        try:
+                            # Enhanced line number extraction with multiple patterns
+                            line_number = "N/A"
+                            
+                            # Try primary pattern: "Line X:"
+                            line_match = re.search(r'Line\s+(\d+)\s*:', str(line))
+                            if line_match:
+                                line_number = line_match.group(1)
+                            else:
+                                # Try alternative patterns if primary fails
+                                # Pattern for "Line X " without colon
+                                alt_match = re.search(r'Line\s+(\d+)\s+', str(line))
+                                if alt_match:
+                                    line_number = alt_match.group(1)
+                                else:
+                                    # If this is a meaningful comment but no line number, use the first modified line as fallback
+                                    if any(keyword in str(line).lower() for keyword in ['error', 'bug', 'issue', 'problem', 'warning', 'critical', 'high', 'medium', 'low']):
+                                        # Get the first modified line number for this file as a fallback
+                                        positive_lines = [l for l in modified_lines.keys() if l > 0]
+                                        if positive_lines:
+                                            line_number = str(min(positive_lines))
+                                            log_activity(f"[DEBUG] Used fallback line {line_number} for comment: {str(line)[:50]}...")
+                            
+                            # Log what we extracted for debugging
+                            if line_number != "N/A":
+                                log_activity(f"[DEBUG] Extracted line {line_number} from: {str(line)[:80]}...")
+                            else:
+                                log_activity(f"[DEBUG] No line number found in: {str(line)[:80]}...")
+                            
+                            # Get code snippet for this line (as requested by user)
+                            code_snippet = ""
+                            if line_number != "N/A" and line_number.isdigit():
+                                try:
+                                    line_num = int(line_number)
+                                    if line_num in modified_lines:
+                                        code_snippet = modified_lines[line_num]
+                                    else:
+                                        # Try to get nearby modified lines for context
+                                        nearby_lines = [l for l in modified_lines.keys() if abs(l - line_num) <= 2 and l > 0]
+                                        if nearby_lines:
+                                            closest_line = min(nearby_lines, key=lambda x: abs(x - line_num))
+                                            code_snippet = f"(Near line {closest_line}): {modified_lines[closest_line]}"
+                                except (ValueError, KeyError):
+                                    pass
+                            
+                            all_comments.append({
+                                "file": file.filename, 
+                                "line_number": line_number,
+                                "content": str(line),
+                                "code_snippet": code_snippet  # Add code snippet for HTML report
+                            })
+                        except Exception as e:
+                            log_activity(f"[ERROR] Failed to process comment line: {e}")
+                            # Add the comment anyway with N/A line number
+                            all_comments.append({
+                                "file": file.filename, 
+                                "line_number": "N/A",
+                                "content": str(line) if line else "",
+                                "code_snippet": ""  # No code snippet for failed parsing
+                            })
+                else:
+                    log_activity(f"[DEBUG] No valid comments to add for {file.filename}")
+                
+                # Post comments if enabled - FIX: Only post if post_comments is True
+                if post_comments and comment_lines:
+                    posted_comments_for_file = post_comments_on_pr(pr, comment_lines, file.filename, modified_lines)
+                    all_posted_comments_total_count += len(posted_comments_for_file)
+                    log_activity(f"[POSTED] Posted {len(posted_comments_for_file)} comments to GitHub for {file.filename}")
+                else:
+                    # Count the comments without posting but don't log content to keep activity log clean
+                    comment_count = len([line for line in comment_lines if line.strip()])
+                    if comment_count > 0:
+                        if post_comments:
+                            log_activity(f"[INFO] Found {comment_count} comments for {file.filename} but none were posted")
+                        else:
+                            log_activity(f"[GENERATED] Found {comment_count} AI comments for {file.filename} (not posted - checkbox unchecked)")
+                        all_posted_comments_total_count += comment_count
+                        
+            except Exception as file_error:
+                log_activity(f"[ERROR] Error processing file {file.filename}: {file_error}")
+                log_activity(f"[ERROR] Continuing with next file...")
+                # Don't let individual file errors crash the entire review process
+                continue
+        
+        # Enhanced summary with skip reasons
+        skipped_files = total_files_in_pr - reviewed_files_count
+        if skipped_files > 0:
+            log_activity(f"\n[SKIP SUMMARY] {skipped_files} files were skipped:")
+            log_activity(f"[SKIP SUMMARY] - Tool files (*/tool/*, */tools/*) are automatically skipped")
+            log_activity(f"[SKIP SUMMARY] - Project files (*.vcxproj, *.vcxproj.filters) are skipped")
+            log_activity(f"[SKIP SUMMARY] - Files without patch data are skipped")
+            log_activity(f"[SKIP SUMMARY] - Files with API errors are skipped but logged")
         
         # Generate summary message based on results
         if post_comments and all_posted_comments_total_count > 0:
             summary_message = f"? AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. A total of {all_posted_comments_total_count} comments were posted to GitHub PR."
             pr.create_issue_comment(summary_message)
-            log_activity(f"\\n[SUMMARY] Posted AI summary issue comment on PR #{pr.number}: {summary_message}")
+            log_activity(f"\n[SUMMARY] Posted AI summary issue comment on PR #{pr.number}: {summary_message}")
         elif not post_comments and all_posted_comments_total_count > 0:
-            summary_message = f"? AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. A total of {all_posted_comments_total_count} comments were generated (not posted to GitHub - see HTML report)."
-            log_activity(f"\\n[SUMMARY] {summary_message}")
+            summary_message = f"🎯 AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. A total of {all_posted_comments_total_count} comments were generated (not posted to GitHub - see HTML report)."
+            log_activity(f"\n[SUMMARY] {summary_message}")
         elif all_posted_comments_total_count > 0:
-            summary_message = f"? AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. A total of {all_posted_comments_total_count} comments were generated."
-            log_activity(f"\\n[SUMMARY] {summary_message}")
+            summary_message = f"🎯 AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. A total of {all_posted_comments_total_count} comments were generated."
+            log_activity(f"\n[SUMMARY] {summary_message}")
         elif reviewed_files_count > 0:
-            summary_message = f"? AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. No specific issues found by AI requiring comments."
-            log_activity(f"\\n{summary_message}")
+            summary_message = f"🎯 AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. No specific issues found by AI requiring comments."
+            log_activity(f"\n{summary_message}")
         else:
             summary_message = f"[INFO] No files were reviewed in PR #{pr.number}."
-            log_activity(f"\\n{summary_message}")
+            log_activity(f"\n{summary_message}")
             
         # Create an HTML report for viewing in browser if comments exist
+        log_activity(f"[DEBUG] Report generation: Found {len(all_comments)} total comments")
         if all_comments:
+            log_activity(f"[REPORT] Generating HTML report with {len(all_comments)} comments...")
             create_comments_html_report(all_comments, pr_url, repo_name, pr_number)
+            log_activity(f"[REPORT] HTML report generation completed")
+        else:
+            log_activity(f"[DEBUG] No HTML report generated - no comments found")
+            # List why no comments were found
+            if reviewed_files_count == 0:
+                log_activity(f"[DEBUG] Reason: No files were reviewed")
+            elif all_posted_comments_total_count == 0:
+                log_activity(f"[DEBUG] Reason: No comments were generated by AI")
+            else:
+                log_activity(f"[DEBUG] Reason: Comments were generated but not stored in all_comments list")
             
         # Log cost summary
         log_activity(f"[COST] COST SUMMARY")

@@ -1,8 +1,8 @@
 {
-  "latest_version": "2.0.2",
-  "release_date": "2025-07-18",
-  "download_url": "https://github.com/HarishSarmaTR/TheAIReview/releases/download/v2.0.2/AIReviewTool.exe",
-  "release_notes": "• Bug fixes\n• Performance improvements\n• New features",
+  "latest_version": "2.1.2",
+  "release_date": "2025-08-09",
+  "download_url": "https://github.com/HarishSarmaTR/TheAIReview/releases/download/v2.1.2/AIReviewTool.exe",
+  "release_notes": "• Tool file filtering (*/tool/*, */tools/*)\n• Code snippets in HTML reports\n• Enhanced AI focus on changed lines only\n• Improved file skip logging",
   "minimum_supported_version": "2.0.0",
   "force_update": false
 }

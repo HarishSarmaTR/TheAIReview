@@ -26,7 +26,17 @@
 
 ## Available Versions
 
-1. **V2.1.1 (Latest)**
+1. **V2.1.2 (Latest)**
+   - **Tool File Filtering**: Automatically skips tool files (`*/tool/*`, `*/tools/*`) from code review
+   - **Code Snippet Integration**: HTML reports now include actual code snippets for each AI comment
+   - **Enhanced AI Focus**: AI now focuses exclusively on modified lines rather than entire file context
+   - **Improved File Processing Summary**: Detailed summary of why files were skipped with clear categories
+   - **Better Line Number Detection**: Enhanced regex patterns for extracting line numbers from AI responses
+   - **Visual Code Context**: Enhanced CSS styling for code snippets with proper formatting
+   - **Precision Targeting**: Reduced noise by eliminating comments on unchanged surrounding code
+   - **Enhanced Logging**: Clear indication when tool files are skipped with reasoning
+
+2. **V2.1.1**
    - Enhanced UI with improved emoji integration throughout the interface
    - Fixed emoji display issues (replaced ?? placeholders with proper emojis)
    - Improved feedback window visibility and sizing (650x650 for better user experience)
@@ -77,11 +87,11 @@
    ```
 
 2. **Run Specific Version**
-   - Latest Version: `.\dist\AIReviewTool_V2.1.1.exe` or `.\run_ai_review.ps1`
+   - Latest Version: `.\dist\AIReviewTool_V2.1.2.exe` or `.\run_ai_review.ps1`
    - Previous Version: `.\dist\AIReviewTool_V2.1.0.exe`
    - v1.0.1: `.\dist\AIReviewTool_v1.0.1.exe` or `.\run_v1.0.1.ps1`
 
 3. **Build Specific Version**
-   - Latest Version: `.\build_v2.1.1.ps1`
+   - Latest Version: `.\build_v2.1.2.ps1`
    - Previous Version: `.\build_v2.1.0.ps1`
    - v1.0.1: `.\build_v1.0.1_simple.ps1`
