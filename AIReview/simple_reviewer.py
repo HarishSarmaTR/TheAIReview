@@ -1,12 +1,84 @@
-def simple_review_code(diff, openarena_token, log_fn=None):
+def process_large_diff_in_chunks(diff, openarena_token, log_fn=None, max_chunk_size=5000):
+    """
+    Process large diffs in chunks to handle file size limitations
+    
+    Args:
+        diff: The large diff to process
+        openarena_token: API token for OpenArena
+        log_fn: Function to log messages
+        max_chunk_size: Maximum size of each chunk
+    
+    Returns:
+        Tuple of (combined_feedback, total_cost, total_tokens)
+    """
+    def log(msg):
+        if log_fn:
+            log_fn(msg)
+        print(msg)
+    
+    log(f"Processing large diff in chunks (size: {len(diff)} chars)")
+    
+    # Split diff into logical chunks
+    lines = diff.split('\n')
+    chunks = []
+    current_chunk = []
+    current_size = 0
+    
+    for line in lines:
+        line_size = len(line) + 1  # +1 for newline
+        
+        # If adding this line would exceed chunk size, save current chunk
+        if current_size + line_size > max_chunk_size and current_chunk:
+            chunks.append('\n'.join(current_chunk))
+            current_chunk = [line]
+            current_size = line_size
+        else:
+            current_chunk.append(line)
+            current_size += line_size
+    
+    # Add remaining lines as last chunk
+    if current_chunk:
+        chunks.append('\n'.join(current_chunk))
+    
+    log(f"Split into {len(chunks)} chunks")
+    
+    # Process each chunk
+    all_feedback = []
+    total_cost = 0.0
+    total_tokens = 0
+    
+    for i, chunk in enumerate(chunks, 1):
+        log(f"Processing chunk {i}/{len(chunks)}")
+        
+        try:
+            feedback, cost, tokens = simple_review_code(chunk, openarena_token, log_fn, max_chunk_size * 2)  # Prevent infinite recursion
+            
+            if feedback and feedback.strip():
+                all_feedback.append(f"[Chunk {i}/{len(chunks)}]\n{feedback}")
+            
+            total_cost += cost
+            total_tokens += tokens
+            
+        except Exception as e:
+            log(f"Error processing chunk {i}: {e}")
+            continue
+    
+    # Combine all feedback
+    combined_feedback = '\n\n'.join(all_feedback) if all_feedback else "No issues found in the large file review."
+    
+    log(f"Completed chunked processing: {len(all_feedback)} chunks with feedback")
+    return combined_feedback, total_cost, total_tokens
+
+def simple_review_code(diff, openarena_token, log_fn=None, max_chunk_size=5000):
     """
     A simplified function to send code to OpenArena API for review
-    using Claude v4 Sonnet model
+    using Claude v4 Sonnet model with support for large files via chunking
     
     Args:
         diff: The code diff to review
         openarena_token: API token for OpenArena
         log_fn: Function to log messages
+        max_chunk_size: Maximum size of each chunk for large files
     
     Returns:
         Tuple of (feedback, cost_usd, total_tokens)
@@ -21,13 +93,23 @@ def simple_review_code(diff, openarena_token, log_fn=None):
     
     log("Setting up API request for code review")
     
+    # Check if diff is too large and needs chunking
+    if len(diff) > max_chunk_size:
+        log(f"Large diff detected ({len(diff)} chars), processing in chunks")
+        return process_large_diff_in_chunks(diff, openarena_token, log_fn, max_chunk_size)
+    
     headers = {
         'Authorization': f'Bearer {openarena_token}',
         'Content-Type': 'application/json'
     }
-    payload = {
-        "workflow_id": "0a654593-da34-4dfe-a6ed-9c8506e31b73",
-        "query": f"""Review the following code changes: {diff}
+    
+    # Enhanced prompt for better handling of new files and large changes
+    enhanced_prompt = f"""Review the following code changes: {diff}
+
+IMPORTANT GUIDELINES:
+- For NEW FILES: Focus on overall architecture, major design issues, and critical problems only
+- For LARGE FILES: Prioritize security vulnerabilities, logic errors, and performance issues
+- For SMALL CHANGES: Provide detailed feedback on specific issues
 
 PROVIDE SEPARATE COMMENTS FOR EACH MODIFIED LINE or logical block from the pull request ONLY where there are actual issues or improvements needed. DO NOT combine all comments into a single block.
 
@@ -49,14 +131,18 @@ DO NOT COMMENT ON:
 
 IMPORTANT FORMATTING: For each ACTUAL issue found, write a separate paragraph starting with 'Line <line_number>: ' followed by your comment.
 MAKE SEPARATE COMMENTS for different issues - DO NOT combine multiple issues into one comment.
-If a file contains no significant issues, DO NOT add any comments for that file.""",
+If a file contains no significant issues, DO NOT add any comments for that file."""
+    
+    payload = {
+        "workflow_id": "0a654593-da34-4dfe-a6ed-9c8506e31b73",
+        "query": enhanced_prompt,
         "is_persistence_allowed": False,
         "modelparams": {
             "openai_gpt-4o": {
                 "temperature": "0.7",
                 "top_p": "1",
                 "max_tokens": "16384",
-                "system_prompt": "You are an experienced Software Developer reviewing code changes. Focus ONLY on actual issues in the code that could cause bugs, performance problems, or maintainability challenges. Do not comment on code that already follows best practices or working code that doesn't need improvements. If the code is good, it's acceptable to provide no comments. Quality is more important than quantity - only point out real issues."
+                "system_prompt": "You are an experienced Software Developer reviewing code changes. Focus ONLY on actual issues in the code that could cause bugs, performance problems, or maintainability challenges. Do not comment on code that already follows best practices or working code that doesn't need improvements. If the code is good, it's acceptable to provide no comments. Quality is more important than quantity - only point out real issues. For large files or new files, prioritize the most critical issues."
             }
         }
     }

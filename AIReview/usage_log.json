@@ -160,5 +160,260 @@
     "pr_numbers_reviewed": [
       "201"
     ]
+  },
+  {
+    "session_id": "541df326d9218a6d",
+    "start_time": "2025-08-18T17:27:37.730129",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "10.112.78.30",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview\\AIReview"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-08-18T17:27:37.730129",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 0,
+    "repositories_accessed": [],
+    "pr_numbers_reviewed": []
+  },
+  {
+    "session_id": "29399413ffbe81b4",
+    "start_time": "2025-08-18T17:30:08.247449",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "10.112.78.30",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview\\AIReview"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-08-18T17:30:08.247449",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-18T17:30:08.253202",
+        "type": "CODE_REVIEW",
+        "details": "134",
+        "repo_name": "Starting code review for tr/cs-prof_tax-us-cstax-1040ST-IL PR #134",
+        "pr_number": "tr/cs-prof_tax-us-cstax-1040ST-IL"
+      }
+    ],
+    "reviews_conducted": 1,
+    "repositories_accessed": [
+      "Starting code review for tr/cs-prof_tax-us-cstax-1040ST-IL PR #134"
+    ],
+    "pr_numbers_reviewed": [
+      "tr/cs-prof_tax-us-cstax-1040ST-IL"
+    ]
+  },
+  {
+    "session_id": "6e087365cc440184",
+    "start_time": "2025-08-18T17:31:03.113425",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "10.112.78.30",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview\\AIReview"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-08-18T17:31:03.113425",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-18T17:31:03.138006",
+        "type": "CODE_REVIEW",
+        "details": "134",
+        "repo_name": "Starting code review for tr/cs-prof_tax-us-cstax-1040ST-IL PR #134",
+        "pr_number": "tr/cs-prof_tax-us-cstax-1040ST-IL"
+      },
+      {
+        "timestamp": "2025-08-18T17:31:08.537021",
+        "type": "CODE_REVIEW",
+        "details": "134",
+        "repo_name": "Starting code review for tr/cs-prof_tax-us-cstax-1040ST-IL PR #134",
+        "pr_number": "tr/cs-prof_tax-us-cstax-1040ST-IL"
+      },
+      {
+        "timestamp": "2025-08-18T17:32:03.406932",
+        "type": "CODE_REVIEW",
+        "details": "134",
+        "repo_name": "Completed review - 2 files, 2 comments, $0.0032",
+        "pr_number": "tr/cs-prof_tax-us-cstax-1040ST-IL"
+      },
+      {
+        "timestamp": "2025-08-18T17:32:03.406932",
+        "type": "SESSION_END",
+        "details": "User session ended",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 3,
+    "repositories_accessed": [
+      "Starting code review for tr/cs-prof_tax-us-cstax-1040ST-IL PR #134",
+      "Completed review - 2 files, 2 comments, $0.0032"
+    ],
+    "pr_numbers_reviewed": [
+      "tr/cs-prof_tax-us-cstax-1040ST-IL"
+    ],
+    "end_time": "2025-08-18T17:32:03.406932"
+  },
+  {
+    "session_id": "a6105e9787483669",
+    "start_time": "2025-08-18T18:30:31.888200",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "10.112.78.30",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview\\AIReview"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-08-18T18:30:31.888200",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 0,
+    "repositories_accessed": [],
+    "pr_numbers_reviewed": []
+  },
+  {
+    "session_id": "9b04107cc9c19cda",
+    "start_time": "2025-08-18T19:07:42.096472",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "10.112.78.30",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview\\AIReview"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-08-18T19:07:42.096472",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 0,
+    "repositories_accessed": [],
+    "pr_numbers_reviewed": []
+  },
+  {
+    "session_id": "1810a31744206aa6",
+    "start_time": "2025-08-18T19:19:56.420551",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "10.112.78.30",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview\\AIReview"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-08-18T19:19:56.420551",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 0,
+    "repositories_accessed": [],
+    "pr_numbers_reviewed": []
   }
 ]

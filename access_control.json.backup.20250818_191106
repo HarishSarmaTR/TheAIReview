@@ -1,0 +1,10 @@
+{
+  "admin_users": [
+    "6126175",
+    "harish.sarma"
+  ],
+  "allowed_users": [],
+  "require_approval": false,
+  "usage_tracking": true,
+  "detailed_logging": true
+}

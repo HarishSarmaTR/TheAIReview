@@ -13,10 +13,15 @@ import hashlib
 import socket
 from pathlib import Path
 
-# Configuration
+# Configuration - DEVELOPER/ADMIN ONLY ACCESS
 USAGE_LOG_FILE = "usage_log.json"
 ACCESS_CONTROL_FILE = "access_control.json"
-ADMIN_USERS = ["6126175", "harish.sarma"]  # Add your authorized usernames/emails
+ADMIN_USERS = ["6126175", "harish.sarma", "velavalapalli.harishsarma@thomsonreuters.com"]  # Developer access only
+
+# Enhanced capacity settings for enterprise usage tracking
+MAX_SESSIONS_IN_MEMORY = 10000  # Keep up to 10,000 sessions (suitable for monthly exports)
+ARCHIVE_THRESHOLD = 8000  # When to start archiving old data
+MONTHLY_ARCHIVE_ENABLED = True  # Enable automatic monthly archiving
 
 class UsageTracker:
     def __init__(self):
@@ -24,14 +29,17 @@ class UsageTracker:
         self.initialize_access_control()
     
     def initialize_access_control(self):
-        """Initialize access control file if it doesn't exist"""
+        """Initialize access control file with developer-only permissions"""
         if not os.path.exists(ACCESS_CONTROL_FILE):
             default_config = {
                 "admin_users": ADMIN_USERS,
-                "allowed_users": [],  # Empty means no restrictions
+                "allowed_users": [],  # Empty means open access for regular users
                 "require_approval": False,
                 "usage_tracking": True,
-                "detailed_logging": True
+                "detailed_logging": True,
+                "developer_only_reports": True,  # Only developers can see usage reports
+                "log_all_access": True,  # Log all access attempts for monitoring
+                "security_notice": "Usage tracking is for developer monitoring only"
             }
             with open(ACCESS_CONTROL_FILE, 'w') as f:
                 json.dump(default_config, f, indent=2)
@@ -186,8 +194,15 @@ class UsageTracker:
         if not updated:
             usage_logs.append(session_data)
         
-        # Keep only last 100 sessions to prevent file from growing too large
-        usage_logs = usage_logs[-100:]
+        # Enhanced capacity management for enterprise usage tracking
+        if len(usage_logs) > MAX_SESSIONS_IN_MEMORY:
+            # Implement intelligent data management
+            if MONTHLY_ARCHIVE_ENABLED:
+                self.archive_old_sessions(usage_logs)
+            
+            # After archiving, keep the most recent sessions
+            usage_logs = usage_logs[-ARCHIVE_THRESHOLD:]
+            print(f"[USAGE TRACKER] Archived old sessions, keeping {len(usage_logs)} recent sessions")
         
         # Save back to file
         try:
@@ -195,6 +210,194 @@ class UsageTracker:
                 json.dump(usage_logs, f, indent=2)
         except Exception as e:
             print(f"Warning: Could not save usage log: {e}")
+            
+    def archive_old_sessions(self, usage_logs):
+        """Archive old sessions by month for long-term storage"""
+        try:
+            current_date = datetime.datetime.now()
+            archive_folder = "usage_archives"
+            
+            # Create archive folder if it doesn't exist
+            if not os.path.exists(archive_folder):
+                os.makedirs(archive_folder)
+            
+            # Group sessions by month
+            monthly_data = {}
+            sessions_to_keep = []
+            
+            for session in usage_logs:
+                try:
+                    session_date = datetime.datetime.fromisoformat(session.get('start_time', ''))
+                    
+                    # Keep sessions from current month
+                    if session_date.year == current_date.year and session_date.month == current_date.month:
+                        sessions_to_keep.append(session)
+                    else:
+                        # Archive older sessions
+                        month_key = f"{session_date.year}-{session_date.month:02d}"
+                        if month_key not in monthly_data:
+                            monthly_data[month_key] = []
+                        monthly_data[month_key].append(session)
+                except:
+                    # If date parsing fails, keep the session
+                    sessions_to_keep.append(session)
+            
+            # Save archived sessions to monthly files
+            for month_key, month_sessions in monthly_data.items():
+                archive_file = os.path.join(archive_folder, f"usage_archive_{month_key}.json")
+                
+                # Load existing archive if it exists
+                existing_archive = []
+                if os.path.exists(archive_file):
+                    try:
+                        with open(archive_file, 'r') as f:
+                            existing_archive = json.load(f)
+                    except:
+                        existing_archive = []
+                
+                # Add new sessions to archive (avoid duplicates)
+                existing_session_ids = {s.get('session_id') for s in existing_archive}
+                new_sessions = [s for s in month_sessions if s.get('session_id') not in existing_session_ids]
+                
+                if new_sessions:
+                    combined_archive = existing_archive + new_sessions
+                    
+                    # Save archived data
+                    with open(archive_file, 'w') as f:
+                        json.dump(combined_archive, f, indent=2)
+                    
+                    print(f"[ARCHIVE] Archived {len(new_sessions)} sessions to {archive_file}")
+            
+            # Update the main log to keep only current month sessions
+            usage_logs.clear()
+            usage_logs.extend(sessions_to_keep)
+            
+        except Exception as e:
+            print(f"[WARNING] Archiving failed: {e}")
+            
+    def get_comprehensive_usage_report(self, include_archives=True):
+        """Generate comprehensive report including archived data for monthly exports"""
+        report_data = {
+            "generated_at": datetime.datetime.now().isoformat(),
+            "report_type": "comprehensive" if include_archives else "current",
+            "current_sessions": [],
+            "archived_sessions": {},
+            "summary": {}
+        }
+        
+        # Load current sessions
+        if os.path.exists(USAGE_LOG_FILE):
+            try:
+                with open(USAGE_LOG_FILE, 'r') as f:
+                    report_data["current_sessions"] = json.load(f)
+            except Exception as e:
+                print(f"Error loading current sessions: {e}")
+        
+        # Load archived sessions if requested
+        if include_archives and os.path.exists("usage_archives"):
+            archive_folder = "usage_archives"
+            for archive_file in os.listdir(archive_folder):
+                if archive_file.startswith("usage_archive_") and archive_file.endswith(".json"):
+                    month_key = archive_file.replace("usage_archive_", "").replace(".json", "")
+                    archive_path = os.path.join(archive_folder, archive_file)
+                    
+                    try:
+                        with open(archive_path, 'r') as f:
+                            report_data["archived_sessions"][month_key] = json.load(f)
+                    except Exception as e:
+                        print(f"Error loading archive {archive_file}: {e}")
+        
+        # Generate comprehensive summary
+        all_sessions = report_data["current_sessions"].copy()
+        for monthly_sessions in report_data["archived_sessions"].values():
+            all_sessions.extend(monthly_sessions)
+        
+        # Calculate summary statistics
+        unique_users = set()
+        total_reviews = 0
+        unique_repos = set()
+        user_activity = {}
+        monthly_stats = {}
+        
+        for session in all_sessions:
+            # Extract user information
+            system_user = session.get("system_info", {}).get("system_user", "Unknown")
+            sso_user = session.get("user_info", {}).get("email", "")
+            display_name = session.get("user_info", {}).get("display_name", system_user)
+            
+            # Track unique users
+            unique_users.add(system_user)
+            if sso_user:
+                unique_users.add(sso_user)
+            
+            # Accumulate totals
+            session_reviews = session.get("reviews_conducted", 0)
+            total_reviews += session_reviews
+            session_repos = session.get("repositories_accessed", [])
+            unique_repos.update(session_repos)
+            
+            # Track per-user activity
+            user_key = sso_user if sso_user else system_user
+            if user_key not in user_activity:
+                user_activity[user_key] = {
+                    "display_name": display_name,
+                    "session_count": 0,
+                    "review_count": 0,
+                    "last_active": None,
+                    "repositories": set()
+                }
+            
+            user_activity[user_key]["session_count"] += 1
+            user_activity[user_key]["review_count"] += session_reviews
+            user_activity[user_key]["repositories"].update(session_repos)
+            
+            # Update last active time
+            start_time = session.get("start_time")
+            if start_time and (not user_activity[user_key]["last_active"] or start_time > user_activity[user_key]["last_active"]):
+                user_activity[user_key]["last_active"] = start_time
+            
+            # Monthly statistics
+            try:
+                session_date = datetime.datetime.fromisoformat(start_time)
+                month_key = f"{session_date.year}-{session_date.month:02d}"
+                if month_key not in monthly_stats:
+                    monthly_stats[month_key] = {
+                        "sessions": 0,
+                        "reviews": 0,
+                        "unique_users": set(),
+                        "repositories": set()
+                    }
+                monthly_stats[month_key]["sessions"] += 1
+                monthly_stats[month_key]["reviews"] += session_reviews
+                monthly_stats[month_key]["unique_users"].add(user_key)
+                monthly_stats[month_key]["repositories"].update(session_repos)
+            except:
+                pass
+        
+        # Convert sets to lists for JSON serialization
+        for user, activity in user_activity.items():
+            activity["repositories"] = list(activity["repositories"])
+        
+        for month, stats in monthly_stats.items():
+            stats["unique_users"] = len(stats["unique_users"])
+            stats["repositories"] = list(stats["repositories"])
+        
+        report_data["summary"] = {
+            "total_sessions": len(all_sessions),
+            "unique_users": list(unique_users),
+            "total_reviews": total_reviews,
+            "repositories_accessed": list(unique_repos),
+            "user_activity": user_activity,
+            "monthly_statistics": monthly_stats,
+            "capacity_info": {
+                "current_sessions_count": len(report_data["current_sessions"]),
+                "archived_months": len(report_data["archived_sessions"]),
+                "total_capacity": f"Up to {MAX_SESSIONS_IN_MEMORY:,} sessions",
+                "archive_enabled": MONTHLY_ARCHIVE_ENABLED
+            }
+        }
+        
+        return report_data
     
     def end_session(self):
         """End the current session"""
@@ -204,60 +407,95 @@ class UsageTracker:
             self.current_session = None
     
     def get_usage_report(self):
-        """Generate a usage report for admin review"""
+        """Generate a usage report for admin review (current sessions only)"""
         if not os.path.exists(USAGE_LOG_FILE):
-            return "No usage data available"
+            return {"error": "No usage data available"}
         
         try:
             with open(USAGE_LOG_FILE, 'r') as f:
                 usage_logs = json.load(f)
-        except:
-            return "Error reading usage log"
+        except Exception as e:
+            return {"error": f"Error reading usage log: {e}"}
         
-        report = []
-        report.append("=== AI REVIEW TOOL USAGE REPORT ===\n")
-        
-        # Summary statistics
+        # Calculate summary statistics
         total_sessions = len(usage_logs)
         unique_users = set()
         total_reviews = 0
         unique_repos = set()
+        user_activity = {}
+        recent_sessions = []
         
         for log in usage_logs:
-            if log.get("system_info", {}).get("system_user"):
-                unique_users.add(log["system_info"]["system_user"])
-            if log.get("user_info", {}).get("email"):
-                unique_users.add(log["user_info"]["email"])
+            # Extract user information
+            system_user = log.get("system_info", {}).get("system_user", "Unknown")
+            sso_user = log.get("user_info", {}).get("email", "")
+            display_name = log.get("user_info", {}).get("display_name", system_user)
             
-            total_reviews += log.get("reviews_conducted", 0)
-            unique_repos.update(log.get("repositories_accessed", []))
-        
-        report.append(f"Total Sessions: {total_sessions}")
-        report.append(f"Unique Users: {len(unique_users)}")
-        report.append(f"Total Code Reviews: {total_reviews}")
-        report.append(f"Unique Repositories: {len(unique_repos)}")
-        report.append("\n=== RECENT SESSIONS ===\n")
-        
-        # Recent session details (last 20)
-        recent_sessions = usage_logs[-20:]
-        for session in recent_sessions:
-            start_time = session.get("start_time", "Unknown")
-            user = session.get("system_info", {}).get("system_user", "Unknown")
-            sso_user = session.get("user_info", {}).get("email", "")
-            reviews = session.get("reviews_conducted", 0)
-            repos = session.get("repositories_accessed", [])
+            # Track unique users
+            unique_users.add(system_user)
+            if sso_user:
+                unique_users.add(sso_user)
             
-            user_display = f"{user}" + (f" ({sso_user})" if sso_user else "")
-            report.append(f"Session: {start_time}")
-            report.append(f"  User: {user_display}")
-            report.append(f"  Reviews: {reviews}")
-            report.append(f"  Repositories: {', '.join(repos) if repos else 'None'}")
-            report.append("")
+            # Accumulate totals
+            session_reviews = log.get("reviews_conducted", 0)
+            total_reviews += session_reviews
+            session_repos = log.get("repositories_accessed", [])
+            unique_repos.update(session_repos)
+            
+            # Track per-user activity
+            user_key = sso_user if sso_user else system_user
+            if user_key not in user_activity:
+                user_activity[user_key] = {
+                    "display_name": display_name,
+                    "session_count": 0,
+                    "review_count": 0,
+                    "last_active": None,
+                    "repositories": set()
+                }
+            
+            user_activity[user_key]["session_count"] += 1
+            user_activity[user_key]["review_count"] += session_reviews
+            user_activity[user_key]["repositories"].update(session_repos)
+            
+            # Update last active time
+            start_time = log.get("start_time")
+            if start_time and (not user_activity[user_key]["last_active"] or start_time > user_activity[user_key]["last_active"]):
+                user_activity[user_key]["last_active"] = start_time
+            
+            # Keep recent sessions for detailed view
+            if len(recent_sessions) < 20:  # Keep last 20 sessions
+                recent_sessions.append({
+                    "user": display_name,
+                    "start_time": start_time,
+                    "end_time": log.get("end_time", "Ongoing"),
+                    "reviews": session_reviews,
+                    "repositories": session_repos
+                })
         
-        return "\n".join(report)
-    
-    def is_admin(self, user_info=None):
-        """Check if current user is admin"""
+        # Convert sets to lists for JSON serialization
+        for user, activity in user_activity.items():
+            activity["repositories"] = list(activity["repositories"])
+        
+        report = {
+            "report_type": "current_sessions",
+            "generated_at": datetime.datetime.now().isoformat(),
+            "summary": {
+                "total_sessions": total_sessions,
+                "unique_users": len(unique_users),
+                "total_reviews": total_reviews,
+                "unique_repositories": len(unique_repos),
+                "capacity_status": f"{total_sessions:,} / {MAX_SESSIONS_IN_MEMORY:,} sessions",
+                "archive_status": "Enabled" if MONTHLY_ARCHIVE_ENABLED else "Disabled"
+            },
+            "user_activity": user_activity,
+            "recent_sessions": recent_sessions[::-1],  # Most recent first
+            "repositories_accessed": list(unique_repos)
+        }
+        
+        return report
+
+    def is_current_user_admin(self):
+        """Check if current user is admin (for UI visibility control)"""
         try:
             with open(ACCESS_CONTROL_FILE, 'r') as f:
                 config = json.load(f)
@@ -270,34 +508,38 @@ class UsageTracker:
         if system_user in admin_users:
             return True
         
-        if user_info and user_info.get('email') and user_info['email'] in admin_users:
-            return True
+        # Check SSO email if available in current session
+        if self.current_session and self.current_session.get('user_info'):
+            email = self.current_session['user_info'].get('email')
+            if email and email in admin_users:
+                return True
         
         return False
 
 # Global instance
 usage_tracker = UsageTracker()
 
-def start_tracking_session(user_info=None):
+# Main application interface functions
+def start_session(user_info=None):
     """Initialize usage tracking for the application"""
     return usage_tracker.start_session(user_info)
 
-def log_review_activity(repo_name, pr_number, details):
-    """Log a code review activity"""
-    usage_tracker.log_activity("CODE_REVIEW", details, repo_name, pr_number)
+def log_activity(action, details="", repo_name=None, pr_number=None):
+    """Log an activity with optional context"""
+    return usage_tracker.log_activity(action, details, repo_name, pr_number)
 
-def log_system_activity(activity_type, message):
-    """Log general system activity"""
-    usage_tracker.log_usage(activity_type, message)
-
-def end_tracking_session():
+def end_session():
     """End the current tracking session"""
-    usage_tracker.end_session()
+    return usage_tracker.end_session()
 
 def get_usage_report():
-    """Get usage report (admin only)"""
+    """Get current session usage report (admin only)"""
     return usage_tracker.get_usage_report()
 
-def is_admin_user(user_info=None):
-    """Check if user has admin privileges"""
-    return usage_tracker.is_admin(user_info)
+def get_comprehensive_report(include_archives=True):
+    """Get comprehensive usage report including archived data (admin only)"""
+    return usage_tracker.get_comprehensive_usage_report(include_archives)
+
+def is_current_user_admin():
+    """Check if current user is admin (for UI visibility control)"""
+    return usage_tracker.is_current_user_admin()

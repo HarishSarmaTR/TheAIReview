@@ -1,10 +1,14 @@
 {
   "admin_users": [
     "6126175",
-    "harish.sarma"
+    "harish.sarma",
+    "velavalapalli.harishsarma@thomsonreuters.com"
   ],
   "allowed_users": [],
   "require_approval": false,
   "usage_tracking": true,
-  "detailed_logging": true
+  "detailed_logging": true,
+  "developer_only_reports": true,
+  "log_all_access": true,
+  "security_notice": "Usage tracking is for developer monitoring only"
 }

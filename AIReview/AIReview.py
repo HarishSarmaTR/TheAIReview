@@ -38,7 +38,7 @@ except ImportError:
 
 # Import usage tracking
 try:
-    from usage_tracker import start_tracking_session, log_review_activity, log_system_activity, end_tracking_session, get_usage_report, is_admin_user
+    from usage_tracker import start_session, log_activity, end_session, get_usage_report, get_comprehensive_report, is_current_user_admin
     HAS_USAGE_TRACKING = True
 except ImportError:
     HAS_USAGE_TRACKING = False
@@ -59,6 +59,241 @@ try:
 except ImportError:
     HAS_UPDATE_CHECKER = False
     print("Update checker not found. Manual update checking required.")
+
+def is_current_user_admin():
+    """Check if the current user is an admin - for UI visibility control"""
+    try:
+        user_info = get_authenticated_user_info()
+        admin_identifiers = ["6126175", "harish.sarma", "velavalapalli.harishsarma@thomsonreuters.com"]
+        
+        # Check system user
+        if user_info.get('system_user') in admin_identifiers:
+            log_activity(f"[ADMIN CHECK] Admin access granted via system user: {user_info.get('system_user')}")
+            return True
+        
+        # Check SSO email
+        if user_info.get('email') and any(admin_id in user_info['email'].lower() for admin_id in admin_identifiers):
+            log_activity(f"[ADMIN CHECK] Admin access granted via SSO email: {user_info.get('email')}")
+            return True
+        
+        # Check display name
+        if user_info.get('display_name') and "harish" in user_info['display_name'].lower():
+            log_activity(f"[ADMIN CHECK] Admin access granted via display name: {user_info.get('display_name')}")
+            return True
+        
+        # Final check using usage tracker admin function
+        if HAS_USAGE_TRACKING:
+            try:
+                if is_current_user_admin():
+                    log_activity(f"[ADMIN CHECK] Admin access granted via usage tracker")
+                    return True
+            except:
+                pass
+        
+        # Regular user detected
+        log_activity(f"[SECURITY] Regular user detected: {user_info.get('display_name', 'Unknown')} - admin features hidden")
+        return False
+    except Exception as e:
+        log_activity(f"[ERROR] Admin check failed: {e} - defaulting to regular user")
+        return False
+
+def show_usage_report():
+    """Show usage report - ADMIN ONLY feature for monitoring tool usage"""
+    if not HAS_USAGE_TRACKING:
+        messagebox.showinfo("Usage Tracking", "Usage tracking module is not available.")
+        return
+    
+    try:
+        # Strict admin check - only allow specific authorized users
+        user_info = get_authenticated_user_info()
+        
+        # Check if user is admin using multiple criteria
+        is_admin = False
+        admin_identifiers = ["6126175", "harish.sarma", "velavalapalli.harishsarma@thomsonreuters.com"]
+        
+        # Check system user
+        if user_info.get('system_user') in admin_identifiers:
+            is_admin = True
+        
+        # Check SSO email
+        if user_info.get('email') and any(admin_id in user_info['email'].lower() for admin_id in admin_identifiers):
+            is_admin = True
+        
+        # Check display name
+        if user_info.get('display_name') and "harish" in user_info['display_name'].lower():
+            is_admin = True
+        
+        # Final check using usage tracker admin function
+        if HAS_USAGE_TRACKING:
+            try:
+                is_admin = is_admin or is_current_user_admin()
+            except:
+                pass
+        
+        if not is_admin:
+            log_activity(f"[SECURITY] Unauthorized usage report access attempt by {user_info.get('display_name', 'Unknown')}")
+            messagebox.showerror(
+                "Access Denied - Developer Only Feature", 
+                "❌ This feature is restricted to the developer only.\n\n"
+                "Usage tracking and reporting is for administrative monitoring purposes.\n"
+                "Contact the developer if you need access to usage statistics."
+            )
+            return
+        
+        log_activity(f"[ADMIN] Usage report accessed by authorized admin: {user_info.get('display_name', 'Unknown')}")
+        
+        # Get usage report
+        report = get_usage_report()
+        if not report or 'error' in report:
+            messagebox.showinfo("Usage Report", f"No usage data available: {report.get('error', 'Unknown error')}")
+            return
+        
+        # Create report window
+        report_window = Toplevel(root)
+        report_window.title("🔒 AI Review Tool - Usage Report (Developer Only)")
+        report_window.geometry("900x700")
+        report_window.configure(bg="#2b2b2b")
+        
+        # Add security warning header
+        security_frame = tk.Frame(report_window, bg="#dc3545", height=40)
+        security_frame.pack(fill=tk.X, padx=0, pady=0)
+        security_frame.pack_propagate(False)
+        
+        security_label = tk.Label(security_frame, 
+                                 text="🔒 CONFIDENTIAL - DEVELOPER/ADMIN ONLY - DO NOT SHARE", 
+                                 bg="#dc3545", fg="white", 
+                                 font=("Arial", 10, "bold"))
+        security_label.pack(expand=True)
+        
+        # Create scrollable text widget
+        frame = tk.Frame(report_window, bg="#2b2b2b")
+        frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        text_widget = tk.Text(frame, bg="#1e1e1e", fg="#ffffff", font=("Consolas", 9))
+        scrollbar = tk.Scrollbar(frame, orient=tk.VERTICAL, command=text_widget.yview)
+        text_widget.configure(yscrollcommand=scrollbar.set)
+        
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        # Format and insert report
+        report_text = f"""🔒 AI REVIEW TOOL - CONFIDENTIAL USAGE REPORT
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} by {user_info.get('display_name', 'Admin')}
+{'='*80}
+
+⚠️  IMPORTANT: This report contains confidential usage data for monitoring purposes.
+    Do not share this information with unauthorized personnel.
+
+📊 USAGE SUMMARY:
+{'='*50}
+• Total Sessions: {report.get('total_sessions', 0)}
+• Active Users: {len(report.get('unique_users', []))}
+• Total Reviews Conducted: {report.get('total_reviews', 0)}
+• Repositories Accessed: {len(report.get('repositories_accessed', []))}
+
+👥 USER ACTIVITY BREAKDOWN:
+{'='*50}"""
+        
+        # Add detailed user activity
+        if 'user_activity' in report and report['user_activity']:
+            for user, activity in report['user_activity'].items():
+                report_text += f"""
+📋 User: {activity.get('display_name', user)}
+   • System ID: {user}
+   • Sessions: {activity.get('session_count', 0)}
+   • Reviews: {activity.get('review_count', 0)}
+   • Last Active: {activity.get('last_active', 'N/A')}
+   • Repositories: {', '.join(activity.get('repositories', []))}
+"""
+        else:
+            report_text += "\nNo user activity data available."
+        
+        # Add repository usage
+        if 'repositories_accessed' in report and report['repositories_accessed']:
+            report_text += f"\n\n📁 REPOSITORY ACCESS LOG:\n{'='*50}\n"
+            for repo in report['repositories_accessed']:
+                report_text += f"• {repo}\n"
+        
+        # Add recent sessions (last 10 for security)
+        if 'recent_sessions' in report and report['recent_sessions']:
+            report_text += f"\n\n🕒 RECENT SESSIONS (Last 10):\n{'='*50}\n"
+            for session in report['recent_sessions'][:10]:
+                user = session.get('user_info', {}).get('display_name', 'Unknown')
+                start_time = session.get('start_time', 'N/A')
+                reviews = session.get('reviews_conducted', 0)
+                repos = session.get('repositories_accessed', [])
+                report_text += f"{start_time} - {user} ({reviews} reviews) - {', '.join(repos)}\n"
+        
+        # Add footer warning
+        report_text += f"""
+
+{'='*80}
+🔒 CONFIDENTIALITY NOTICE:
+This report contains sensitive usage information and should be treated as confidential.
+Access is logged and monitored. Do not distribute without authorization.
+
+Report generated for: {user_info.get('display_name', 'Admin')}
+Generation time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+{'='*80}"""
+        
+        text_widget.insert(tk.END, report_text)
+        text_widget.configure(state=tk.DISABLED)
+        
+        # Add export button with security warning
+        button_frame = tk.Frame(report_window, bg="#2b2b2b")
+        button_frame.pack(pady=5)
+        
+        export_button = tk.Button(button_frame, text="📁 Export Report (Secure)", 
+                                 command=lambda: export_usage_report_secure(report, user_info),
+                                 bg="#FFA500", fg="white", font=("Arial", 10))
+        export_button.pack(side=tk.LEFT, padx=5)
+        
+        close_button = tk.Button(button_frame, text="🔒 Close", 
+                                command=report_window.destroy,
+                                bg="#DC3545", fg="white", font=("Arial", 10))
+        close_button.pack(side=tk.LEFT, padx=5)
+        
+    except Exception as e:
+        log_activity(f"[ERROR] Failed to generate usage report: {e}")
+        messagebox.showerror("Error", f"Failed to generate usage report: {e}")
+
+def export_usage_report_secure(report_data, user_info):
+    """Export usage report with security logging - ADMIN ONLY"""
+    try:
+        from tkinter import filedialog
+        
+        # Add security metadata to export
+        secure_report = {
+            "export_metadata": {
+                "exported_by": user_info.get('display_name', 'Unknown'),
+                "exported_at": datetime.now().isoformat(),
+                "export_purpose": "Administrative monitoring",
+                "confidentiality": "RESTRICTED - DO NOT SHARE"
+            },
+            "usage_data": report_data
+        }
+        
+        filename = filedialog.asksaveasfilename(
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+            title="Save Usage Report (Confidential)",
+            initialname=f"usage_report_confidential_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        )
+        
+        if filename:
+            with open(filename, 'w') as f:
+                json.dump(secure_report, f, indent=2, default=str)
+            
+            # Log the export action
+            log_activity(f"[SECURITY] Usage report exported by {user_info.get('display_name', 'Unknown')} to {filename}")
+            
+            messagebox.showinfo("Export Complete", 
+                              f"✅ Confidential usage report exported to:\n{filename}\n\n"
+                              "⚠️ This file contains sensitive data - handle with care!")
+            
+    except Exception as e:
+        log_activity(f"[ERROR] Failed to export secure usage report: {e}")
+        messagebox.showerror("Export Error", f"Failed to export report: {e}")
 
 def get_authenticated_user_info():
     """Get authenticated user information from SSO and system"""
@@ -499,11 +734,11 @@ def enhanced_startup_sequence():
         if HAS_USAGE_TRACKING:
             try:
                 user_info = get_authenticated_user_info()
-                has_access, access_message = start_tracking_session(user_info)
+                has_access, access_message = start_session(user_info)
                 log_activity(f"\U0001F6E1 Access Control: {access_message}")
                 
                 # Check if user is admin and show admin info
-                if is_admin_user(user_info):
+                if is_current_user_admin():
                     log_activity("\U0001F510 Admin privileges detected - full access granted")
                     # You can uncomment the next line to see usage report on startup
                     # log_activity(f"?? Usage Report:\n{get_usage_report()}")
@@ -621,7 +856,7 @@ current_window_height = 640  # Further reduced for better footer visibility
 TOKEN_FILE = "tokens.txt"
 
 # Define the version as a static date-based version
-APP_VERSION = "2.1.2" # Updated with tool file filtering, code snippets in reports, and enhanced AI focus
+APP_VERSION = "2.1.3" # Updated with enterprise usage tracking, admin management tools, and dev monitor fixes
                       # Versioning format: Major.Minor.Patch
                       # Major: Significant changes or new features
                       # Minor: Backward-compatible changes or improvements
@@ -872,6 +1107,20 @@ def update_repo_combobox():
 
 def run_code_review():
     global github_token, openarena_token, last_pr_url
+    
+    # Enhanced usage tracking - Start session at the beginning
+    user_info = get_authenticated_user_info()
+    if HAS_USAGE_TRACKING:
+        try:
+            success, message = start_session(user_info)
+            if not success:
+                log_activity(f"[ACCESS DENIED] {message}")
+                messagebox.showerror("Access Denied", message)
+                return
+            log_activity(f"[TRACKING] {message}")
+        except Exception as e:
+            log_activity(f"[WARNING] Usage tracking failed: {e}")
+    
     github_token = github_token_entry.get()
     openarena_token = openarena_token_entry.get()
     repo_name = repo_combobox.get()  # Use combobox instead of entry
@@ -880,7 +1129,17 @@ def run_code_review():
     
     if not (github_token and openarena_token and repo_name and pr_number):
         messagebox.showerror("Input Error", "Please fill in all fields.")
+        if HAS_USAGE_TRACKING:
+            log_activity("SYSTEM_ERROR", "Input validation failed - missing required fields")
+            end_session()
         return
+    
+    # Enhanced logging for tracking
+    log_activity(f"[REVIEW START] Repository: {repo_name}, PR: {pr_number}, User: {user_info.get('display_name', 'Unknown')}")
+    log_activity("[INFO] ⚠️ Usage monitoring is active for administrative purposes")
+    
+    if HAS_USAGE_TRACKING:
+        log_activity("CODE_REVIEW", f"Starting code review for {repo_name} PR #{pr_number}", repo_name, pr_number)
     
     # Validate OpenArena token format and show specific error if invalid
     if not openarena_token or len(openarena_token.strip()) < 10:
@@ -965,7 +1224,7 @@ def run_code_review():
     
     # Log review activity for usage tracking
     if HAS_USAGE_TRACKING:
-        log_review_activity(repo_name, pr_number, f"Starting code review for {repo_name} PR #{pr_number}")
+        log_activity("CODE_REVIEW", f"Starting code review for {repo_name} PR #{pr_number}", repo_name, pr_number)
     
     status_message.set("Running code review...")
     if progress_bar:
@@ -1015,7 +1274,13 @@ def run_code_review():
     
     if reviewed_files_count > 0:
         log_activity(f"Code review completed. Reviewed {reviewed_files_count}/{total_files} files. Posted {all_posted_comments_count} comments.")
-        status_message.set("Completed ?")
+        status_message.set("Completed ✅")
+        
+        # Enhanced completion tracking
+        if HAS_USAGE_TRACKING:
+            log_activity("CODE_REVIEW_COMPLETE", f"Completed review - {reviewed_files_count} files, {all_posted_comments_count} comments, ${total_cost:.4f}", repo_name, pr_number)
+            end_session()
+        
         messagebox.showinfo("Success", f"Code review completed successfully! Reviewed {reviewed_files_count}/{total_files} files.")
         last_pr_url = pr_url
         
@@ -1026,6 +1291,11 @@ def run_code_review():
     elif total_files == 0:
         log_activity("No files found in the PR to review.")
         status_message.set("No files to review")
+        
+        if HAS_USAGE_TRACKING:
+            log_activity("SYSTEM_INFO", "No files found in PR to review")
+            end_session()
+        
         messagebox.showinfo("Info", "No files found in the PR to review.")
         last_pr_url = None
         if view_pr_button:
@@ -1033,6 +1303,11 @@ def run_code_review():
     else:
         log_activity("Code review finished. No comments were posted or an error occurred.")
         status_message.set("Finished (No comments/Error)")
+        
+        if HAS_USAGE_TRACKING:
+            log_activity("SYSTEM_WARNING", "Review completed but no comments generated or error occurred")
+            end_session()
+        
         messagebox.showwarning("Warning", "Code review finished, but no comments were posted or an error occurred during the process.")
         last_pr_url = pr_url
         if view_pr_button:
@@ -1060,6 +1335,7 @@ def log_activity(message):
 def get_modified_lines_from_patch(patch_text):
     """
     Parse a git diff patch to extract added and removed lines.
+    Enhanced to handle large files and new files correctly.
     For new files (starting with @@ -0,0), all lines are considered as added.
     For modified files, both added and removed lines are tracked.
     
@@ -1070,49 +1346,89 @@ def get_modified_lines_from_patch(patch_text):
     """
     modified_lines = {}
     current_new_line = None
+    current_old_line = None
     is_new_file = False
     
     if not patch_text: # Added safety check
         return modified_lines
 
-    # Handle newline escapes in patch text
-    cleaned_patch = patch_text.replace('\\n', '\n')
+    # Handle newline escapes in patch text and normalize line endings
+    cleaned_patch = patch_text.replace('\\n', '\n').replace('\r\n', '\n').replace('\r', '\n')
     
-    # Check if this is a new file
-    if "@@ -0,0 " in cleaned_patch:
+    # Enhanced new file detection - check multiple patterns
+    if any(pattern in cleaned_patch for pattern in ["@@ -0,0 ", "new file mode", "index 0000000.."]):
         is_new_file = True
-        
-    for line in cleaned_patch.split('\n'):
+        log_activity(f"[DEBUG] Detected new file in patch")
+    
+    # Split into lines and process
+    lines = cleaned_patch.split('\n')
+    
+    for i, line in enumerate(lines):
         # Match the hunk header to get line numbers
-        hunk_match = re.match(r'^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@', line)
+        hunk_match = re.match(r'^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@', line)
         if hunk_match:
-            old_line = int(hunk_match.group(1))
-            current_new_line = int(hunk_match.group(2))
-            # Detect if this is a new file based on hunk header
-            if old_line == 0:
+            old_start = int(hunk_match.group(1))
+            old_count = int(hunk_match.group(2)) if hunk_match.group(2) else 1
+            new_start = int(hunk_match.group(3))
+            new_count = int(hunk_match.group(4)) if hunk_match.group(4) else 1
+            
+            current_old_line = old_start
+            current_new_line = new_start
+            
+            # Enhanced new file detection
+            if old_start == 0 and old_count == 0:
                 is_new_file = True
+                log_activity(f"[DEBUG] New file confirmed by hunk header: @@ -{old_start},{old_count} +{new_start},{new_count} @@")
+            
             continue
 
         if current_new_line is None:
             continue
 
-        # For new files, all lines with '+' are considered as added
-        if is_new_file and line.startswith('+') and not line.startswith('+++'):
-            modified_lines[current_new_line] = line[1:].strip()
+        # Process different line types
+        if line.startswith('+++') or line.startswith('---'):
+            # Skip file headers
+            continue
+        elif line.startswith('diff ') or line.startswith('index '):
+            # Skip diff metadata
+            continue
+        elif line.startswith('+') and not line.startswith('+++'):
+            # Added line
+            content = line[1:]  # Keep original spacing/indentation
+            modified_lines[current_new_line] = content
             current_new_line += 1
-        # For existing files, process added/modified and removed lines
-        elif not is_new_file:
-            if line.startswith('+') and not line.startswith('+++'):
-                # Added/modified line
-                modified_lines[current_new_line] = line[1:].strip()
+            
+            # For new files, this is expected behavior
+            if is_new_file:
+                log_activity(f"[DEBUG] New file line {current_new_line-1}: {content[:50]}{'...' if len(content) > 50 else ''}")
+                
+        elif line.startswith('-') and not line.startswith('---'):
+            # Removed line (only for existing files)
+            if not is_new_file and current_old_line is not None:
+                content = line[1:]  # Keep original spacing/indentation
+                modified_lines[-current_old_line] = content
+                current_old_line += 1
+        elif line.startswith(' '):
+            # Context line - increment both counters
+            if current_new_line is not None:
                 current_new_line += 1
-            elif line.startswith('-') and not line.startswith('---'):
-                # Removed line (use negative line number to differentiate)
-                modified_lines[-current_new_line] = line[1:].strip()
-            # Context lines just increment the line counter
-            elif not line.startswith(('---', '+++', 'diff', 'index', '@@')):
-                if line.strip() != "":
-                    current_new_line += 1
+            if current_old_line is not None and not is_new_file:
+                current_old_line += 1
+        elif line.strip() == '' and i < len(lines) - 1:
+            # Empty line in the middle of patch - might be context
+            if current_new_line is not None:
+                current_new_line += 1
+            if current_old_line is not None and not is_new_file:
+                current_old_line += 1
+    
+    # Enhanced logging for debugging
+    if is_new_file:
+        added_lines = len([k for k in modified_lines.keys() if k > 0])
+        log_activity(f"[DEBUG] New file processed: {added_lines} lines added")
+    else:
+        added_lines = len([k for k in modified_lines.keys() if k > 0])
+        removed_lines = len([k for k in modified_lines.keys() if k < 0])
+        log_activity(f"[DEBUG] Modified file processed: {added_lines} lines added, {removed_lines} lines removed")
             
     return modified_lines
 
@@ -1865,12 +2181,67 @@ def main(repo_name, pr_number, post_comments=True):
                     log_activity(f"[SKIP] Skipping tool file: {file.filename} (tool files don't need code review)")
                     continue
                 
+                # Enhanced file size and type checking
+                file_status = file.status
+                file_changes = file.changes
+                file_additions = file.additions
+                file_deletions = file.deletions
+                
+                log_activity(f"[INFO] File details - Status: {file_status}, Changes: {file_changes}, Additions: {file_additions}, Deletions: {file_deletions}")
+                
+                # Handle large files with chunking approach
+                MAX_CHANGES_PER_REVIEW = 500  # Configurable limit
+                if file_changes > MAX_CHANGES_PER_REVIEW:
+                    log_activity(f"[LARGE FILE] File {file.filename} has {file_changes} changes, which exceeds the limit of {MAX_CHANGES_PER_REVIEW}")
+                    log_activity(f"[LARGE FILE] Will attempt to process in chunks or skip if too large")
+                    
+                    # For very large files, we might want to skip or process differently
+                    if file_changes > 2000:  # Very large file threshold
+                        log_activity(f"[SKIP] File {file.filename} is too large ({file_changes} changes) for effective AI review")
+                        continue
+                
+                # Special handling for new files
+                if file_status == "added":
+                    log_activity(f"[NEW FILE] Detected new file: {file.filename}")
+                    
+                    # For new files, check if they're too large
+                    if file_additions > 1000:
+                        log_activity(f"[LARGE NEW FILE] New file {file.filename} has {file_additions} lines")
+                        log_activity(f"[LARGE NEW FILE] Will review first 500 lines for new file overview")
+                        # We'll handle this in the patch processing
+                
                 reviewed_files_count += 1 # Count as reviewed even if no comments are made, but processing attempted
 
                 diff = file.patch
                 if not diff:
                     log_activity(f"[SKIP] No patch data available for {file.filename}")
-                    continue
+                    # For new files without patch, try to get content differently
+                    if file_status == "added":
+                        log_activity(f"[NEW FILE] Attempting to get content for new file {file.filename}")
+                        try:
+                            # Get file content from GitHub
+                            file_content = repo.get_contents(file.filename, ref=pr.head.sha)
+                            if hasattr(file_content, 'decoded_content'):
+                                content = file_content.decoded_content.decode('utf-8')
+                                # Create a pseudo-diff for new files
+                                lines = content.split('\n')
+                                
+                                # Limit review to first portion of very large new files
+                                if len(lines) > 500:
+                                    lines = lines[:500]
+                                    log_activity(f"[NEW FILE] Reviewing first 500 lines of large new file {file.filename}")
+                                
+                                pseudo_diff = '\n'.join([f"+{line}" for line in lines])
+                                diff = f"@@ -0,0 +1,{len(lines)} @@\n{pseudo_diff}"
+                                log_activity(f"[NEW FILE] Created pseudo-diff for new file {file.filename} ({len(lines)} lines)")
+                            else:
+                                log_activity(f"[SKIP] Could not decode content for new file {file.filename}")
+                                continue
+                        except Exception as content_error:
+                            log_activity(f"[ERROR] Could not get content for new file {file.filename}: {content_error}")
+                            continue
+                    else:
+                        continue
                     
                 # Extract exact modified lines with error handling
                 try:
@@ -1881,7 +2252,72 @@ def main(repo_name, pr_number, post_comments=True):
                 
                 # Log raw diff for debugging if needed
                 if not modified_lines:
+                    log_activity(f"[DEBUG] No modified lines extracted from patch")
                     log_activity(f"Raw patch for debugging:\n{diff[:500]}{'...' if len(diff) > 500 else ''}")
+                    
+                # Handle large file chunking for review
+                if len(modified_lines) > MAX_CHANGES_PER_REVIEW:
+                    log_activity(f"[CHUNKING] File {file.filename} has {len(modified_lines)} modified lines, processing in chunks")
+                    
+                    # Split modified lines into chunks
+                    positive_lines = {k: v for k, v in modified_lines.items() if k > 0}
+                    chunks = []
+                    chunk_size = MAX_CHANGES_PER_REVIEW // 2  # Smaller chunks for better processing
+                    
+                    sorted_lines = sorted(positive_lines.items())
+                    for i in range(0, len(sorted_lines), chunk_size):
+                        chunk = dict(sorted_lines[i:i + chunk_size])
+                        chunks.append(chunk)
+                    
+                    log_activity(f"[CHUNKING] Split into {len(chunks)} chunks for processing")
+                    
+                    # Process each chunk
+                    for chunk_idx, chunk_lines in enumerate(chunks, 1):
+                        log_activity(f"[CHUNKING] Processing chunk {chunk_idx}/{len(chunks)} for {file.filename}")
+                        
+                        # Convert chunk to diff text format
+                        chunk_diff_text = "\n".join([f"{line_num}: {content}" for line_num, content in chunk_lines.items()])
+                        
+                        if chunk_diff_text.strip():
+                            # Process this chunk
+                            chunk_review_result = review_code(chunk_diff_text, openarena_token)
+                            
+                            # Handle chunk review result (similar to existing logic)
+                            if chunk_review_result and isinstance(chunk_review_result, tuple) and len(chunk_review_result) >= 2:
+                                chunk_comments, chunk_cost = chunk_review_result[:2]
+                                chunk_tokens = chunk_review_result[2] if len(chunk_review_result) >= 3 else 0
+                                
+                                total_cost += chunk_cost
+                                total_tokens += chunk_tokens
+                                
+                                if chunk_comments and chunk_comments.strip():
+                                    chunk_comment_lines = chunk_comments.split('\n')
+                                    
+                                    # Process chunk comments (similar to existing logic)
+                                    for line in chunk_comment_lines:
+                                        if line and line.strip():
+                                            # Extract line number and add to all_comments
+                                            line_number = "N/A"
+                                            line_match = re.search(r'Line\s+(\d+)\s*:', str(line))
+                                            if line_match:
+                                                line_number = line_match.group(1)
+                                            
+                                            code_snippet = ""
+                                            if line_number != "N/A" and line_number.isdigit():
+                                                line_num = int(line_number)
+                                                if line_num in chunk_lines:
+                                                    code_snippet = chunk_lines[line_num]
+                                            
+                                            all_comments.append({
+                                                "file": file.filename,
+                                                "line_number": line_number,
+                                                "content": str(line),
+                                                "code_snippet": code_snippet,
+                                                "chunk": f"{chunk_idx}/{len(chunks)}"  # Mark as chunked
+                                            })
+                    
+                    # Skip the normal processing for chunked files
+                    continue
                     
                 # Convert extracted lines into a formatted string for AI review
                 try:
@@ -3221,6 +3657,18 @@ def setup_modern_ui():
                                                font=customtkinter.CTkFont(size=11),
                                                fg_color="#17A2B8", hover_color="#138496")
     view_report_button.grid(row=1, column=1, padx=3, pady=2, sticky="ew")
+    
+    # Add usage report button ONLY for admin users (completely hidden from regular users)
+    if is_current_user_admin():
+        usage_report_button = customtkinter.CTkButton(view_frame, text="👨‍💻 Dev Monitor", 
+                                                     command=show_usage_report,
+                                                     height=24, corner_radius=6,
+                                                     font=customtkinter.CTkFont(size=11),
+                                                     fg_color="#DC3545", hover_color="#c82333")
+        usage_report_button.grid(row=2, column=0, columnspan=2, padx=3, pady=2, sticky="ew")
+        log_activity("[ADMIN UI] Dev Monitor button visible - admin user detected")
+    else:
+        log_activity("[SECURITY] Dev Monitor button hidden - regular user")
     
     # Compact footer with better visibility
     footer_frame = customtkinter.CTkFrame(left_frame, corner_radius=6, height=32)

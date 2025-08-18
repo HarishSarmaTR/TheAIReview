@@ -26,7 +26,16 @@
 
 ## Available Versions
 
-1. **V2.1.2 (Latest)**
+1. **V2.1.3 (Latest)**
+   - **Enterprise Usage Tracking**: High-capacity monitoring system (10,000 sessions)
+   - **Admin Management Tools**: CLI and GUI interfaces for admin management
+   - **Monthly Archiving**: Intelligent data management with automatic archiving
+   - **Dev Monitor Fixes**: Resolved "Usage tracking module not available" error
+   - **Enhanced Security**: Admin-only visibility with stealth monitoring
+   - **Business Intelligence**: Export-ready analytics and comprehensive reporting
+   - **Automatic Backups**: Timestamped configuration backups for safety
+
+2. **V2.1.2 (Previous)**
    - **Tool File Filtering**: Automatically skips tool files (`*/tool/*`, `*/tools/*`) from code review
    - **Code Snippet Integration**: HTML reports now include actual code snippets for each AI comment
    - **Enhanced AI Focus**: AI now focuses exclusively on modified lines rather than entire file context
@@ -87,11 +96,11 @@
    ```
 
 2. **Run Specific Version**
-   - Latest Version: `.\dist\AIReviewTool_V2.1.2.exe` or `.\run_ai_review.ps1`
-   - Previous Version: `.\dist\AIReviewTool_V2.1.0.exe`
+   - Latest Version: `.\dist\AIReviewTool_V2.1.3.exe` or `.\run_ai_review.ps1`
+   - Previous Version: `.\dist\AIReviewTool_V2.1.2.exe`
    - v1.0.1: `.\dist\AIReviewTool_v1.0.1.exe` or `.\run_v1.0.1.ps1`
 
 3. **Build Specific Version**
-   - Latest Version: `.\build_v2.1.2.ps1`
-   - Previous Version: `.\build_v2.1.0.ps1`
+   - Latest Version: `.\build_v2.1.3.ps1`
+   - Previous Version: `.\build_v2.1.2.ps1`
    - v1.0.1: `.\build_v1.0.1_simple.ps1`

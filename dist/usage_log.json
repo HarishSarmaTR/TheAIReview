@@ -1,11 +1,11 @@
 [
   {
-    "session_id": "2dcdb36a386e77b6",
-    "start_time": "2025-08-08T18:03:10.438568",
+    "session_id": "b865b6affb4e2017",
+    "start_time": "2025-08-18T19:28:13.963565",
     "system_info": {
       "system_user": "6126175",
       "hostname": "TR-8MF27S3",
-      "ip_address": "192.168.100.103",
+      "ip_address": "10.112.78.30",
       "platform": "Windows-11-10.0.22631-SP0",
       "machine": "AMD64",
       "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
@@ -23,7 +23,7 @@
     "access_message": "Admin access granted for 6126175",
     "activities": [
       {
-        "timestamp": "2025-08-08T18:03:10.438568",
+        "timestamp": "2025-08-18T19:28:13.963565",
         "type": "SYSTEM",
         "details": "SESSION_START: User session started: 6126175",
         "repo_name": null,
@@ -35,12 +35,12 @@
     "pr_numbers_reviewed": []
   },
   {
-    "session_id": "7b1961e6156b9317",
-    "start_time": "2025-08-08T18:06:54.336463",
+    "session_id": "815a1a745aa8d2d4",
+    "start_time": "2025-08-18T19:28:26.392091",
     "system_info": {
       "system_user": "6126175",
       "hostname": "TR-8MF27S3",
-      "ip_address": "192.168.100.103",
+      "ip_address": "10.112.78.30",
       "platform": "Windows-11-10.0.22631-SP0",
       "machine": "AMD64",
       "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
@@ -58,33 +58,15 @@
     "access_message": "Admin access granted for 6126175",
     "activities": [
       {
-        "timestamp": "2025-08-08T18:06:54.336463",
+        "timestamp": "2025-08-18T19:28:26.392091",
         "type": "SYSTEM",
         "details": "SESSION_START: User session started: 6126175",
         "repo_name": null,
         "pr_number": null
-      },
-      {
-        "timestamp": "2025-08-08T18:07:33.122744",
-        "type": "CODE_REVIEW",
-        "details": "Starting code review for tr/cs-prof_tax-us-cstax-1040ST-CA PR #201",
-        "repo_name": "tr/cs-prof_tax-us-cstax-1040ST-CA",
-        "pr_number": "201"
-      },
-      {
-        "timestamp": "2025-08-08T18:08:23.569098",
-        "type": "CODE_REVIEW",
-        "details": "Starting code review for tr/cs-prof_tax-us-cstax-1040ST-CA PR #201",
-        "repo_name": "tr/cs-prof_tax-us-cstax-1040ST-CA",
-        "pr_number": "201"
       }
     ],
-    "reviews_conducted": 2,
-    "repositories_accessed": [
-      "tr/cs-prof_tax-us-cstax-1040ST-CA"
-    ],
-    "pr_numbers_reviewed": [
-      "201"
-    ]
+    "reviews_conducted": 0,
+    "repositories_accessed": [],
+    "pr_numbers_reviewed": []
   }
 ]

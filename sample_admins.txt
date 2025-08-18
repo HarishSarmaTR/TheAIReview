@@ -1,0 +1,17 @@
+# Sample admin list for bulk import
+# One admin identifier per line
+# Lines starting with # are comments and will be ignored
+
+# System users
+new.admin1
+admin.user2
+
+# Email addresses  
+john.doe@thomsonreuters.com
+jane.smith@thomsonreuters.com
+team.lead@thomsonreuters.com
+
+# Network usernames
+john.doe
+jane.smith
+admin.manager

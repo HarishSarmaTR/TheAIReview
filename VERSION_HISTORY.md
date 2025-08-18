@@ -2,8 +2,46 @@
 
 ## Version Release History
 
-### V2.0.1 (Latest - July 10, 2025)
+### V2.1.3 (Latest - August 18, 2025)
 **Status**: ✅ Current Production Release
+
+**Features:**
+- Enterprise usage tracking with 10,000 session capacity
+- Admin management tools (CLI and GUI interfaces)
+- Monthly archiving and comprehensive reporting
+- Dev monitor fixes and enhanced security
+- Stealth monitoring invisible to regular users
+- Multiple admin management interfaces
+- Automatic configuration backups
+- Business intelligence ready analytics
+
+**Files:**
+- `dist/AIReviewTool_V2.1.3.exe` (70 MB)
+- `dist/AIReviewTool_V2.1.3.zip` (69 MB)
+- `AIReviewTool_V2.1.3.spec`
+- `build_v2.1.3.ps1`
+
+**Build Info:**
+- Built: August 18, 2025
+- Python: 3.12.4
+- PyInstaller: 6.12.0
+- Dependencies: All bundled
+
+### V2.1.2 (August 9, 2025)
+**Status**: ✅ Previous Release
+
+**Features:**
+- Tool file filtering (*/tool/*, */tools/*)
+- Code snippets in HTML reports
+- Enhanced AI focus on changed lines only
+- Improved file skip logging
+
+**Files:**
+- `dist/AIReviewTool_V2.1.2.exe` (70 MB)
+- `dist/AIReviewTool_V2.1.2.zip` (69 MB)
+
+### V2.0.1 (July 10, 2025)
+**Status**: ✅ Stable Release
 
 **Features:**
 - Modern CustomTkinter UI with Dark/Light mode toggle
