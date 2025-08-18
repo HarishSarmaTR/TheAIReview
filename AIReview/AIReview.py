@@ -318,17 +318,17 @@ def get_authenticated_user_info():
                 user_info['first_name'] = sso_info.get('first_name')
                 user_info['last_name'] = sso_info.get('last_name')
                 
-                log_activity(f"✅ SSO user info loaded: {user_info['display_name']}")
+                log_activity(f"+ SSO user info loaded: {user_info['display_name']}")
             else:
                 log_activity("ℹ️ No SSO user info found, using system username")
                 user_info['display_name'] = user_info['system_user']
         else:
             # Fallback to system username
             user_info['display_name'] = user_info['system_user']
-            log_activity(f"👤 Using system username: {user_info['display_name']}")
+            log_activity(f"[USER] Using system username: {user_info['display_name']}")
             
     except Exception as e:
-        log_activity(f"❌ Could not get SSO user info: {e}")
+        log_activity(f"[ERROR] Could not get SSO user info: {e}")
         user_info['display_name'] = user_info['system_user']
     
     return user_info
@@ -346,7 +346,7 @@ def setup_welcome_section():
     # Welcome message label - compact
     root.welcome_label = customtkinter.CTkLabel(
         welcome_section_frame, 
-        text="Welcome! \U0001F44B", 
+        text="Welcome! 👋", 
         font=customtkinter.CTkFont(size=12, weight="bold"),
         text_color="#DC8400"  # Orange color for welcome message
     )
@@ -359,7 +359,7 @@ def setup_welcome_section():
     # Create a compact toggle button
     mode_switch = customtkinter.CTkButton(
         welcome_section_frame,
-        text="\U0001F319" if current_mode == "Dark" else "\U00002600\uFE0F",
+        text="🌙" if current_mode == "Dark" else "☀️",
         command=toggle_dark_mode,
         width=60,
         height=22,
@@ -381,11 +381,11 @@ def update_welcome_message():
         
         # Create a more informative welcome message
         if user_info['first_name']:
-            welcome_text = f"Welcome {user_info['first_name']}! \U0001F44B"
+            welcome_text = f"Welcome {user_info['first_name']}!"
         elif user_info['display_name']:
-            welcome_text = f"Welcome {user_info['display_name']}! \U0001F44B"
+            welcome_text = f"Welcome {user_info['display_name']}!"
         else:
-            welcome_text = f"Welcome {user_info['system_user']}! \U0001F44B"
+            welcome_text = f"Welcome {user_info['system_user']}!"
             
         # Update the welcome label if it exists
         if hasattr(root, 'welcome_label') and root.welcome_label:
@@ -394,14 +394,14 @@ def update_welcome_message():
         
         # Log user session info
         if user_info['email']:
-            log_activity(f"👤 User session: {user_info['email']}")
+            log_activity(f"[USER] User session: {user_info['email']}")
         else:
-            log_activity(f"👤 User session: {user_info['system_user']} (system)")
+            log_activity(f"[USER] User session: {user_info['system_user']} (system)")
             
         return user_info
         
     except Exception as e:
-        log_activity(f"❌ Error updating welcome message: {e}")
+        log_activity(f"[ERROR] Error updating welcome message: {e}")
         return None
 
 def extract_github_token_interactive():
@@ -440,32 +440,32 @@ Click OK to open GitHub token creation page..."""
         result = messagebox.askokcancel("GitHub Token Setup - Read Instructions", pre_instructions)
         
         if not result:
-            log_activity("\U0001F6D1 User cancelled GitHub token setup")
+            log_activity("[CANCELLED] User cancelled GitHub token setup")
             return
         
         # Open GitHub token creation page in browser
         github_token_url = "https://github.com/settings/tokens/new"
         webbrowser.open(github_token_url)
-        log_activity("\U0001F310 GitHub token creation page opened in browser")
+        log_activity("[BROWSER] GitHub token creation page opened in browser")
         
         # Show post-opening reminder
-        post_instructions = """\U0001F310 GitHub Token Page Opened
+        post_instructions = """[BROWSER] GitHub Token Page Opened
 
 Quick Reminder:
 
-1. ? Navigate: Personal access tokens ? Tokens (classic)
-2. ? Create: Generate new token (classic)
-3. ? Configure: Note="AI Review Tool", Expiration=90 days
-4. ? Permissions: Check "repo" scope
-5. ? Generate: Click "Generate token"
-6. \U0001F6E1\uFE0F SSO: Click "Configure SSO" \u2192 "Authorize" (REQUIRED!)
-7. ? Copy: Save the token (shown only once!)
-8. ? Paste: Enter token in the field below
+1. [NAV] Navigate: Personal access tokens > Tokens (classic)
+2. [CREATE] Create: Generate new token (classic)
+3. [CONFIG] Configure: Note="AI Review Tool", Expiration=90 days
+4. [PERMS] Permissions: Check "repo" scope
+5. [GEN] Generate: Click "Generate token"
+6. [SSO] SSO: Click "Configure SSO" -> "Authorize" (REQUIRED!)
+7. [COPY] Copy: Save the token (shown only once!)
+8. [PASTE] Paste: Enter token in the field below
 
 Without SSO authorization, your token will not work with organization repositories!"""
         
         messagebox.showinfo("GitHub Token - Next Steps", post_instructions)
-        log_activity("? GitHub token setup instructions provided")
+        log_activity("[INFO] GitHub token setup instructions provided")
         
     except Exception as e:
         log_activity(f"? Error opening GitHub token page: {e}")
@@ -473,9 +473,9 @@ Without SSO authorization, your token will not work with organization repositori
 
 def show_token_creation_dialog():
     """Show comprehensive dialog about GitHub token creation with SSO requirements"""
-    message = """\U0001F4A1 No existing GitHub token found.
+    message = """[SETUP] No existing GitHub token found.
 
-\U0001F4DD IMPORTANT: Token must be SSO-authorized to work with organization repositories!
+[IMPORTANT] Token must be SSO-authorized to work with organization repositories!
 
 The setup process includes:
 � Creating a Personal Access Token (classic)
@@ -489,7 +489,7 @@ Click OK to open GitHub with detailed step-by-step instructions."""
     if result:
         extract_github_token_interactive()
     else:
-        log_activity("\U0001F6D1 User cancelled GitHub token setup")
+        log_activity("[CANCELLED] User cancelled GitHub token setup")
 
 def create_new_github_token():
     """Simply redirect to GitHub token creation page"""
@@ -501,9 +501,9 @@ def prompt_for_existing_token():
     
     instructions = """Please paste your GitHub Personal Access Token below.
 
-\U0001F4DD IMPORTANT: Make sure your token is SSO-authorized!
+[IMPORTANT] Make sure your token is SSO-authorized!
 If you get authentication errors, check that you've clicked 
-"Configure SSO" ? "Authorize" after creating the token.
+"Configure SSO" -> "Authorize" after creating the token.
 
 If you don't have a token, click Cancel and use the "Get" button."""
     
@@ -525,10 +525,10 @@ If you don't have a token, click Cancel and use the "Get" button."""
             # Show SSO reminder
             sso_reminder = """? Token saved successfully!
 
-\U0001F6E1\uFE0F SSO Reminder: If you encounter authentication errors when accessing 
+[SSO] SSO Reminder: If you encounter authentication errors when accessing 
 organization repositories, verify that your token has SSO authorization:
 
-1. Go to GitHub Settings ? Developer settings ? Personal access tokens
+1. Go to GitHub Settings -> Developer settings -> Personal access tokens
 2. Find your token and check for "Configure SSO" button
 3. Click "Configure SSO" and "Authorize" for your organization
 
@@ -540,11 +540,11 @@ Your token is now encrypted and stored locally."""
             messagebox.showerror("Invalid Token", 
                 "The token format appears invalid. GitHub tokens should:\n"
                 "� Be at least 40 characters long\n"
-                "� Start with 'ghp_' or 'github_pat_'\n\n"
+                "- Start with 'ghp_' or 'github_pat_'\n\n"
                 "Please check and try again.\n\n"
-                "\U0001F4DD Don't forget to authorize SSO after creating the token!")
+                "[NOTE] Don't forget to authorize SSO after creating the token!")
     else:
-        log_activity("\U0001F6AB No token provided")
+        log_activity("[ERROR] No token provided")
         messagebox.showinfo("Cancelled", "No token was provided.")
     """Extract GitHub token using the interactive extractor"""
     if not HAS_GITHUB_EXTRACTOR:
@@ -569,8 +569,8 @@ Your token is now encrypted and stored locally."""
         pass
     
     try:
-        log_activity("\U0001F50D Starting GitHub token extraction process...")
-        log_activity("? Checking for existing GitHub tokens...")
+        log_activity("[EXTRACT] Starting GitHub token extraction process...")
+        log_activity("[CHECK] Checking for existing GitHub tokens...")
         
         # Run token extraction in a separate thread
         def extraction_thread():
@@ -588,7 +588,7 @@ Your token is now encrypted and stored locally."""
                             "GitHub token retrieved and saved successfully!\n\n"
                             "The token has been added to the GitHub Token field.")
                     else:
-                        log_activity("\U0001F6AB No existing valid token found")
+                        log_activity("[NOT_FOUND] No existing valid token found")
                         # Show user choice dialog
                         show_token_creation_dialog()
                     
@@ -641,8 +641,8 @@ def extract_openarena_token_with_user_info():
     root.update_idletasks()
     
     try:
-        log_activity("\U0001F511 Starting TR SSO authentication with user info...")
-        log_activity("\U0001F4BB Please complete SSO authentication when browser opens...")
+        log_activity("[AUTH] Starting TR SSO authentication with user info...")
+        log_activity("[BROWSER] Please complete SSO authentication when browser opens...")
         
         # Run token extraction in a separate thread
         def extraction_thread():
@@ -662,11 +662,11 @@ def extract_openarena_token_with_user_info():
                         
                         if user_info:
                             if user_info.get('display_name'):
-                                log_activity(f"\U0001F464 User authenticated: {user_info['display_name']}")
+                                log_activity(f"[AUTH] User authenticated: {user_info['display_name']}")
                             if user_info.get('email'):
-                                log_activity(f"\U0001F4E7 Email: {user_info['email']}")
+                                log_activity(f"[EMAIL] Email: {user_info['email']}")
                             if user_info.get('first_name'):
-                                log_activity(f"\U0001F44B Welcome {user_info['first_name']}!")
+                                log_activity(f"[WELCOME] Welcome {user_info['first_name']}!")
                         
                         success_msg = f"Token extracted successfully!"
                         if user_info and user_info.get('display_name'):
@@ -678,9 +678,9 @@ def extract_openarena_token_with_user_info():
                         
                         # Save token
                         if save_token_to_file(token):
-                            log_activity("\U0001F4BE Token saved to file for future use")
+                            log_activity("[SAVE] Token saved to file for future use")
                     else:
-                        log_activity("? Failed to extract OpenArena token")
+                        log_activity("[ERROR] Failed to extract OpenArena token")
                         messagebox.showerror("Error", "Failed to extract token. Please try manual entry.")
                     
                     # Re-enable button
@@ -709,17 +709,17 @@ def restore_user_data():
     """Restore user data from backup if needed"""
     try:
         # Placeholder for user data restoration logic
-        log_activity("\U0001F4C1 User data restoration checked")
+        log_activity("[RESTORE] User data restoration checked")
     except Exception as e:
-        log_activity(f"\U000026A0\uFE0F Error checking user data restoration: {e}")
+        log_activity(f"[ERROR] Error checking user data restoration: {e}")
 
 def backup_user_data():
     """Backup user data for future updates"""
     try:
         # Placeholder for user data backup logic
-        log_activity("\U0001F4BE User data backup completed")
+        log_activity("[BACKUP] User data backup completed")
     except Exception as e:
-        log_activity(f"\U000026A0\uFE0F Error backing up user data: {e}")
+        log_activity(f"[ERROR] Error backing up user data: {e}")
 
 def setup_enhanced_header():
     """Setup enhanced header with welcome message"""
@@ -735,13 +735,13 @@ def enhanced_startup_sequence():
             try:
                 user_info = get_authenticated_user_info()
                 has_access, access_message = start_session(user_info)
-                log_activity(f"\U0001F6E1 Access Control: {access_message}")
+                log_activity(f"* Access Control: {access_message}")
                 
                 # Check if user is admin and show admin info
                 if is_current_user_admin():
-                    log_activity("\U0001F510 Admin privileges detected - full access granted")
+                    log_activity("* Admin privileges detected - full access granted")
                     # You can uncomment the next line to see usage report on startup
-                    # log_activity(f"?? Usage Report:\n{get_usage_report()}")
+                    # log_activity(f"[REPORT] Usage Report:\n{get_usage_report()}")
                 
             except PermissionError as e:
                 # Access denied - show error and exit
@@ -752,7 +752,7 @@ def enhanced_startup_sequence():
                 root.quit()
                 return
             except Exception as e:
-                log_activity(f"\U000026A0\uFE0F Usage tracking error: {e}")
+                log_activity(f"[ERROR] Usage tracking error: {e}")
         
         # Restore user data if needed
         restore_user_data()
@@ -795,7 +795,7 @@ def enhanced_startup_sequence():
                 setup_welcome_section()
         except:
             pass
-        log_activity(f"\U000026A0\uFE0F Startup warning: {str(e)}")
+        log_activity(f"[WARNING] Startup warning: {str(e)}")
         # Don't show error dialog as it might prevent UI from appearing
 
 def calculate_claude_cost(prompt_tokens, completion_tokens):
@@ -856,7 +856,7 @@ current_window_height = 640  # Further reduced for better footer visibility
 TOKEN_FILE = "tokens.txt"
 
 # Define the version as a static date-based version
-APP_VERSION = "2.1.3" # Updated with enterprise usage tracking, admin management tools, and dev monitor fixes
+APP_VERSION = "2.1.4" # Updated with enterprise usage tracking, admin management tools, and dev monitor fixes
                       # Versioning format: Major.Minor.Patch
                       # Major: Significant changes or new features
                       # Minor: Backward-compatible changes or improvements
@@ -975,7 +975,7 @@ def load_tokens():
                 github_token_entry.delete(0, tk.END)
                 github_token_entry.insert(0, extracted_token)
                 print("GitHub token loaded from extractor file")
-                log_activity("\U0001F511 GitHub token loaded from extractor file")
+                log_activity("[TOKEN] GitHub token loaded from extractor file")
         except Exception as e:
             print(f"Could not load GitHub token from extractor: {e}")
 
@@ -986,7 +986,7 @@ def load_openarena_token_on_startup():
             saved_token = load_token_from_file()
             if saved_token and openarena_token_entry is not None and not openarena_token_entry.get():
                 openarena_token_entry.insert(0, saved_token)
-                log_activity("\U0001F511 OpenArena token loaded from TokenExtraction file")
+                log_activity("[TOKEN] OpenArena token loaded from TokenExtraction file")
         except Exception as e:
             print(f"Could not load OpenArena token from TokenExtraction: {e}")
 
@@ -1076,7 +1076,7 @@ def handle_repo_selection(choice):
     """Handle repository selection from dropdown - automatically save to recent repos"""
     if choice and '/' in choice:
         add_recent_repo(choice)
-        log_activity(f"\U0001F4C1 Repository selected: {choice}")
+        log_activity(f"[REPO] Repository selected: {choice}")
 
 def add_custom_repository():
     """No longer needed - combobox is editable"""
@@ -1100,7 +1100,7 @@ def update_repo_combobox():
         
         # Update the dropdown values if it exists - need to find the dropdown via the frame
         # This is a simplified approach since we can't easily reference the dropdown directly
-        log_activity(f"\U0001F4C1 Repository list updated with {len(all_repos)} repositories")
+        log_activity(f"[REPOS] Repository list updated with {len(all_repos)} repositories")
             
     except Exception as e:
         print(f"Error updating repository combobox: {e}")
@@ -1230,11 +1230,11 @@ def run_code_review():
     if progress_bar:
         progress_bar.set(0)
         if progress_percentage_label:
-            progress_percentage_label.configure(text="\U0001F504 Initializing...")
+            progress_percentage_label.configure(text="🔄 Initializing...")
     if time_taken_label:
-        time_taken_label.configure(text="\U000023F1\uFE0F Time: -")
+        time_taken_label.configure(text="⏱️ Time: -")
     if cost_label:
-        cost_label.configure(text="\U0001F4B0 Cost: -")
+        cost_label.configure(text="💰 Cost: -")
     if view_pr_button:
         view_pr_button.configure(state="disabled")
     if view_report_button:
@@ -1258,18 +1258,18 @@ def run_code_review():
         # Format time as mm:ss min for clarity
         minutes = int(duration // 60)
         seconds = int(duration % 60)
-        time_taken_label.configure(text=f"\U000023F1\uFE0F Time: {minutes:02d}:{seconds:02d} min")
+        time_taken_label.configure(text=f"⏱️ Time: {minutes:02d}:{seconds:02d} min")
     if cost_label:
         if total_cost > 0:
-            cost_label.configure(text=f"\U0001F4B0 Cost: ${total_cost:.4f}")
+            cost_label.configure(text=f"💰 Cost: ${total_cost:.4f}")
         else:
             # Even if API reports 0 cost, provide an estimate based on response length
             if all_posted_comments_count > 0:
                 # Rough estimate: $0.01 per comment as a minimum
                 min_cost = all_posted_comments_count * 0.01
-                cost_label.configure(text=f"\U0001F4B0 Min. Cost: ${min_cost:.4f}")
+                cost_label.configure(text=f"💰 Min. Cost: ${min_cost:.4f}")
             else:
-                cost_label.configure(text=f"\U0001F4B0 Cost: ${total_cost:.4f}")
+                cost_label.configure(text=f"💰 Cost: ${total_cost:.4f}")
     review_button.configure(state="normal")
     
     if reviewed_files_count > 0:
@@ -1316,18 +1316,35 @@ def run_code_review():
 
 # Function to log messages to the activity log and print to console
 def log_activity(message):
-    # Properly format message for printing (replace literal \n with newlines)
-    formatted_message = message.replace('\\n', '\n')
-    print(formatted_message) # Keep console logging with proper newlines
-    
-    if activity_log_textbox:
-        # Add timestamp with date to the message for GUI display
-        from datetime import datetime
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        timestamped_message = f"[{timestamp}] {message}"
-        # For the GUI, we add a proper newline character
-        activity_log_textbox.insert(tk.END, timestamped_message + "\n")
-        activity_log_textbox.see(tk.END) # Scroll to the end
+    try:
+        # Handle Unicode characters by encoding them properly
+        if isinstance(message, str):
+            # Replace problematic Unicode characters with ASCII equivalents for better compatibility
+            safe_message = message.encode('ascii', errors='replace').decode('ascii')
+        else:
+            safe_message = str(message)
+        
+        # Properly format message for printing (replace literal \n with newlines)
+        formatted_message = safe_message.replace('\\n', '\n')
+        print(formatted_message) # Keep console logging with proper newlines
+        
+        if activity_log_textbox:
+            # Add timestamp with date to the message for GUI display
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            timestamped_message = f"[{timestamp}] {safe_message}"
+            # For the GUI, we add a proper newline character
+            activity_log_textbox.insert(tk.END, timestamped_message + "\n")
+            activity_log_textbox.see(tk.END) # Scroll to the end
+    except Exception as e:
+        # Fallback if there are still encoding issues
+        fallback_message = f"Log message with encoding issue: {repr(message)}"
+        print(fallback_message)
+        if activity_log_textbox:
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            activity_log_textbox.insert(tk.END, f"[{timestamp}] {fallback_message}\n")
+            activity_log_textbox.see(tk.END)
     root.update_idletasks()
 
 
@@ -1722,7 +1739,7 @@ def determine_severity(comment_content):
         'authenticated bypass', 'privilege escalation', 'data breach',
         'confirmed memory leak', 'proven buffer overflow', 'guaranteed crash'
     ]):
-        return "\U0001F6A8 Critical"
+        return "🚨 Critical"
     
     # High priority issues
     elif any(word in content_lower for word in [
@@ -1731,7 +1748,7 @@ def determine_severity(comment_content):
         'segmentation fault', 'deadlock', 'race condition', 'buffer overflow',
         'memory leak', 'potential security', 'potential vulnerability'
     ]):
-        return "\U000026A0\uFE0F High"
+        return "⚠️ High"
     
     # Medium priority issues
     elif any(word in content_lower for word in [
@@ -1739,17 +1756,17 @@ def determine_severity(comment_content):
         'maintainability', 'readability', 'complexity', 'potential issue',
         'potential runtime issue', 'potential bug', 'edge case', 'possible error'
     ]):
-        return "\U0001F7E1 Medium"
+        return "🟡 Medium"
     
     # Low priority issues
     elif any(word in content_lower for word in [
         'style', 'convention', 'formatting', 'naming', 'comment',
         'documentation', 'suggestion', 'consider'
     ]):
-        return "\U0001F7E2 Low"
+        return "🟢 Low"
     
     # Default to medium if can't categorize
-    return "\U0001F7E1 Medium"
+    return "🟡 Medium"
 
 # Post comments on GitHub PR
 def post_comments_on_pr(pr, comments, filename, modified_lines):
@@ -1781,10 +1798,10 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
             severity = determine_severity(content)
             
             # Enhanced AI comment format with severity
-            ai_comment = f"\U0001F916 **AI Code Review** \u2022 {severity}\n\nLine {line_num}: {content.strip()}"
+            ai_comment = f"🤖 **AI Code Review** • {severity}\n\nLine {line_num}: {content.strip()}"
             parsed_comments.append((line_number, ai_comment))
         except ValueError:
-            log_activity(f"[ERROR] Invalid line number format: {line_num}")
+            log_activity(f"❌ Invalid line number format: {line_num}")
             continue
     
     # If no matches were found, try alternative parsing approaches
@@ -1803,7 +1820,7 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
                 try:
                     line_number = int(line_match.group(1))
                     # Add simple AI identifier to the comment
-                    ai_comment = f"\U0001F916 **AI Code Review**\n\n{block.strip()}"
+                    ai_comment = f"[AI] **AI Code Review**\n\n{block.strip()}"
                     parsed_comments.append((line_number, ai_comment))
                 except ValueError:
                     continue
@@ -1824,7 +1841,7 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
                     try:
                         line_number = int(matches[0])
                         # Add simple AI identifier to the comment
-                        ai_comment = f"\U0001F916 **AI Code Review**\n\n{line_content}"
+                        ai_comment = f"[AI] **AI Code Review**\n\n{line_content}"
                         parsed_comments.append((line_number, ai_comment))
                     except ValueError:
                         continue
@@ -1926,7 +1943,7 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
                             log_activity(f"[FALLBACK] Retrying AI comment on first available line {fallback_line} (RIGHT side)")
                             
                             # Add additional context for fallback comments
-                            fallback_content = f"\U0001F916 **AI Code Review** (originally for line {line_position})\n\n{line_content}"
+                            fallback_content = f"[AI] **AI Code Review** (originally for line {line_position})\n\n{line_content}"
                             
                             fallback_result = pr.create_review_comment(
                                 body=fallback_content,
@@ -1947,7 +1964,7 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
                     # Last resort: try posting as a general PR comment (not line-specific)
                     try:
                         log_activity(f"[FALLBACK] Attempting to post AI comment as general PR comment")
-                        general_comment = f"\U0001F916 **AI Code Review for {filename} (line {line_position}):**\n\n{line_content}"
+                        general_comment = f"[AI] **AI Code Review for {filename} (line {line_position}):**\n\n{line_content}"
                         pr.create_issue_comment(body=general_comment)
                         log_activity(f"[SUCCESS] Posted AI comment as general PR comment")
                     except Exception as general_error:
@@ -2561,20 +2578,20 @@ def toggle_dark_mode():
     
     # Set the new appearance mode
     customtkinter.set_appearance_mode(new_mode)
-    log_activity(f"\U0001F3A8 Switched to {new_mode} mode")
+    log_activity(f"[THEME] Switched to {new_mode} mode")
     
     # Update the button appearance to reflect the current mode
     if mode_switch:
         if new_mode == "Dark":
             mode_switch.configure(
-                text="\U0001F319 Dark",
+                text="🌙 Dark",
                 fg_color=("#3B8ED0", "#1F6AA5"),
                 hover_color=("#36719F", "#144870"),
                 text_color="white"
             )
         else:
             mode_switch.configure(
-                text="\U00002600\uFE0F Light", 
+                text="☀️ Light", 
                 fg_color=("#DBDBDB", "#ABABAB"),
                 hover_color=("#C7C7C7", "#949494"),
                 text_color="black"
@@ -2597,8 +2614,7 @@ def change_appearance_mode_event():
     
     # Set the new appearance mode
     customtkinter.set_appearance_mode(new_mode)
-    log_activity(f"\U0001F3A8 Switched to {new_mode} mode")
-
+    log_activity(f"[THEME] Switched to {new_mode} mode")
 
 
 customtkinter.set_appearance_mode("Dark")  # Default to Dark mode
@@ -2671,11 +2687,11 @@ try:
                 # Use absolute path for better compatibility
                 abs_icon_path = os.path.abspath(icon_path)
                 root.iconbitmap(abs_icon_path)
-                log_activity(f"🎨 Application icon loaded from: {abs_icon_path}")
+                log_activity(f"[ICON] Application icon loaded from: {abs_icon_path}")
                 icon_found = True
                 break
             except Exception as icon_error:
-                log_activity(f"⚠️ Failed to load icon from {icon_path}: {icon_error}")
+                log_activity(f"[WARN] Failed to load icon from {icon_path}: {icon_error}")
                 continue
     
     if not icon_found:
@@ -2751,7 +2767,7 @@ ai_settings = {
 
 ANALYZE THE CODE FOR:
 
-\U0001F6A8 **CRITICAL ISSUES** (Always flag these):
+[CRITICAL] **CRITICAL ISSUES** (Always flag these):
 1. Logic errors, bugs, or incorrect implementations
 2. Security vulnerabilities and input validation issues
 3. Memory leaks, null pointer dereferences, buffer overflows
@@ -2759,7 +2775,7 @@ ANALYZE THE CODE FOR:
 5. Performance bottlenecks or inefficient algorithms
 6. Error handling gaps or improper exception management
 
-\U0001F4DD **CODE QUALITY ISSUES** (Flag when significant):
+[QUALITY] **CODE QUALITY ISSUES** (Flag when significant):
 1. Code duplication or violating DRY principle
 2. Complex functions that should be broken down
 3. Poor variable/function naming that affects readability
@@ -2767,21 +2783,21 @@ ANALYZE THE CODE FOR:
 5. Inconsistent coding patterns within the file
 6. Hard-coded values that should be configurable
 
-? **BEST PRACTICES** (Suggest improvements):
+[BEST] **BEST PRACTICES** (Suggest improvements):
 1. Missing documentation for complex logic
 2. Opportunity to use more efficient data structures
 3. Better error messages or logging
 4. Code that could benefit from modern language features
 5. Suggestions for better maintainability
 
-\U0001F6AB **IGNORE THESE** (Don't comment on):
+[IGNORE] **IGNORE THESE** (Don't comment on):
 - 8-digit date literals in CCMMDDYY format (20010123, 20123100, etc.)
 - Standard date arithmetic with known date constants
 - Well-established test patterns (EXPECT_EQ, test fixtures)
 - Standard include statements and namespace usage
 - Minor formatting inconsistencies
 
-\U0001F4DD **RESPONSE FORMAT**:
+[FORMAT] **RESPONSE FORMAT**:
 - For each issue, start with 'Line <number>: [SEVERITY] Description'
 - Use severity levels: [CRITICAL], [HIGH], [MEDIUM], [LOW]
 - Be specific about the problem and suggest concrete solutions
@@ -2797,7 +2813,7 @@ default_system_prompt = """You are an expert code reviewer with deep knowledge o
 
 ANALYZE THE CODE FOR:
 
-\U0001F6A8 **CRITICAL ISSUES** (Always flag these):
+[CRITICAL] **CRITICAL ISSUES** (Always flag these):
 1. Logic errors, bugs, or incorrect implementations
 2. Security vulnerabilities and input validation issues
 3. Memory leaks, null pointer dereferences, buffer overflows
@@ -2805,7 +2821,7 @@ ANALYZE THE CODE FOR:
 5. Performance bottlenecks or inefficient algorithms
 6. Error handling gaps or improper exception management
 
-\U000026A0\uFE0F **CODE QUALITY ISSUES** (Flag when significant):
+[QUALITY] **CODE QUALITY ISSUES** (Flag when significant):
 1. Code duplication or violating DRY principle
 2. Complex functions that should be broken down
 3. Poor variable/function naming that affects readability
@@ -2813,21 +2829,21 @@ ANALYZE THE CODE FOR:
 5. Inconsistent coding patterns within the file
 6. Hard-coded values that should be configurable
 
-? **BEST PRACTICES** (Suggest improvements):
+[BEST] **BEST PRACTICES** (Suggest improvements):
 1. Missing documentation for complex logic
 2. Opportunity to use more efficient data structures
 3. Better error messages or logging
 4. Code that could benefit from modern language features
 5. Suggestions for better maintainability
 
-\U0001F6AB **IGNORE THESE** (Don't comment on):
+[IGNORE] **IGNORE THESE** (Don't comment on):
 - 8-digit date literals in CCMMDDYY format (20010123, 20123100, etc.)
 - Standard date arithmetic with known date constants
 - Well-established test patterns (EXPECT_EQ, test fixtures)
 - Standard include statements and namespace usage
 - Minor formatting inconsistencies
 
-\U0001F4DD **RESPONSE FORMAT**:
+[FORMAT] **RESPONSE FORMAT**:
 - For each issue, start with 'Line <number>: [SEVERITY] Description'
 - Use severity levels: [CRITICAL], [HIGH], [MEDIUM], [LOW]
 - Be specific about the problem and suggest concrete solutions
@@ -2896,7 +2912,7 @@ def show_ai_settings():
     
     # Reduce Noise option (now handles date-related comments filtering automatically)
     reduce_noise_var = customtkinter.BooleanVar(value=ai_settings.get("reduce_noise", True))
-    reduce_noise_checkbox = customtkinter.CTkCheckBox(settings_window, text="\U0001F50D Reduce noise (focus on substantial issues, auto-filters date/format comments)", variable=reduce_noise_var)
+    reduce_noise_checkbox = customtkinter.CTkCheckBox(settings_window, text="[FILTER] Reduce noise (focus on substantial issues, auto-filters date/format comments)", variable=reduce_noise_var)
     reduce_noise_checkbox.grid(row=5, column=0, columnspan=2, padx=20, pady=5, sticky="w")
     
     # System Prompt
@@ -2925,9 +2941,9 @@ def show_ai_settings():
             try:
                 with open("ai_settings.json", "w") as f:
                     json.dump(ai_settings, f, indent=2)
-                log_activity("? AI settings saved successfully")
+                log_activity("[SUCCESS] AI settings saved successfully")
             except Exception as e:
-                log_activity(f"\U000026A0\uFE0F Could not save AI settings to file: {e}")
+                log_activity(f"[ERROR] Could not save AI settings to file: {e}")
             
             messagebox.showinfo("Success", "AI settings saved successfully!")
             settings_window.destroy()
@@ -3266,7 +3282,7 @@ This email was generated automatically by the AI Code Review Tool feedback syste
             # Open Outlook with pre-filled email
             try:
                 webbrowser.open(mailto_url)
-                log_activity(f"\U0001F4E7 Opened Outlook with feedback email to engineering team")
+                log_activity(f"[EMAIL] Opened Outlook with feedback email to engineering team")
                 
                 # Show success message
                 success_window = customtkinter.CTkToplevel(feedback_window)
@@ -3276,7 +3292,7 @@ This email was generated automatically by the AI Code Review Tool feedback syste
                 success_window.grab_set()
                 
                 success_label = customtkinter.CTkLabel(success_window, 
-                                                     text="\U0001F4E7 Outlook Email Opened!",
+                                                     text="[EMAIL] Outlook Email Opened!",
                                                      font=customtkinter.CTkFont(size=16, weight="bold"))
                 success_label.pack(pady=20)
                 
@@ -3307,7 +3323,7 @@ This email was generated automatically by the AI Code Review Tool feedback syste
             log_activity(f"[ERROR] Failed to submit feedback: {e}")
             messagebox.showerror("Error", f"Failed to prepare feedback email: {str(e)}")
             
-            log_activity(f"\U0001F4DD Feedback submitted: {feedback_data['type']} - {feedback_data['priority']}")
+            log_activity(f"[FEEDBACK] Feedback submitted: {feedback_data['type']} - {feedback_data['priority']}")
             
         except Exception as e:
             messagebox.showerror("Error", f"Failed to submit feedback: {str(e)}")
@@ -3335,9 +3351,9 @@ def load_ai_settings():
             with open("ai_settings.json", "r") as f:
                 saved_settings = json.load(f)
                 ai_settings.update(saved_settings)
-                log_activity("\U0001F4E1 AI settings loaded from file")
+                log_activity("[CONFIG] AI settings loaded from file")
     except Exception as e:
-        log_activity(f"\U000026A0\uFE0F Could not load AI settings: {e}")
+        log_activity(f"[WARN] Could not load AI settings: {e}")
 
 def setup_modern_ui():
     """Setup the modern UI with all controls"""
@@ -3418,7 +3434,7 @@ def setup_modern_ui():
     help_menu.add_command(label="About", command=show_help)
     help_menu.add_command(label="User Guide", command=open_user_guide)
     help_menu.add_separator()
-    help_menu.add_command(label="\U0001F4E7 Email Feedback to Team", command=show_feedback)
+    help_menu.add_command(label="📧 Email Feedback to Team", command=show_feedback)
     if HAS_UPDATE_CHECKER:
         help_menu.add_separator()
         help_menu.add_command(label="Check for Updates", command=check_for_updates_manual)
@@ -3431,7 +3447,7 @@ def setup_modern_ui():
     title_frame.grid_columnconfigure(0, weight=1)
     
     # Main title with reduced size for better space management
-    app_title = customtkinter.CTkLabel(title_frame, text="\U0001F916 AI Code Review Tool", 
+    app_title = customtkinter.CTkLabel(title_frame, text="🤖 AI Code Review Tool", 
                                      font=customtkinter.CTkFont(size=14, weight="bold"),
                                      text_color="#0078D7")
     app_title.grid(row=0, column=0, pady=1)
@@ -3448,7 +3464,7 @@ def setup_modern_ui():
     token_frame.grid_columnconfigure(1, weight=1)
     
     # Section header - compact
-    token_header = customtkinter.CTkLabel(token_frame, text="\U0001F511 Tokens", 
+    token_header = customtkinter.CTkLabel(token_frame, text="🔑 Tokens", 
                                         font=customtkinter.CTkFont(size=13, weight="bold"),
                                         text_color="#0078D7")
     token_header.grid(row=0, column=0, columnspan=2, padx=6, pady=2, sticky="w")
@@ -3500,7 +3516,7 @@ def setup_modern_ui():
     repo_frame.grid_columnconfigure(1, weight=1)
     
     # Section header - compact
-    repo_header = customtkinter.CTkLabel(repo_frame, text="\U0001F4C1 Repository", 
+    repo_header = customtkinter.CTkLabel(repo_frame, text="📁 Repository", 
                                        font=customtkinter.CTkFont(size=13, weight="bold"),
                                        text_color="#0078D7")
     repo_header.grid(row=0, column=0, columnspan=2, padx=6, pady=2, sticky="w")
@@ -3731,7 +3747,7 @@ def clear_activity_log():
     """Clear the activity log"""
     if activity_log_textbox:
         activity_log_textbox.delete("1.0", "end")
-        log_activity("\U0001F9F9 Activity log cleared")
+        log_activity("🧹 Activity log cleared")
 
 def view_last_pr():
     """Open the last reviewed PR in browser"""
@@ -3756,13 +3772,13 @@ try:
     # Run enhanced startup sequence
     enhanced_startup_sequence()
     
-    log_activity("\U0001F916 AI Code Review Tool started successfully!")
-    log_activity(f"\U0001F4CB Version: {APP_VERSION}")
-    log_activity("\U0001F680 Ready to review your code!")
+    log_activity(">> AI Code Review Tool started successfully!")
+    log_activity(f">> Version: {APP_VERSION}")
+    log_activity(">> Ready to review your code!")
     
 except Exception as e:
     print(f"Error during startup: {e}")
-    log_activity(f"? Startup error: {e}")
+    log_activity(f"[ERROR] Startup error: {e}")
 
 # Run the application
 if __name__ == "__main__":

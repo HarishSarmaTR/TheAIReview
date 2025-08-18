@@ -17,7 +17,7 @@ GITHUB_API_URL = "https://api.github.com/repos/HarishSarmaTR/TheAIReview/release
 CHECK_INTERVAL_DAYS = 1  # Check for updates daily
 
 class UpdateChecker:
-    def __init__(self, current_version="2.1.0"):
+    def __init__(self, current_version="2.1.4"):
         self.current_version = current_version
         self.update_check_file = UPDATE_CHECK_FILE
         self.notification_file = UPDATE_NOTIFICATION_FILE
@@ -210,13 +210,13 @@ Would you like to download the update?"""
 
 def check_for_updates_manual():
     """Manual update check function that can be called from menu"""
-    checker = UpdateChecker()
+    checker = UpdateChecker("2.1.4")
     has_update, latest_version, download_url, release_notes = checker.check_for_updates(show_no_update_message=True)
     
     if has_update and latest_version:
         checker.show_update_notification(latest_version, download_url, release_notes)
 
-def check_for_updates_startup(current_version="2.1.0"):
+def check_for_updates_startup(current_version="2.1.4"):
     """Startup update check function"""
     checker = UpdateChecker(current_version)
     checker.check_and_notify_updates()
