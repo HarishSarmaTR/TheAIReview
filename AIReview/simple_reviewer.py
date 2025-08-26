@@ -111,7 +111,7 @@ IMPORTANT GUIDELINES:
 - For LARGE FILES: Prioritize security vulnerabilities, logic errors, and performance issues
 - For SMALL CHANGES: Provide detailed feedback on specific issues
 
-PROVIDE SEPARATE COMMENTS FOR EACH MODIFIED LINE or logical block from the pull request ONLY where there are actual issues or improvements needed. DO NOT combine all comments into a single block.
+CRITICAL FORMAT REQUIREMENT: ONLY provide comments for SPECIFIC LINES with actual issues. Each comment MUST start with 'Line X: ' where X is the exact line number from the diff.
 
 Focus ONLY on the following aspects that require attention and don't comment on code that already follows best practices:
 1. ACTUAL Logic Errors: Identify faulty logic that could lead to incorrect behavior or bugs
@@ -122,16 +122,20 @@ Focus ONLY on the following aspects that require attention and don't comment on 
 6. Serious Maintainability Issues: Comment only on major readability or maintainability concerns
 
 DO NOT COMMENT ON:
-1. Code that already follows best practices (like already using const)
+1. Code that already follows best practices (like adding const qualifiers)
 2. Trivial stylistic issues
 3. Include statements or namespaces unless they cause actual issues
 4. Variable names unless they are misleading or confusing
 5. Test fixtures or macro definitions in test files unless they're broken
 6. Things that are just working as expected and don't need improvement
+7. General observations about the code quality
 
-IMPORTANT FORMATTING: For each ACTUAL issue found, write a separate paragraph starting with 'Line <line_number>: ' followed by your comment.
-MAKE SEPARATE COMMENTS for different issues - DO NOT combine multiple issues into one comment.
-If a file contains no significant issues, DO NOT add any comments for that file."""
+IMPORTANT FORMATTING: 
+- Each comment MUST start with 'Line <specific_line_number>: ' 
+- DO NOT use general comments or observations
+- DO NOT comment on multiple lines at once
+- If no specific issues are found, provide NO comments
+- Quality over quantity - only report actual problems"""
     
     payload = {
         "workflow_id": "0a654593-da34-4dfe-a6ed-9c8506e31b73",

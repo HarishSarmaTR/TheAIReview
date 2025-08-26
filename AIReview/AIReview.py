@@ -27,6 +27,7 @@ import json
 from datetime import datetime, timedelta
 import hashlib
 import getpass
+from version_utils import APP_VERSION, APP_NAME, RELEASE_DATE
 
 # Add this import near the top with other imports
 try:
@@ -68,33 +69,33 @@ def is_current_user_admin():
         
         # Check system user
         if user_info.get('system_user') in admin_identifiers:
-            log_activity(f"[ADMIN CHECK] Admin access granted via system user: {user_info.get('system_user')}")
+            print_log(f"[ADMIN CHECK] Admin access granted via system user: {user_info.get('system_user')}")
             return True
         
         # Check SSO email
         if user_info.get('email') and any(admin_id in user_info['email'].lower() for admin_id in admin_identifiers):
-            log_activity(f"[ADMIN CHECK] Admin access granted via SSO email: {user_info.get('email')}")
+            print_log(f"[ADMIN CHECK] Admin access granted via SSO email: {user_info.get('email')}")
             return True
         
         # Check display name
         if user_info.get('display_name') and "harish" in user_info['display_name'].lower():
-            log_activity(f"[ADMIN CHECK] Admin access granted via display name: {user_info.get('display_name')}")
+            print_log(f"[ADMIN CHECK] Admin access granted via display name: {user_info.get('display_name')}")
             return True
         
         # Final check using usage tracker admin function
         if HAS_USAGE_TRACKING:
             try:
                 if is_current_user_admin():
-                    log_activity(f"[ADMIN CHECK] Admin access granted via usage tracker")
+                    print_log(f"[ADMIN CHECK] Admin access granted via usage tracker")
                     return True
             except:
                 pass
         
         # Regular user detected
-        log_activity(f"[SECURITY] Regular user detected: {user_info.get('display_name', 'Unknown')} - admin features hidden")
+        print_log(f"[SECURITY] Regular user detected: {user_info.get('display_name', 'Unknown')} - admin features hidden")
         return False
     except Exception as e:
-        log_activity(f"[ERROR] Admin check failed: {e} - defaulting to regular user")
+        print_log(f"[ERROR] Admin check failed: {e} - defaulting to regular user")
         return False
 
 def show_usage_report():
@@ -131,7 +132,7 @@ def show_usage_report():
                 pass
         
         if not is_admin:
-            log_activity(f"[SECURITY] Unauthorized usage report access attempt by {user_info.get('display_name', 'Unknown')}")
+            print_log(f"[SECURITY] Unauthorized usage report access attempt by {user_info.get('display_name', 'Unknown')}")
             messagebox.showerror(
                 "Access Denied - Developer Only Feature", 
                 "❌ This feature is restricted to the developer only.\n\n"
@@ -140,7 +141,7 @@ def show_usage_report():
             )
             return
         
-        log_activity(f"[ADMIN] Usage report accessed by authorized admin: {user_info.get('display_name', 'Unknown')}")
+        print_log(f"[ADMIN] Usage report accessed by authorized admin: {user_info.get('display_name', 'Unknown')}")
         
         # Get usage report
         report = get_usage_report()
@@ -190,6 +191,32 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} by {user_info.get('dis
 • Active Users: {len(report.get('unique_users', []))}
 • Total Reviews Conducted: {report.get('total_reviews', 0)}
 • Repositories Accessed: {len(report.get('repositories_accessed', []))}
+• Versions in Use: {report.get('summary', {}).get('versions_in_use', 0)}
+
+🔄 VERSION DISTRIBUTION:
+{'='*50}"""
+        
+        # Add version usage information
+        if 'version_usage' in report and report['version_usage']:
+            for version, data in report['version_usage'].items():
+                user_count = data.get('user_count', 0)
+                sessions = data.get('sessions', 0)
+                reviews = data.get('reviews', 0)
+                latest_activity = data.get('latest_activity', 'N/A')
+                users = ', '.join(data.get('users', []))
+                
+                report_text += f"""
+📋 Version: {version}
+   • Users: {user_count} ({users})
+   • Sessions: {sessions}
+   • Reviews: {reviews}
+   • Latest Activity: {latest_activity[:19] if latest_activity != 'N/A' else 'N/A'}
+   • Release Date: {data.get('release_date', 'Unknown')}
+"""
+        else:
+            report_text += "\nNo version data available."
+
+        report_text += f"""
 
 👥 USER ACTIVITY BREAKDOWN:
 {'='*50}"""
@@ -197,11 +224,13 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} by {user_info.get('dis
         # Add detailed user activity
         if 'user_activity' in report and report['user_activity']:
             for user, activity in report['user_activity'].items():
+                versions_used = ', '.join(activity.get('versions_used', ['Unknown']))
                 report_text += f"""
 📋 User: {activity.get('display_name', user)}
    • System ID: {user}
    • Sessions: {activity.get('session_count', 0)}
    • Reviews: {activity.get('review_count', 0)}
+   • Versions Used: {versions_used}
    • Last Active: {activity.get('last_active', 'N/A')}
    • Repositories: {', '.join(activity.get('repositories', []))}
 """
@@ -218,11 +247,12 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} by {user_info.get('dis
         if 'recent_sessions' in report and report['recent_sessions']:
             report_text += f"\n\n🕒 RECENT SESSIONS (Last 10):\n{'='*50}\n"
             for session in report['recent_sessions'][:10]:
-                user = session.get('user_info', {}).get('display_name', 'Unknown')
+                user = session.get('user', 'Unknown')
                 start_time = session.get('start_time', 'N/A')
-                reviews = session.get('reviews_conducted', 0)
-                repos = session.get('repositories_accessed', [])
-                report_text += f"{start_time} - {user} ({reviews} reviews) - {', '.join(repos)}\n"
+                reviews = session.get('reviews', 0)
+                repos = session.get('repositories', [])
+                version = session.get('app_version', 'Unknown')
+                report_text += f"{start_time[:19] if start_time != 'N/A' else 'N/A'} - {user} (v{version}) - {reviews} reviews - {', '.join(repos)}\n"
         
         # Add footer warning
         report_text += f"""
@@ -254,7 +284,7 @@ Generation time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         close_button.pack(side=tk.LEFT, padx=5)
         
     except Exception as e:
-        log_activity(f"[ERROR] Failed to generate usage report: {e}")
+        print_log(f"[ERROR] Failed to generate usage report: {e}")
         messagebox.showerror("Error", f"Failed to generate usage report: {e}")
 
 def export_usage_report_secure(report_data, user_info):
@@ -276,8 +306,7 @@ def export_usage_report_secure(report_data, user_info):
         filename = filedialog.asksaveasfilename(
             defaultextension=".json",
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-            title="Save Usage Report (Confidential)",
-            initialname=f"usage_report_confidential_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            title="Save Usage Report (Confidential)"
         )
         
         if filename:
@@ -285,14 +314,14 @@ def export_usage_report_secure(report_data, user_info):
                 json.dump(secure_report, f, indent=2, default=str)
             
             # Log the export action
-            log_activity(f"[SECURITY] Usage report exported by {user_info.get('display_name', 'Unknown')} to {filename}")
+            print_log(f"[SECURITY] Usage report exported by {user_info.get('display_name', 'Unknown')} to {filename}")
             
             messagebox.showinfo("Export Complete", 
                               f"✅ Confidential usage report exported to:\n{filename}\n\n"
                               "⚠️ This file contains sensitive data - handle with care!")
             
     except Exception as e:
-        log_activity(f"[ERROR] Failed to export secure usage report: {e}")
+        print_log(f"[ERROR] Failed to export secure usage report: {e}")
         messagebox.showerror("Export Error", f"Failed to export report: {e}")
 
 def get_authenticated_user_info():
@@ -318,17 +347,17 @@ def get_authenticated_user_info():
                 user_info['first_name'] = sso_info.get('first_name')
                 user_info['last_name'] = sso_info.get('last_name')
                 
-                log_activity(f"+ SSO user info loaded: {user_info['display_name']}")
+                print_log(f"+ SSO user info loaded: {user_info['display_name']}")
             else:
-                log_activity("ℹ️ No SSO user info found, using system username")
+                print_log("ℹ️ No SSO user info found, using system username")
                 user_info['display_name'] = user_info['system_user']
         else:
             # Fallback to system username
             user_info['display_name'] = user_info['system_user']
-            log_activity(f"[USER] Using system username: {user_info['display_name']}")
+            print_log(f"[USER] Using system username: {user_info['display_name']}")
             
     except Exception as e:
-        log_activity(f"[ERROR] Could not get SSO user info: {e}")
+        print_log(f"[ERROR] Could not get SSO user info: {e}")
         user_info['display_name'] = user_info['system_user']
     
     return user_info
@@ -390,24 +419,24 @@ def update_welcome_message():
         # Update the welcome label if it exists
         if hasattr(root, 'welcome_label') and root.welcome_label:
             root.welcome_label.configure(text=welcome_text)
-            log_activity(f"[UI] Welcome message updated: {welcome_text}")
+            print_log(f"[UI] Welcome message updated: {welcome_text}")
         
         # Log user session info
         if user_info['email']:
-            log_activity(f"[USER] User session: {user_info['email']}")
+            print_log(f"[USER] User session: {user_info['email']}")
         else:
-            log_activity(f"[USER] User session: {user_info['system_user']} (system)")
+            print_log(f"[USER] User session: {user_info['system_user']} (system)")
             
         return user_info
         
     except Exception as e:
-        log_activity(f"[ERROR] Error updating welcome message: {e}")
+        print_log(f"[ERROR] Error updating welcome message: {e}")
         return None
 
 def extract_github_token_interactive():
     """Open GitHub token creation page for manual token setup"""
     try:
-        log_activity("🔧 Preparing GitHub token setup with SSO instructions...")
+        print_log("🔧 Preparing GitHub token setup with SSO instructions...")
         
         # Show comprehensive pre-setup instructions first
         pre_instructions = """🔐 GitHub Token Setup Instructions
@@ -440,13 +469,13 @@ Click OK to open GitHub token creation page..."""
         result = messagebox.askokcancel("GitHub Token Setup - Read Instructions", pre_instructions)
         
         if not result:
-            log_activity("[CANCELLED] User cancelled GitHub token setup")
+            print_log("[CANCELLED] User cancelled GitHub token setup")
             return
         
         # Open GitHub token creation page in browser
         github_token_url = "https://github.com/settings/tokens/new"
         webbrowser.open(github_token_url)
-        log_activity("[BROWSER] GitHub token creation page opened in browser")
+        print_log("[BROWSER] GitHub token creation page opened in browser")
         
         # Show post-opening reminder
         post_instructions = """[BROWSER] GitHub Token Page Opened
@@ -465,10 +494,10 @@ Quick Reminder:
 Without SSO authorization, your token will not work with organization repositories!"""
         
         messagebox.showinfo("GitHub Token - Next Steps", post_instructions)
-        log_activity("[INFO] GitHub token setup instructions provided")
+        print_log("[INFO] GitHub token setup instructions provided")
         
     except Exception as e:
-        log_activity(f"? Error opening GitHub token page: {e}")
+        print_log(f"? Error opening GitHub token page: {e}")
         messagebox.showerror("Error", f"Failed to open GitHub token page:\n{e}")
 
 def show_token_creation_dialog():
@@ -489,7 +518,7 @@ Click OK to open GitHub with detailed step-by-step instructions."""
     if result:
         extract_github_token_interactive()
     else:
-        log_activity("[CANCELLED] User cancelled GitHub token setup")
+        print_log("[CANCELLED] User cancelled GitHub token setup")
 
 def create_new_github_token():
     """Simply redirect to GitHub token creation page"""
@@ -520,7 +549,7 @@ If you don't have a token, click Cancel and use the "Get" button."""
         if len(token.strip()) >= 40 and token.strip().startswith(('ghp_', 'github_pat_')):
             github_token_entry.delete(0, tk.END)
             github_token_entry.insert(0, token.strip())
-            log_activity("? GitHub token entered successfully!")
+            print_log("? GitHub token entered successfully!")
             
             # Show SSO reminder
             sso_reminder = """? Token saved successfully!
@@ -536,7 +565,7 @@ Your token is now encrypted and stored locally."""
             
             messagebox.showinfo("Token Saved - SSO Reminder", sso_reminder)
         else:
-            log_activity("? Invalid GitHub token format")
+            print_log("? Invalid GitHub token format")
             messagebox.showerror("Invalid Token", 
                 "The token format appears invalid. GitHub tokens should:\n"
                 "� Be at least 40 characters long\n"
@@ -544,7 +573,7 @@ Your token is now encrypted and stored locally."""
                 "Please check and try again.\n\n"
                 "[NOTE] Don't forget to authorize SSO after creating the token!")
     else:
-        log_activity("[ERROR] No token provided")
+        print_log("[ERROR] No token provided")
         messagebox.showinfo("Cancelled", "No token was provided.")
     """Extract GitHub token using the interactive extractor"""
     if not HAS_GITHUB_EXTRACTOR:
@@ -569,8 +598,8 @@ Your token is now encrypted and stored locally."""
         pass
     
     try:
-        log_activity("[EXTRACT] Starting GitHub token extraction process...")
-        log_activity("[CHECK] Checking for existing GitHub tokens...")
+        print_log("[EXTRACT] Starting GitHub token extraction process...")
+        print_log("[CHECK] Checking for existing GitHub tokens...")
         
         # Run token extraction in a separate thread
         def extraction_thread():
@@ -583,7 +612,7 @@ Your token is now encrypted and stored locally."""
                     if token:
                         github_token_entry.delete(0, tk.END)
                         github_token_entry.insert(0, token)
-                        log_activity("? GitHub token retrieved successfully!")
+                        print_log("? GitHub token retrieved successfully!")
                         messagebox.showinfo("Success", 
                             "GitHub token retrieved and saved successfully!\n\n"
                             "The token has been added to the GitHub Token field.")
@@ -709,17 +738,17 @@ def restore_user_data():
     """Restore user data from backup if needed"""
     try:
         # Placeholder for user data restoration logic
-        log_activity("[RESTORE] User data restoration checked")
+        print_log("[RESTORE] User data restoration checked")
     except Exception as e:
-        log_activity(f"[ERROR] Error checking user data restoration: {e}")
+        print_log(f"[ERROR] Error checking user data restoration: {e}")
 
 def backup_user_data():
     """Backup user data for future updates"""
     try:
         # Placeholder for user data backup logic
-        log_activity("[BACKUP] User data backup completed")
+        print_log("[BACKUP] User data backup completed")
     except Exception as e:
-        log_activity(f"[ERROR] Error backing up user data: {e}")
+        print_log(f"[ERROR] Error backing up user data: {e}")
 
 def setup_enhanced_header():
     """Setup enhanced header with welcome message"""
@@ -735,24 +764,24 @@ def enhanced_startup_sequence():
             try:
                 user_info = get_authenticated_user_info()
                 has_access, access_message = start_session(user_info)
-                log_activity(f"* Access Control: {access_message}")
+                print_log(f"* Access Control: {access_message}")
                 
                 # Check if user is admin and show admin info
                 if is_current_user_admin():
-                    log_activity("* Admin privileges detected - full access granted")
+                    print_log("* Admin privileges detected - full access granted")
                     # You can uncomment the next line to see usage report on startup
-                    # log_activity(f"[REPORT] Usage Report:\n{get_usage_report()}")
+                    # print_log(f"[REPORT] Usage Report:\n{get_usage_report()}")
                 
             except PermissionError as e:
                 # Access denied - show error and exit
-                log_activity(f"? Access Denied: {e}")
+                print_log(f"? Access Denied: {e}")
                 messagebox.showerror("Access Denied", 
                     f"You do not have permission to use this tool.\n\n{e}\n\n"
                     "Please contact the administrator for access.")
                 root.quit()
                 return
             except Exception as e:
-                log_activity(f"[ERROR] Usage tracking error: {e}")
+                print_log(f"[ERROR] Usage tracking error: {e}")
         
         # Restore user data if needed
         restore_user_data()
@@ -781,7 +810,7 @@ def enhanced_startup_sequence():
         
         # Check for updates (non-blocking, after UI is ready)
         if HAS_UPDATE_CHECKER:
-            root.after(3000, lambda: check_for_updates_startup(APP_VERSION))
+            root.after(3000, lambda: check_for_updates_startup())
         
         # Backup user data for future updates
         root.after(2000, backup_user_data)
@@ -795,7 +824,7 @@ def enhanced_startup_sequence():
                 setup_welcome_section()
         except:
             pass
-        log_activity(f"[WARNING] Startup warning: {str(e)}")
+        print_log(f"[WARNING] Startup warning: {str(e)}")
         # Don't show error dialog as it might prevent UI from appearing
 
 def calculate_claude_cost(prompt_tokens, completion_tokens):
@@ -855,12 +884,11 @@ current_window_height = 640  # Further reduced for better footer visibility
 
 TOKEN_FILE = "tokens.txt"
 
-# Define the version as a static date-based version
-APP_VERSION = "2.1.5" # Updated with improved update notification UI and eliminated duplicate popups
-                      # Versioning format: Major.Minor.Patch
-                      # Major: Significant changes or new features
-                      # Minor: Backward-compatible changes or improvements
-                      # Patch: Bug fixes or minor changes
+# Version is now managed centrally via version_utils.py
+# Versioning format: Major.Minor.Patch
+# Major: Significant changes or new features
+# Minor: Backward-compatible changes or improvements  
+# Patch: Bug fixes or minor changes
                       
 # File to store recently used repositories
 RECENT_REPOS_FILE = "recent_repos.json"
@@ -975,7 +1003,7 @@ def load_tokens():
                 github_token_entry.delete(0, tk.END)
                 github_token_entry.insert(0, extracted_token)
                 print("GitHub token loaded from extractor file")
-                log_activity("[TOKEN] GitHub token loaded from extractor file")
+                print_log("[TOKEN] GitHub token loaded from extractor file")
         except Exception as e:
             print(f"Could not load GitHub token from extractor: {e}")
 
@@ -986,7 +1014,7 @@ def load_openarena_token_on_startup():
             saved_token = load_token_from_file()
             if saved_token and openarena_token_entry is not None and not openarena_token_entry.get():
                 openarena_token_entry.insert(0, saved_token)
-                log_activity("[TOKEN] OpenArena token loaded from TokenExtraction file")
+                print_log("[TOKEN] OpenArena token loaded from TokenExtraction file")
         except Exception as e:
             print(f"Could not load OpenArena token from TokenExtraction: {e}")
 
@@ -1076,7 +1104,7 @@ def handle_repo_selection(choice):
     """Handle repository selection from dropdown - automatically save to recent repos"""
     if choice and '/' in choice:
         add_recent_repo(choice)
-        log_activity(f"[REPO] Repository selected: {choice}")
+        print_log(f"[REPO] Repository selected: {choice}")
 
 def add_custom_repository():
     """No longer needed - combobox is editable"""
@@ -1100,7 +1128,7 @@ def update_repo_combobox():
         
         # Update the dropdown values if it exists - need to find the dropdown via the frame
         # This is a simplified approach since we can't easily reference the dropdown directly
-        log_activity(f"[REPOS] Repository list updated with {len(all_repos)} repositories")
+        print_log(f"[REPOS] Repository list updated with {len(all_repos)} repositories")
             
     except Exception as e:
         print(f"Error updating repository combobox: {e}")
@@ -1135,11 +1163,11 @@ def run_code_review():
         return
     
     # Enhanced logging for tracking
-    log_activity(f"[REVIEW START] Repository: {repo_name}, PR: {pr_number}, User: {user_info.get('display_name', 'Unknown')}")
-    log_activity("[INFO] ⚠️ Usage monitoring is active for administrative purposes")
+    print_log(f"[REVIEW START] Repository: {repo_name}, PR: {pr_number}, User: {user_info.get('display_name', 'Unknown')}")
+    print_log("[INFO] ⚠️ Usage monitoring is active for administrative purposes")
     
     if HAS_USAGE_TRACKING:
-        log_activity("CODE_REVIEW", f"Starting code review for {repo_name} PR #{pr_number}", repo_name, pr_number)
+        log_activity("CODE_REVIEW", f"Starting code review for {repo_name} PR #{pr_number}", repo_name=repo_name, pr_number=pr_number)
     
     # Validate OpenArena token format and show specific error if invalid
     if not openarena_token or len(openarena_token.strip()) < 10:
@@ -1173,7 +1201,7 @@ def run_code_review():
             }
         }
         
-        log_activity("Validating OpenArena token...")
+        print_log("Validating OpenArena token...")
         test_response = requests.post(
             "https://aiopenarena.gcs.int.thomsonreuters.com/v1/inference",
             headers=test_headers, 
@@ -1190,12 +1218,12 @@ def run_code_review():
             )
             return
         elif test_response.status_code >= 400:
-            log_activity(f"[INFO] OpenArena API test returned status {test_response.status_code}, but proceeding with review...")
+            print_log(f"[INFO] OpenArena API test returned status {test_response.status_code}, but proceeding with review...")
         else:
-            log_activity("[SUCCESS] OpenArena token validation successful")
+            print_log("[SUCCESS] OpenArena token validation successful")
             
     except Exception as e:
-        log_activity(f"[WARNING] Could not validate OpenArena token (network issue?): {e}")
+        print_log(f"[WARNING] Could not validate OpenArena token (network issue?): {e}")
         # Don't stop the process for network issues, just warn
         messagebox.showwarning(
             "Token Validation Warning", 
@@ -1203,7 +1231,7 @@ def run_code_review():
             "Proceeding with code review. If the token is invalid, the review will fail."
         )
         
-    log_activity(f"Post comments to PR: {'Yes' if post_comments else 'No - comments will be shown only in log'}")
+    print_log(f"Post comments to PR: {'Yes' if post_comments else 'No - comments will be shown only in log'}")
     
     # Log current AI settings
     if 'temperature_entry' in globals() and temperature_entry:
@@ -1213,18 +1241,18 @@ def run_code_review():
         workflow = workflow_entry.get() or "default"
         filtering = ai_settings.get("filter_comments", False)  # Fixed: Use False as default
         noise_reduction = ai_settings.get("reduce_noise", True)
-        log_activity(f"[CONFIG] AI Settings: Temp={temp}, Top-P={top_p}, Max-Tokens={max_tok}, Filtering={'On' if filtering else 'Off'}, Noise Reduction={'On' if noise_reduction else 'Off'}")
+        print_log(f"[CONFIG] AI Settings: Temp={temp}, Top-P={top_p}, Max-Tokens={max_tok}, Filtering={'On' if filtering else 'Off'}, Noise Reduction={'On' if noise_reduction else 'Off'}")
     else:
         filtering = ai_settings.get("filter_comments", False)  # Fixed: Use False as default
         noise_reduction = ai_settings.get("reduce_noise", True)
-        log_activity(f"[CONFIG] AI Settings: Filtering={'On' if filtering else 'Off'}, Noise Reduction={'On' if noise_reduction else 'Off'}")
+        print_log(f"[CONFIG] AI Settings: Filtering={'On' if filtering else 'Off'}, Noise Reduction={'On' if noise_reduction else 'Off'}")
     
     # Update status via activity log and status label
-    log_activity("Starting code review...")
+    print_log("Starting code review...")
     
     # Log review activity for usage tracking
     if HAS_USAGE_TRACKING:
-        log_activity("CODE_REVIEW", f"Starting code review for {repo_name} PR #{pr_number}", repo_name, pr_number)
+        log_activity("CODE_REVIEW", f"Starting code review for {repo_name} PR #{pr_number}", repo_name=repo_name, pr_number=pr_number)
     
     status_message.set("Running code review...")
     if progress_bar:
@@ -1273,12 +1301,12 @@ def run_code_review():
     review_button.configure(state="normal")
     
     if reviewed_files_count > 0:
-        log_activity(f"Code review completed. Reviewed {reviewed_files_count}/{total_files} files. Posted {all_posted_comments_count} comments.")
+        print_log(f"Code review completed. Reviewed {reviewed_files_count}/{total_files} files. Posted {all_posted_comments_count} comments.")
         status_message.set("Completed ✅")
         
         # Enhanced completion tracking
         if HAS_USAGE_TRACKING:
-            log_activity("CODE_REVIEW_COMPLETE", f"Completed review - {reviewed_files_count} files, {all_posted_comments_count} comments, ${total_cost:.4f}", repo_name, pr_number)
+            log_activity("CODE_REVIEW_COMPLETE", f"Completed review - {reviewed_files_count} files, {all_posted_comments_count} comments, ${total_cost:.4f}", repo_name=repo_name, pr_number=pr_number)
             end_session()
         
         messagebox.showinfo("Success", f"Code review completed successfully! Reviewed {reviewed_files_count}/{total_files} files.")
@@ -1289,7 +1317,7 @@ def run_code_review():
         if view_pr_button:
             view_pr_button.configure(state="normal")
     elif total_files == 0:
-        log_activity("No files found in the PR to review.")
+        print_log("No files found in the PR to review.")
         status_message.set("No files to review")
         
         if HAS_USAGE_TRACKING:
@@ -1301,7 +1329,7 @@ def run_code_review():
         if view_pr_button:
             view_pr_button.configure(state="disabled")
     else:
-        log_activity("Code review finished. No comments were posted or an error occurred.")
+        print_log("Code review finished. No comments were posted or an error occurred.")
         status_message.set("Finished (No comments/Error)")
         
         if HAS_USAGE_TRACKING:
@@ -1315,7 +1343,7 @@ def run_code_review():
 
 
 # Function to log messages to the activity log and print to console
-def log_activity(message):
+def print_log(message):
     try:
         # Handle Unicode characters by encoding them properly
         if isinstance(message, str):
@@ -2464,21 +2492,19 @@ def main(repo_name, pr_number, post_comments=True):
                                 except (ValueError, KeyError):
                                     pass
                             
-                            all_comments.append({
-                                "file": file.filename, 
-                                "line_number": line_number,
-                                "content": str(line),
-                                "code_snippet": code_snippet  # Add code snippet for HTML report
-                            })
+                            # Only add comments that have specific line numbers (skip N/A comments)
+                            if line_number != "N/A":
+                                all_comments.append({
+                                    "file": file.filename, 
+                                    "line_number": line_number,
+                                    "content": str(line),
+                                    "code_snippet": code_snippet  # Add code snippet for HTML report
+                                })
+                            else:
+                                print_log(f"[DEBUG] Skipping general comment (no line number): {str(line)[:80]}...")
                         except Exception as e:
-                            log_activity(f"[ERROR] Failed to process comment line: {e}")
-                            # Add the comment anyway with N/A line number
-                            all_comments.append({
-                                "file": file.filename, 
-                                "line_number": "N/A",
-                                "content": str(line) if line else "",
-                                "code_snippet": ""  # No code snippet for failed parsing
-                            })
+                            print_log(f"[ERROR] Failed to process comment line: {e}")
+                            # Skip comments that can't be properly parsed (don't add N/A comments)
                 else:
                     log_activity(f"[DEBUG] No valid comments to add for {file.filename}")
                 
@@ -2514,7 +2540,7 @@ def main(repo_name, pr_number, post_comments=True):
         
         # Generate summary message based on results
         if post_comments and all_posted_comments_total_count > 0:
-            summary_message = f"? AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. A total of {all_posted_comments_total_count} comments were posted to GitHub PR."
+            summary_message = f"✅ AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. A total of {all_posted_comments_total_count} comments were posted to GitHub PR."
             pr.create_issue_comment(summary_message)
             log_activity(f"\n[SUMMARY] Posted AI summary issue comment on PR #{pr.number}: {summary_message}")
         elif not post_comments and all_posted_comments_total_count > 0:
@@ -2687,28 +2713,28 @@ try:
                 # Use absolute path for better compatibility
                 abs_icon_path = os.path.abspath(icon_path)
                 root.iconbitmap(abs_icon_path)
-                log_activity(f"[ICON] Application icon loaded from: {abs_icon_path}")
+                print_log(f"[ICON] Application icon loaded from: {abs_icon_path}")
                 icon_found = True
                 break
             except Exception as icon_error:
-                log_activity(f"[WARN] Failed to load icon from {icon_path}: {icon_error}")
+                print_log(f"[WARN] Failed to load icon from {icon_path}: {icon_error}")
                 continue
     
     if not icon_found:
-        log_activity("⚠️ Application icon not found in any location, using default")
+        print_log("⚠️ Application icon not found in any location, using default")
         # Try alternative method for CustomTkinter
         try:
             # Some systems prefer wm_iconbitmap
             parent_icon = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ai.ico")
             if os.path.exists(parent_icon):
                 root.wm_iconbitmap(os.path.abspath(parent_icon))
-                log_activity(f"🎨 Icon set using wm_iconbitmap: {parent_icon}")
+                print_log(f"🎨 Icon set using wm_iconbitmap: {parent_icon}")
                 icon_found = True
         except Exception as wm_error:
-            log_activity(f"⚠️ wm_iconbitmap also failed: {wm_error}")
+            print_log(f"⚠️ wm_iconbitmap also failed: {wm_error}")
             
 except Exception as e:
-    log_activity(f"❌ Could not set application icon: {e}")
+    print_log(f"❌ Could not set application icon: {e}")
     # Try one final fallback
     try:
         root.iconbitmap(default="")  # Use system default
@@ -3032,30 +3058,30 @@ def show_ai_settings():
                 token_usage = cost_info.get('token_usage', {})
                 total_tokens = token_usage.get('total_tokens', 0)
                 
-                success_msg = f"? AI Connection Test Successful!\n\n"
+                success_msg = f"✅ AI Connection Test Successful!\n\n"
                 success_msg += f"Response: {feedback[:100]}{'...' if len(feedback) > 100 else ''}\n\n"
                 success_msg += f"Settings Used:\n"
-                success_msg += f"� Temperature: {temp}\n"
-                success_msg += f"� Top-p: {top_p}\n"
-                success_msg += f"� Max Tokens: {max_tokens}\n"
-                success_msg += f"� Workflow: {workflow_id[:20]}...\n"
+                success_msg += f"- Temperature: {temp}\n"
+                success_msg += f"- Top-p: {top_p}\n"
+                success_msg += f"- Max Tokens: {max_tokens}\n"
+                success_msg += f"- Workflow: {workflow_id[:20]}...\n"
                 if total_tokens > 0:
-                    success_msg += f"� Tokens Used: {total_tokens}"
+                    success_msg += f"🔄️ Tokens Used: {total_tokens}"
                 
                 messagebox.showinfo("Connection Test Successful", success_msg)
                 
             elif response.status_code == 401:
-                messagebox.showerror("Test Failed", "? Authentication failed.\n\nThe OpenArena token is invalid or expired.\nPlease check your token.")
+                messagebox.showerror("Test Failed", " ⛔ Authentication failed.\n\nThe OpenArena token is invalid or expired.\nPlease check your token.")
             else:
-                messagebox.showerror("Test Failed", f"? Connection test failed.\n\nStatus Code: {response.status_code}\nResponse: {response.text[:200]}...")
-                
+                messagebox.showerror("Test Failed", f"❌ Connection test failed.\n\nStatus Code: {response.status_code}\nResponse: {response.text[:200]}...")
+
         except requests.exceptions.Timeout:
             test_btn.configure(text="Test AI Connection", state="normal")
-            messagebox.showerror("Test Failed", "? Connection test timed out.\n\nThe AI service may be temporarily unavailable.")
+            messagebox.showerror("Test Failed", "⏳ Connection test timed out.\n\nThe AI service may be temporarily unavailable.")
         except Exception as e:
             test_btn.configure(text="Test AI Connection", state="normal")
-            messagebox.showerror("Test Failed", f"? Connection test failed.\n\nError: {str(e)}")
-    
+            messagebox.showerror("Test Failed", f"❌ Connection test failed.\n\nError: {str(e)}")
+
     # Update button frame to have 4 columns
     button_frame.grid_columnconfigure(0, weight=1)
     button_frame.grid_columnconfigure(1, weight=1)
@@ -3437,7 +3463,7 @@ def setup_modern_ui():
     help_menu.add_command(label="📧 Email Feedback to Team", command=show_feedback)
     if HAS_UPDATE_CHECKER:
         help_menu.add_separator()
-        help_menu.add_command(label="Check for Updates", command=lambda: check_for_updates_manual(APP_VERSION))
+        help_menu.add_command(label="Check for Updates", command=lambda: check_for_updates_manual())
     
 
     
@@ -3772,13 +3798,13 @@ try:
     # Run enhanced startup sequence
     enhanced_startup_sequence()
     
-    log_activity(">> AI Code Review Tool started successfully!")
-    log_activity(f">> Version: {APP_VERSION}")
-    log_activity(">> Ready to review your code!")
+    print_log(">> AI Code Review Tool started successfully!")
+    print_log(f">> Version: {APP_VERSION}")
+    print_log(">> Ready to review your code!")
     
 except Exception as e:
     print(f"Error during startup: {e}")
-    log_activity(f"[ERROR] Startup error: {e}")
+    print_log(f"[ERROR] Startup error: {e}")
 
 # Run the application
 if __name__ == "__main__":

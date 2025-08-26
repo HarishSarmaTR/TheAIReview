@@ -1,8 +1,8 @@
 {
-  "latest_version": "2.1.5",
+  "latest_version": "2.1.6",
   "release_date": "2025-08-26",
-  "download_url": "https://github.com/HarishSarmaTR/TheAIReview/releases/download/v2.1.5/AIReviewTool_V2.1.5.exe",
-  "release_notes": "• Completely redesigned update notification system with modern custom dialogs\n• Eliminated duplicate popup issues for better UX\n• Improved dialog sizing and content display\n• Enhanced Thomson Reuters + UltraTax Team branding separation\n• Better file path display and error handling in update dialogs",
+  "download_url": "https://github.com/HarishSarmaTR/TheAIReview/releases/download/v2.1.6/AIReviewTool_V2.1.6.exe",
+  "release_notes": "• Fixed Unicode display issues for better PowerShell compatibility\n• Enhanced update notification UI with custom dialogs\n• Separated Thomson Reuters/UltraTax branding for generic use\n• Resolved function naming conflicts causing runtime errors\n• Eliminated unwanted Line N/A comments from AI reviews\n• Comprehensive usage tracking and administrative features\n• Improved AI review quality with targeted feedback\n• Centralized version management system",
   "minimum_supported_version": "2.0.0",
   "force_update": false
 }

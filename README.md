@@ -1,6 +1,6 @@
 # 🤖 AI Code Review Tool
 
-### This Python-based tool leverages the GitHub API and OpenArena AI to automate code reviews on pull requests. Designed exclusively for Thomson Reuters employees, it enhances the code review process by extracting modified lines, sending them for AI-based analysis, and posting insightful comments and suggestions directly on GitHub PRs.
+### This Python-based tool leverages the GitHub API and AI to automate code reviews on pull requests. It enhances the code review process by extracting modified lines, sending them for AI-based analysis, and posting insightful comments and suggestions directly on GitHub PRs.
 
 
 <img width="1531" height="889" alt="image" src="https://github.com/user-attachments/assets/7662ad2d-5a2b-4937-8133-bced5ed91c1a" />
@@ -11,7 +11,15 @@
 
 The tool is available in multiple versions:
 
-- **V2.1.0 (Latest)** - Modern UI with improved features and Claude 4
+- **V2.1.6 (Latest)** - Modern UI with comprehensive improvements and bug fixes
+  - Fixed Unicode display issues for better PowerShell compatibility
+  - Enhanced update notification UI with custom dialogs
+  - Separated Thomson Reuters/UltraTax branding for generic use
+  - Resolved function naming conflicts causing runtime errors
+  - Eliminated unwanted "Line N/A" comments from AI reviews
+  - Comprehensive usage tracking and administrative features
+  - Improved AI review quality with targeted feedback
+- **V2.1.0** - Modern UI with improved features and Claude 4
 - **v1.0.1** - Original stable version with core functionality
 
 You can choose which version to run using the version selector script:

@@ -1,0 +1,13 @@
+﻿{
+    "build_date":  "2025-08-26 20:29:02",
+    "features":  [
+                     "Fixed Unicode display issues",
+                     "Enhanced update notification UI",
+                     "Separated Thomson Reuters/UltraTax branding",
+                     "Resolved function naming conflicts",
+                     "Eliminated unwanted Line N/A comments",
+                     "Comprehensive usage tracking",
+                     "Improved AI review quality"
+                 ],
+    "version":  "2.1.6"
+}

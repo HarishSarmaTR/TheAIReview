@@ -13,6 +13,15 @@ import hashlib
 import socket
 from pathlib import Path
 
+# Import version utilities for tracking
+try:
+    from version_utils import APP_VERSION, APP_NAME, RELEASE_DATE
+except ImportError:
+    # Fallback for older versions
+    APP_VERSION = "Unknown"
+    APP_NAME = "AI Code Review Tool"
+    RELEASE_DATE = "Unknown"
+
 # Configuration - DEVELOPER/ADMIN ONLY ACCESS
 USAGE_LOG_FILE = "usage_log.json"
 ACCESS_CONTROL_FILE = "access_control.json"
@@ -102,7 +111,7 @@ class UsageTracker:
         return False, f"Access denied for user {current_user}. Please contact administrator."
     
     def start_session(self, user_info=None):
-        """Start a new usage tracking session"""
+        """Start a new usage tracking session with version information"""
         # Check access permission first
         has_access, message = self.check_access_permission(user_info)
         
@@ -114,6 +123,9 @@ class UsageTracker:
         self.current_session = {
             "session_id": self.generate_session_id(),
             "start_time": datetime.datetime.now().isoformat(),
+            "app_version": APP_VERSION,
+            "app_name": APP_NAME,
+            "release_date": RELEASE_DATE,
             "system_info": system_info,
             "user_info": user_info or {},
             "access_message": message,
@@ -123,7 +135,7 @@ class UsageTracker:
             "pr_numbers_reviewed": set()
         }
         
-        self.log_usage("SESSION_START", f"User session started: {system_info['system_user']}")
+        self.log_usage("SESSION_START", f"User session started: {system_info['system_user']} - Version: {APP_VERSION}")
         return True, message
     
     def generate_session_id(self):
@@ -407,7 +419,7 @@ class UsageTracker:
             self.current_session = None
     
     def get_usage_report(self):
-        """Generate a usage report for admin review (current sessions only)"""
+        """Generate a usage report for admin review with version tracking"""
         if not os.path.exists(USAGE_LOG_FILE):
             return {"error": "No usage data available"}
         
@@ -424,12 +436,38 @@ class UsageTracker:
         unique_repos = set()
         user_activity = {}
         recent_sessions = []
+        version_usage = {}  # Track version usage
         
         for log in usage_logs:
             # Extract user information
             system_user = log.get("system_info", {}).get("system_user", "Unknown")
             sso_user = log.get("user_info", {}).get("email", "")
             display_name = log.get("user_info", {}).get("display_name", system_user)
+            
+            # Extract version information
+            app_version = log.get("app_version", "Unknown")
+            app_name = log.get("app_name", "AI Code Review Tool")
+            release_date = log.get("release_date", "Unknown")
+            
+            # Track version usage
+            if app_version not in version_usage:
+                version_usage[app_version] = {
+                    "users": set(),
+                    "sessions": 0,
+                    "reviews": 0,
+                    "app_name": app_name,
+                    "release_date": release_date,
+                    "latest_activity": None
+                }
+            
+            version_usage[app_version]["users"].add(display_name)
+            version_usage[app_version]["sessions"] += 1
+            version_usage[app_version]["reviews"] += log.get("reviews_conducted", 0)
+            
+            # Update latest activity for this version
+            start_time = log.get("start_time")
+            if start_time and (not version_usage[app_version]["latest_activity"] or start_time > version_usage[app_version]["latest_activity"]):
+                version_usage[app_version]["latest_activity"] = start_time
             
             # Track unique users
             unique_users.add(system_user)
@@ -450,15 +488,16 @@ class UsageTracker:
                     "session_count": 0,
                     "review_count": 0,
                     "last_active": None,
-                    "repositories": set()
+                    "repositories": set(),
+                    "versions_used": set()  # Track versions used by this user
                 }
             
             user_activity[user_key]["session_count"] += 1
             user_activity[user_key]["review_count"] += session_reviews
             user_activity[user_key]["repositories"].update(session_repos)
+            user_activity[user_key]["versions_used"].add(app_version)
             
             # Update last active time
-            start_time = log.get("start_time")
             if start_time and (not user_activity[user_key]["last_active"] or start_time > user_activity[user_key]["last_active"]):
                 user_activity[user_key]["last_active"] = start_time
             
@@ -469,12 +508,19 @@ class UsageTracker:
                     "start_time": start_time,
                     "end_time": log.get("end_time", "Ongoing"),
                     "reviews": session_reviews,
-                    "repositories": session_repos
+                    "repositories": session_repos,
+                    "app_version": app_version  # Include version in recent sessions
                 })
         
         # Convert sets to lists for JSON serialization
         for user, activity in user_activity.items():
             activity["repositories"] = list(activity["repositories"])
+            activity["versions_used"] = list(activity["versions_used"])
+        
+        # Convert version usage sets to lists
+        for version, data in version_usage.items():
+            data["users"] = list(data["users"])
+            data["user_count"] = len(data["users"])
         
         report = {
             "report_type": "current_sessions",
@@ -484,9 +530,11 @@ class UsageTracker:
                 "unique_users": len(unique_users),
                 "total_reviews": total_reviews,
                 "unique_repositories": len(unique_repos),
+                "versions_in_use": len(version_usage),
                 "capacity_status": f"{total_sessions:,} / {MAX_SESSIONS_IN_MEMORY:,} sessions",
                 "archive_status": "Enabled" if MONTHLY_ARCHIVE_ENABLED else "Disabled"
             },
+            "version_usage": version_usage,
             "user_activity": user_activity,
             "recent_sessions": recent_sessions[::-1],  # Most recent first
             "repositories_accessed": list(unique_repos)

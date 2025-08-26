@@ -1,0 +1,19 @@
+{
+    "app_version": "2.1.6",
+    "app_name": "AI Code Review Tool",
+    "release_date": "2025-08-26",
+    "major_features": [
+        "Fixed Unicode display issues",
+        "Enhanced update notification UI",
+        "Separated Thomson Reuters/UltraTax branding",
+        "Resolved function naming conflicts",
+        "Eliminated unwanted Line N/A comments",
+        "Comprehensive usage tracking",
+        "Improved AI review quality"
+    ],
+    "description": "Python-based tool leveraging GitHub API and AI to automate code reviews on pull requests",
+    "compatibility": {
+        "python_version": "3.8+",
+        "supported_os": ["Windows", "macOS", "Linux"]
+    }
+}

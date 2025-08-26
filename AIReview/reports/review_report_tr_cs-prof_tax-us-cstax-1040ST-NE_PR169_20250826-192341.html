@@ -1,0 +1,116 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>AI Code Review - tr/cs-prof_tax-us-cstax-1040ST-NE PR #169</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
+            h1 { color: #0078D7; }
+            h2 { color: #0078D7; margin-top: 30px; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+            .file-section { margin-bottom: 30px; background: #f9f9f9; padding: 15px; border-radius: 5px; }
+            .comment { margin-bottom: 15px; padding: 10px; background: #fff; border-left: 4px solid #0078D7; }
+            .line-number { font-weight: bold; color: #0078D7; }
+            .severity { font-weight: bold; color: #FF0000; }
+            .content { margin-top: 5px; white-space: pre-wrap; }
+            .pr-link { margin-bottom: 20px; }
+            .pr-link a { color: #0078D7; text-decoration: none; }
+            .pr-link a:hover { text-decoration: underline; }
+            .summary { margin-top: 20px; padding: 15px; background: #e6f3ff; border-radius: 5px; }
+            .review-info { margin-bottom: 25px; padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #28a745; }
+            .timestamp { color: #666; font-size: 14px; font-style: italic; }
+            .code-snippet { margin-top: 8px; padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 12px; white-space: pre-wrap; color: #333; }
+            .snippet-label { font-size: 11px; color: #666; margin-bottom: 3px; font-weight: bold; }
+        </style>
+    </head>
+    <body>
+        <h1>AI Code Review Report</h1>
+        
+        <div class="review-info">
+            <div class="timestamp">Review completed on August 26, 2025 at 07:23:41 PM</div>
+        </div>
+        
+        <div class="pr-link">
+            <strong>Repository:</strong> tr/cs-prof_tax-us-cstax-1040ST-NE | <strong>PR #:</strong> 169
+            <br>
+            <a href="https://github.com/tr/cs-prof_tax-us-cstax-1040ST-NE/pull/169" target="_blank">View PR on GitHub</a>
+        </div>
+        
+        <div class="summary">
+            <strong>Total files with comments:</strong> 2
+            <br>
+            <strong>Total comments:</strong> 8
+        </div>
+    
+        <h2>src/calc/__test_NEPRR.cpp</h2>
+        <div class="file-section">
+        
+            <div class="comment">
+                <div class="line-number">Line 17</div>
+                <div class="severity">Severity: ⚠️ High</div>
+                <div class="content">Looking at this code diff, I can see that the main change is adding `const` qualifiers to variables that were previously mutable. This is generally a good practice for variables that don't change after initialization. However, I don't see any actual logic errors, syntax errors, runtime issues, security vulnerabilities, or performance problems in the code changes shown.</div>
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">    return 0;</div>
+            </div>
+            
+            <div class="comment">
+                <div class="line-number">Line 17</div>
+                <div class="severity">Severity: ⚠️ High</div>
+                <div class="content">Since the code changes only involve adding `const` qualifiers to existing working code and don't introduce any actual issues that would cause bugs, compilation failures, crashes, or other problems, no comments are needed.</div>
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">    return 0;</div>
+            </div>
+            </div>
+        <h2>src/calc/__test_neprrnr.cpp</h2>
+        <div class="file-section">
+        
+            <div class="comment">
+                <div class="line-number">Line 1</div>
+                <div class="severity">Severity: 🟡 Medium</div>
+                <div class="content">Looking at this test code, I can identify several actual issues that need attention:</div>
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">#include "stdafx.h"</div>
+            </div>
+            
+            <div class="comment">
+                <div class="line-number">Line 276</div>
+                <div class="severity">Severity: ⚠️ High</div>
+                <div class="content">Line 276: Logic error: The `testGetFormUnits` function likely returns an integer or boolean value, but the test is comparing it against the boolean `true` using `EXPECT_TRUE(testGetFormUnits(_PNEPRRN), true)`. This syntax is incorrect - `EXPECT_TRUE` takes only one argument. It should be either `EXPECT_TRUE(testGetFormUnits(_PNEPRRN))` or `EXPECT_EQ(testGetFormUnits(_PNEPRRN), true)`.</div>
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">    EXPECT_TRUE(testGetFormUnits(_PNEPRRN), true);</div>
+            </div>
+            
+            <div class="comment">
+                <div class="line-number">Line 347</div>
+                <div class="severity">Severity: 🟢 Low</div>
+                <div class="content">Line 347: Logic inconsistency: The comment states "TODO: Investigate why this returns 100 instead of 0" but the test is hardcoded to expect 100. This creates a test that will always pass regardless of whether the underlying issue is fixed, making it ineffective at catching regressions.</div>
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">    const double actualAllocationFactor = 100.0; // Function returns 100, investigate later</div>
+            </div>
+            
+            <div class="comment">
+                <div class="line-number">Line 385</div>
+                <div class="severity">Severity: ⚠️ High</div>
+                <div class="content">Line 385: Logic inconsistency: Similar to line 347, this test has a TODO comment indicating the expected behavior is wrong, but the test is written to pass with the incorrect behavior. This defeats the purpose of the test and could mask actual bugs.</div>
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">    const double actualUnsetAllocationFactor = 100.0; // Function returns 100, investigate later</div>
+            </div>
+            
+            <div class="comment">
+                <div class="line-number">Line 242</div>
+                <div class="severity">Severity: ⚠️ High</div>
+                <div class="content">Line 242: Potential logic error: The test expects `R(334)` to equal `expectedCurrentItemDed - expectedPriorItemStand`, but based on the variable names, this might be comparing different types of deductions (current itemized vs prior itemized/standard). This could indicate a logical error in either the test expectation or the underlying calculation.</div>
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">    EXPECT_EQ(R(334), expectedCurrentItemDed - expectedPriorItemStand);</div>
+            </div>
+            
+            <div class="comment">
+                <div class="line-number">Line 243</div>
+                <div class="severity">Severity: ⚠️ High</div>
+                <div class="content">Line 243: Potential logic error: Similar to line 242, `R(335)` expects `expectedCurrentItemStand - expectedPriorItemDed`, which compares current itemized/standard deduction against prior itemized deduction. The asymmetry suggests a possible logical error.</div>
+                <div class="snippet-label">📝 Code Context:</div>
+                <div class="code-snippet">    EXPECT_EQ(R(335), expectedCurrentItemStand - expectedPriorItemDed);</div>
+            </div>
+            </div>
+    </body>
+    </html>
+    

@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 import webbrowser
 from tkinter import messagebox
 import tkinter as tk
+from version_utils import APP_VERSION
 import customtkinter
 
 UPDATE_CHECK_FILE = "last_update_check.json"
@@ -616,16 +617,20 @@ class UpdateChecker:
         except Exception as e:
             print(f"❌ Error in update check process: {e}")
 
-def check_for_updates_manual(current_version="2.1.5"):
+def check_for_updates_manual(current_version=None):
     """Manual update check function that can be called from menu"""
+    if current_version is None:
+        current_version = APP_VERSION
     checker = UpdateChecker(current_version)
     has_update, latest_version, download_url, release_notes = checker.check_for_updates(show_no_update_message=True)
     
     if has_update and latest_version:
         checker.show_update_notification(latest_version, download_url, release_notes)
 
-def check_for_updates_startup(current_version="2.1.5"):
+def check_for_updates_startup(current_version=None):
     """Startup update check function"""
+    if current_version is None:
+        current_version = APP_VERSION
     checker = UpdateChecker(current_version)
     checker.check_and_notify_updates()
 
