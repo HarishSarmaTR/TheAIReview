@@ -856,7 +856,7 @@ current_window_height = 640  # Further reduced for better footer visibility
 TOKEN_FILE = "tokens.txt"
 
 # Define the version as a static date-based version
-APP_VERSION = "2.1.4" # Updated with enterprise usage tracking, admin management tools, and dev monitor fixes
+APP_VERSION = "2.1.5" # Updated with improved update notification UI and eliminated duplicate popups
                       # Versioning format: Major.Minor.Patch
                       # Major: Significant changes or new features
                       # Minor: Backward-compatible changes or improvements
@@ -3120,7 +3120,7 @@ This cutting-edge application provides AI-powered code review for GitHub pull re
 The tool intelligently analyzes all modified files in your PR and generates contextual AI comments highlighting potential issues, security vulnerabilities, performance improvements, and best practice suggestions.
 
 👥 DEVELOPMENT TEAM
-Built with ❤️ by Thomson Reuters UltraTax Team
+Built with ❤️ by Thomson Reuters • UltraTax Team
 © 2025 Thomson Reuters - Licensed for internal use only
 
 🔧 Need help? Use the feedback feature to contact our engineering team!"""
@@ -3437,7 +3437,7 @@ def setup_modern_ui():
     help_menu.add_command(label="📧 Email Feedback to Team", command=show_feedback)
     if HAS_UPDATE_CHECKER:
         help_menu.add_separator()
-        help_menu.add_command(label="Check for Updates", command=check_for_updates_manual)
+        help_menu.add_command(label="Check for Updates", command=lambda: check_for_updates_manual(APP_VERSION))
     
 
     
@@ -3692,7 +3692,7 @@ def setup_modern_ui():
     footer_frame.grid_columnconfigure(0, weight=1)
     footer_frame.grid_propagate(False)  # Maintain fixed height
 
-    footer_label = customtkinter.CTkLabel(footer_frame, text="Thomson Reuters UltraTax Team © 2025", 
+    footer_label = customtkinter.CTkLabel(footer_frame, text="Thomson Reuters • UltraTax Team © 2025", 
                                         font=customtkinter.CTkFont(size=10),
                                         text_color="#666666")
     footer_label.grid(row=0, column=0, pady=6)

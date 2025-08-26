@@ -7,9 +7,13 @@ Checks for new versions of the AI Review Tool from GitHub releases
 import json
 import os
 import requests
+import subprocess
+import tempfile
 from datetime import datetime, timedelta
 import webbrowser
 from tkinter import messagebox
+import tkinter as tk
+import customtkinter
 
 UPDATE_CHECK_FILE = "last_update_check.json"
 UPDATE_NOTIFICATION_FILE = "update_notifications.json"
@@ -158,34 +162,438 @@ class UpdateChecker:
         except Exception as e:
             print(f"Error saving notification status: {e}")
     
-    def show_update_notification(self, latest_version, download_url, release_notes):
-        """Show update notification to user"""
+    def download_update(self, download_url, filename):
+        """Download the update file"""
         try:
-            # Create a truncated version of release notes for the dialog
-            short_notes = release_notes[:200] + "..." if len(release_notes) > 200 else release_notes
+            print(f"📥 Downloading update from: {download_url}")
             
-            message = f"""A new version of AI Review Tool is available!
-
-Current Version: {self.current_version}
-Latest Version: {latest_version}
-
-What's New:
-{short_notes}
-
-Would you like to download the update?"""
+            # Create a temporary directory for downloads
+            download_dir = tempfile.gettempdir()
+            file_path = os.path.join(download_dir, filename)
             
-            result = messagebox.askyesno("Update Available", message)
+            # Download the file
+            response = requests.get(download_url, stream=True, timeout=30)
+            response.raise_for_status()
             
-            if result:
-                # Open download URL in browser
-                webbrowser.open(download_url)
-                print(f"🌐 Opened download page: {download_url}")
+            # Get total file size for progress (if available)
+            total_size = int(response.headers.get('content-length', 0))
+            
+            with open(file_path, 'wb') as f:
+                downloaded = 0
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        if total_size > 0:
+                            progress = (downloaded / total_size) * 100
+                            print(f"📥 Download progress: {progress:.1f}%", end='\r')
+            
+            print(f"\n✅ Download completed: {file_path}")
+            return file_path
+            
+        except Exception as e:
+            print(f"❌ Download failed: {e}")
+            return None
+    
+    def show_update_notification(self, latest_version, download_url, release_notes):
+        """Show modern update notification dialog to user"""
+        try:
+            # Create a custom update dialog window
+            update_window = customtkinter.CTkToplevel()
+            update_window.title("Update Available")
+            update_window.geometry("500x450")
+            update_window.resizable(False, False)
+            
+            # Configure window
+            update_window.configure(fg_color=("#f0f0f0", "#2b2b2b"))
+            
+            # Center the window
+            update_window.transient()
+            update_window.grab_set()
+            
+            # Header frame with icon and title
+            header_frame = customtkinter.CTkFrame(update_window, corner_radius=0, fg_color=("#0078D7", "#0078D7"))
+            header_frame.pack(fill="x", padx=0, pady=0)
+            
+            header_label = customtkinter.CTkLabel(
+                header_frame, 
+                text="🚀 Update Available", 
+                font=customtkinter.CTkFont(size=18, weight="bold"),
+                text_color="white"
+            )
+            header_label.pack(pady=15)
+            
+            # Main content frame
+            content_frame = customtkinter.CTkFrame(update_window, corner_radius=8)
+            content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+            
+            # Version info frame
+            version_frame = customtkinter.CTkFrame(content_frame, corner_radius=8, fg_color=("#e8f4fd", "#1a1a1a"))
+            version_frame.pack(fill="x", padx=15, pady=15)
+            
+            current_label = customtkinter.CTkLabel(
+                version_frame, 
+                text=f"📦 Current Version: {self.current_version}",
+                font=customtkinter.CTkFont(size=14)
+            )
+            current_label.pack(pady=(10, 5))
+            
+            latest_label = customtkinter.CTkLabel(
+                version_frame, 
+                text=f"✨ Latest Version: {latest_version}",
+                font=customtkinter.CTkFont(size=14, weight="bold"),
+                text_color=("#0078D7", "#4da6ff")
+            )
+            latest_label.pack(pady=(0, 10))
+            
+            # Release notes section
+            if release_notes and release_notes.strip():
+                notes_label = customtkinter.CTkLabel(
+                    content_frame, 
+                    text="📝 What's New:",
+                    font=customtkinter.CTkFont(size=14, weight="bold")
+                )
+                notes_label.pack(anchor="w", padx=15, pady=(0, 5))
+                
+                # Truncate release notes for display
+                short_notes = release_notes[:150] + "..." if len(release_notes) > 150 else release_notes
+                
+                notes_text = customtkinter.CTkTextbox(
+                    content_frame, 
+                    height=80,
+                    corner_radius=8,
+                    font=customtkinter.CTkFont(size=12)
+                )
+                notes_text.pack(fill="x", padx=15, pady=(0, 15))
+                notes_text.insert("1.0", short_notes)
+                notes_text.configure(state="disabled")
+            
+            # Button frame
+            button_frame = customtkinter.CTkFrame(content_frame, corner_radius=8, fg_color="transparent")
+            button_frame.pack(fill="x", padx=15, pady=(0, 15))
+            
+            # Download button
+            download_btn = customtkinter.CTkButton(
+                button_frame,
+                text="📥 Download & Install",
+                command=lambda: self.handle_update_download(update_window, download_url, latest_version),
+                font=customtkinter.CTkFont(size=14, weight="bold"),
+                height=40,
+                corner_radius=8,
+                fg_color=("#0078D7", "#0078D7"),
+                hover_color=("#106ebe", "#106ebe")
+            )
+            download_btn.pack(side="left", fill="x", expand=True, padx=(0, 5))
+            
+            # Later button
+            later_btn = customtkinter.CTkButton(
+                button_frame,
+                text="⏰ Later",
+                command=update_window.destroy,
+                font=customtkinter.CTkFont(size=14),
+                height=40,
+                corner_radius=8,
+                fg_color=("#6c757d", "#6c757d"),
+                hover_color=("#5a6268", "#5a6268")
+            )
+            later_btn.pack(side="right", fill="x", expand=True, padx=(5, 0))
+            
+            # Footer with Thomson Reuters and UltraTax branding
+            footer_frame = customtkinter.CTkFrame(content_frame, corner_radius=8, fg_color=("#f8f9fa", "#1a1a1a"))
+            footer_frame.pack(fill="x", padx=15, pady=(0, 15))
+            
+            thomson_label = customtkinter.CTkLabel(
+                footer_frame,
+                text="Thomson Reuters",
+                font=customtkinter.CTkFont(size=10, weight="bold"),
+                text_color=("#6c757d", "#adb5bd")
+            )
+            thomson_label.pack(side="left", padx=10, pady=5)
+            
+            separator_label = customtkinter.CTkLabel(
+                footer_frame,
+                text="•",
+                font=customtkinter.CTkFont(size=10),
+                text_color=("#6c757d", "#adb5bd")
+            )
+            separator_label.pack(side="left")
+            
+            ultratax_label = customtkinter.CTkLabel(
+                footer_frame,
+                text="UltraTax Team",
+                font=customtkinter.CTkFont(size=10, weight="bold"),
+                text_color=("#6c757d", "#adb5bd")
+            )
+            ultratax_label.pack(side="left", padx=(0, 10), pady=5)
+            
+            copyright_label = customtkinter.CTkLabel(
+                footer_frame,
+                text="© 2025",
+                font=customtkinter.CTkFont(size=10),
+                text_color=("#6c757d", "#adb5bd")
+            )
+            copyright_label.pack(side="right", padx=10, pady=5)
             
             # Mark this version as notified regardless of user choice
             self.mark_as_notified(latest_version)
             
+            # Focus and wait
+            update_window.focus_set()
+            update_window.wait_window()
+            
         except Exception as e:
-            print(f"Error showing update notification: {e}")
+            print(f"❌ Error showing update notification: {e}")
+            print(f"📋 Update available: {latest_version}")
+            print(f"🔗 Download URL: {download_url}")
+    
+    def handle_update_download(self, window, download_url, latest_version):
+        """Handle the download process from the custom dialog"""
+        window.destroy()
+        
+        # Extract filename from download_url
+        filename = os.path.basename(download_url)
+        if not filename.endswith('.exe'):
+            filename = f"AIReviewTool_V{latest_version}.exe"
+        
+        # Download the update file
+        downloaded_file = self.download_update(download_url, filename)
+        
+        if downloaded_file:
+            # Show custom download complete dialog
+            self.show_download_complete_dialog(downloaded_file)
+        else:
+            # Show custom download failed dialog
+            self.show_download_failed_dialog(download_url)
+    
+    def show_download_complete_dialog(self, downloaded_file):
+        """Show custom download complete dialog"""
+        try:
+            # Create download complete dialog
+            complete_window = customtkinter.CTkToplevel()
+            complete_window.title("Download Complete")
+            complete_window.geometry("550x400")  # Made larger
+            complete_window.resizable(False, False)
+            
+            # Configure window
+            complete_window.configure(fg_color=("#f0f0f0", "#2b2b2b"))
+            complete_window.transient()
+            complete_window.grab_set()
+            
+            # Header with checkmark
+            header_frame = customtkinter.CTkFrame(complete_window, corner_radius=0, fg_color=("#28a745", "#28a745"))
+            header_frame.pack(fill="x")
+            
+            header_label = customtkinter.CTkLabel(
+                header_frame,
+                text="✅ Download Complete",
+                font=customtkinter.CTkFont(size=18, weight="bold"),
+                text_color="white"
+            )
+            header_label.pack(pady=15)
+            
+            # Content frame
+            content_frame = customtkinter.CTkFrame(complete_window, corner_radius=8)
+            content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+            
+            # Success message
+            success_label = customtkinter.CTkLabel(
+                content_frame,
+                text="Update downloaded successfully!",
+                font=customtkinter.CTkFont(size=16, weight="bold")
+            )
+            success_label.pack(pady=(20, 15))
+            
+            # File path info with proper wrapping
+            path_frame = customtkinter.CTkFrame(content_frame, corner_radius=8, fg_color=("#e8f4fd", "#1a1a1a"))
+            path_frame.pack(fill="x", padx=15, pady=(0, 20))
+            
+            path_title = customtkinter.CTkLabel(
+                path_frame,
+                text="📁 File Location:",
+                font=customtkinter.CTkFont(size=12, weight="bold")
+            )
+            path_title.pack(anchor="w", padx=15, pady=(10, 5))
+            
+            path_label = customtkinter.CTkLabel(
+                path_frame,
+                text=downloaded_file,
+                font=customtkinter.CTkFont(size=11),
+                wraplength=500,  # Increased wrap length
+                justify="left"
+            )
+            path_label.pack(anchor="w", padx=15, pady=(0, 10))
+            
+            # Question section
+            question_frame = customtkinter.CTkFrame(content_frame, corner_radius=8, fg_color="transparent")
+            question_frame.pack(fill="x", padx=15, pady=(0, 20))
+            
+            question_label = customtkinter.CTkLabel(
+                question_frame,
+                text="Would you like to run the installer now?",
+                font=customtkinter.CTkFont(size=15, weight="bold")
+            )
+            question_label.pack(pady=(0, 8))
+            
+            # Note
+            note_label = customtkinter.CTkLabel(
+                question_frame,
+                text="(Note: This will close the current application)",
+                font=customtkinter.CTkFont(size=12),
+                text_color=("#6c757d", "#adb5bd")
+            )
+            note_label.pack(pady=(0, 15))
+            
+            # Button frame
+            button_frame = customtkinter.CTkFrame(content_frame, fg_color="transparent")
+            button_frame.pack(fill="x", padx=20, pady=(0, 20))
+            
+            # Yes button
+            yes_btn = customtkinter.CTkButton(
+                button_frame,
+                text="✅ Yes, Install Now",
+                command=lambda: self.run_installer(complete_window, downloaded_file),
+                font=customtkinter.CTkFont(size=14, weight="bold"),
+                height=45,  # Made taller
+                fg_color=("#28a745", "#28a745"),
+                hover_color=("#218838", "#218838")
+            )
+            yes_btn.pack(side="left", fill="x", expand=True, padx=(0, 8))
+            
+            # No button  
+            no_btn = customtkinter.CTkButton(
+                button_frame,
+                text="⏰ Install Later",
+                command=lambda: self.save_for_later(complete_window, downloaded_file),
+                font=customtkinter.CTkFont(size=14),
+                height=45,  # Made taller
+                fg_color=("#6c757d", "#6c757d"),
+                hover_color=("#5a6268", "#5a6268")
+            )
+            no_btn.pack(side="right", fill="x", expand=True, padx=(8, 0))
+            
+            complete_window.focus_set()
+            complete_window.wait_window()
+            
+        except Exception as e:
+            print(f"❌ Error showing download complete dialog: {e}")
+    
+    def run_installer(self, window, downloaded_file):
+        """Run the installer and close the application"""
+        window.destroy()
+        try:
+            print(f"🚀 Running installer: {downloaded_file}")
+            subprocess.Popen([downloaded_file])
+            print("✅ Installer started. Closing application.")
+            os._exit(0)
+        except Exception as e:
+            print(f"❌ Failed to run installer: {e}")
+            self.show_error_dialog(f"Failed to run installer: {e}\n\nPlease run the installer manually from:\n{downloaded_file}")
+    
+    def save_for_later(self, window, downloaded_file):
+        """Save for later and close dialog"""
+        window.destroy()
+        print(f"📁 Update saved for later: {downloaded_file}")
+    
+    def show_download_failed_dialog(self, download_url):
+        """Show custom download failed dialog"""
+        try:
+            # Create download failed dialog
+            failed_window = customtkinter.CTkToplevel()
+            failed_window.title("Download Failed")
+            failed_window.geometry("400x250")
+            failed_window.resizable(False, False)
+            
+            # Configure window
+            failed_window.configure(fg_color=("#f0f0f0", "#2b2b2b"))
+            failed_window.transient()
+            failed_window.grab_set()
+            
+            # Header with error icon
+            header_frame = customtkinter.CTkFrame(failed_window, corner_radius=0, fg_color=("#dc3545", "#dc3545"))
+            header_frame.pack(fill="x")
+            
+            header_label = customtkinter.CTkLabel(
+                header_frame,
+                text="❌ Download Failed",
+                font=customtkinter.CTkFont(size=18, weight="bold"),
+                text_color="white"
+            )
+            header_label.pack(pady=15)
+            
+            # Content frame
+            content_frame = customtkinter.CTkFrame(failed_window, corner_radius=8)
+            content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+            
+            # Error message
+            error_label = customtkinter.CTkLabel(
+                content_frame,
+                text="Failed to download update automatically.\nOpening download page in browser...",
+                font=customtkinter.CTkFont(size=14),
+                justify="center"
+            )
+            error_label.pack(pady=30)
+            
+            # OK button
+            ok_btn = customtkinter.CTkButton(
+                content_frame,
+                text="OK",
+                command=lambda: self.open_browser_and_close(failed_window, download_url),
+                font=customtkinter.CTkFont(size=14),
+                height=40,
+                fg_color=("#0078D7", "#0078D7")
+            )
+            ok_btn.pack(pady=20)
+            
+            failed_window.focus_set()
+            failed_window.wait_window()
+            
+        except Exception as e:
+            print(f"❌ Error showing download failed dialog: {e}")
+            webbrowser.open(download_url)
+    
+    def open_browser_and_close(self, window, download_url):
+        """Open browser and close dialog"""
+        window.destroy()
+        webbrowser.open(download_url)
+        print(f"🌐 Opened download page: {download_url}")
+    
+    def show_error_dialog(self, error_message):
+        """Show custom error dialog"""
+        try:
+            error_window = customtkinter.CTkToplevel()
+            error_window.title("Error")
+            error_window.geometry("500x200")
+            error_window.resizable(False, False)
+            error_window.configure(fg_color=("#f0f0f0", "#2b2b2b"))
+            error_window.transient()
+            error_window.grab_set()
+            
+            # Content
+            content_frame = customtkinter.CTkFrame(error_window, corner_radius=8)
+            content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+            
+            error_label = customtkinter.CTkLabel(
+                content_frame,
+                text=error_message,
+                font=customtkinter.CTkFont(size=12),
+                wraplength=450,
+                justify="center"
+            )
+            error_label.pack(expand=True)
+            
+            ok_btn = customtkinter.CTkButton(
+                content_frame,
+                text="OK",
+                command=error_window.destroy,
+                height=35
+            )
+            ok_btn.pack(pady=10)
+            
+            error_window.focus_set()
+            error_window.wait_window()
+            
+        except Exception as e:
+            print(f"❌ Error showing error dialog: {e}")
     
     def check_and_notify_updates(self, force_check=False):
         """Main method to check for updates and notify user if needed"""
@@ -208,15 +616,15 @@ Would you like to download the update?"""
         except Exception as e:
             print(f"❌ Error in update check process: {e}")
 
-def check_for_updates_manual():
+def check_for_updates_manual(current_version="2.1.5"):
     """Manual update check function that can be called from menu"""
-    checker = UpdateChecker("2.1.4")
+    checker = UpdateChecker(current_version)
     has_update, latest_version, download_url, release_notes = checker.check_for_updates(show_no_update_message=True)
     
     if has_update and latest_version:
         checker.show_update_notification(latest_version, download_url, release_notes)
 
-def check_for_updates_startup(current_version="2.1.4"):
+def check_for_updates_startup(current_version="2.1.5"):
     """Startup update check function"""
     checker = UpdateChecker(current_version)
     checker.check_and_notify_updates()
