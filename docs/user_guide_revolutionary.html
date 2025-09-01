@@ -20,7 +20,7 @@
             --text-secondary: #a1a1aa;
             --border-color: rgba(255, 255, 255, 0.1);
             --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.3);
-            --app-version: "v2.1.6";
+            --app-version: "v2.1.7";
         }
 
         * {
@@ -720,6 +720,19 @@
 
         <section id="overview" class="section">
             <div class="section-content">
+                <!-- SECURITY UPDATE NOTICE -->
+                <div class="highlight" style="background: linear-gradient(135deg, #ef4444, #dc2626); border: 2px solid #fca5a5; margin-bottom: 30px;">
+                    <h3 style="color: #fff; margin-bottom: 15px;">🚨 CRITICAL SECURITY UPDATE - v2.1.7</h3>
+                    <p style="color: #fff; font-weight: 500;">This version includes important security fixes:</p>
+                    <ul style="color: #fff; margin: 15px 0; padding-left: 20px;">
+                        <li>🔒 <strong>Fixed token exposure vulnerability</strong> - Removed exposed credentials from repository</li>
+                        <li>🖥️ <strong>Fixed 64-bit compatibility</strong> - Resolves "Unsupported 16-bit Application" errors</li>
+                        <li>🛡️ <strong>Enhanced security protocols</strong> - Improved credential handling and protection</li>
+                        <li>📖 <strong>Updated setup guide</strong> - Visual GitHub token creation instructions</li>
+                    </ul>
+                    <p style="color: #fff; font-size: 0.95rem; margin-top: 15px;"><strong>Action Required:</strong> Please regenerate your GitHub and OpenArena tokens after updating to this version for optimal security.</p>
+                </div>
+                
                 <h2>📋 Overview</h2>
                 <p style="font-size: 1.2rem; margin-bottom: 30px;">The AI Code Review Tool is an advanced application that leverages OpenArena's Claude 4 Sonnet model to provide intelligent, automated code reviews for GitHub pull requests. This tool helps development teams maintain code quality, identify potential issues, and improve overall software reliability.</p>
                 
@@ -799,27 +812,51 @@
                 </div>
 
                 <h3 style="color: var(--primary-color); margin: 40px 0 20px 0; font-size: 2rem;">🔑 GitHub Token Setup</h3>
-                <div class="setup-steps">
+                
+                <div class="visual-guide">
+                    <h3 style="color: var(--success-color); margin: 20px 0 15px 0;">📖 Step-by-Step Visual Guide</h3>
+                    
                     <div class="setup-step">
-                        <h3>Navigate to GitHub Settings</h3>
-                        <p>Go to GitHub → Click your profile picture → Settings → Developer settings</p>
+                        <h3>Step 1: Access Developer Settings</h3>
+                        <p>Navigate to GitHub and access your developer settings to create a new token</p>
+                        <div class="image-container" style="text-align: center; margin: 20px 0;">
+                            <img src="../images/docs/Gt_1.png" alt="GitHub Token Setup Step 1" style="max-width: 100%; border: 2px solid var(--primary-color); border-radius: 10px; box-shadow: var(--shadow-glow);">
+                        </div>
                         <div class="code-block">
-                            Profile Picture → Settings → Developer settings
+                            Profile Picture → Settings → Developer settings → Personal access tokens
                         </div>
                     </div>
                     
                     <div class="setup-step">
-                        <h3>Create Personal Access Token</h3>
-                        <p>Click "Personal access tokens" → "Tokens (classic)" → "Generate new token (classic)"</p>
+                        <h3>Step 2: Create Personal Access Token</h3>
+                        <p>Click "Generate new token (classic)" and configure the basic settings</p>
+                        <div class="image-container" style="text-align: center; margin: 20px 0;">
+                            <img src="../images/docs/Gt_2.png" alt="GitHub Token Setup Step 2" style="max-width: 100%; border: 2px solid var(--primary-color); border-radius: 10px; box-shadow: var(--shadow-glow);">
+                        </div>
                         <ul>
                             <li><strong>Note:</strong> AI Review Tool Token</li>
-                            <li><strong>Expiration:</strong> 90 days</li>
-                            <li><strong>Scopes:</strong> ✓ repo (Full control)</li>
+                            <li><strong>Expiration:</strong> 90 days (or custom)</li>
+                            <li><strong>Scopes:</strong> Configure permissions as shown below</li>
                         </ul>
                     </div>
                     
                     <div class="setup-step">
-                        <h3>Configure SSO Authorization</h3>
+                        <h3>Step 3: Configure Token Permissions</h3>
+                        <p>Select the required scopes for the token to work with repositories and discussions</p>
+                        <div class="image-container" style="text-align: center; margin: 20px 0;">
+                            <img src="../images/docs/Gt_3.png" alt="GitHub Token Setup Step 3" style="max-width: 100%; border: 2px solid var(--primary-color); border-radius: 10px; box-shadow: var(--shadow-glow);">
+                        </div>
+                        <div class="code-block">
+                            ✅ repo (Full control of private repositories)<br>
+                            ✅ write:discussion (Write access to team discussions)<br>
+                            ✅ read:discussion (Read access to team discussions)<br>
+                            ✅ write:packages (Write packages to GitHub Package Registry)<br>
+                            ✅ read:packages (Read packages from GitHub Package Registry)
+                        </div>
+                    </div>
+                    
+                    <div class="setup-step">
+                        <h3>Step 4: Configure SSO Authorization</h3>
                         <p>After token creation, you'll see "Configure SSO" button - this is <strong>CRITICAL!</strong></p>
                         <div class="code-block">
                             Configure SSO → Thomson Reuters → Authorize
@@ -827,7 +864,7 @@
                     </div>
                     
                     <div class="setup-step">
-                        <h3>Copy & Save Token</h3>
+                        <h3>Step 5: Copy & Save Token</h3>
                         <p>Copy the token immediately (shown only once!) and paste it into the application</p>
                         <div class="code-block">
                             ghp_••••••••••••••••••••••••••••••••••••••

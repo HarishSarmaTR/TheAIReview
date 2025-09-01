@@ -1,3 +1,16 @@
+# SECURITY - Sensitive files - NEVER COMMIT THESE
+*.env
+.env*
+tokens.txt
+secure_tokens.enc
+secure.key
+encryption.key
+user_info.json
+recent_repos.json
+usage_log.json
+last_update_check.json
+update_notifications.json
+
 # Prerequisites
 *.d
 

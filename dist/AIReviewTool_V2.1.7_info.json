@@ -1,0 +1,17 @@
+﻿{
+    "security_update":  true,
+    "version":  "2.1.7",
+    "architecture":  "x86_64",
+    "build_date":  "2025-08-29 15:45:06",
+    "features":  [
+                     "CRITICAL SECURITY FIX: Removed exposed tokens",
+                     "Fixed 64-bit compatibility issues",
+                     "Enhanced security with proper .gitignore",
+                     "Updated GitHub token setup guide with images",
+                     "Fixed Unicode display issues",
+                     "Enhanced update notification UI",
+                     "Comprehensive usage tracking",
+                     "Improved AI review quality"
+                 ],
+    "distribution_ready":  true
+}

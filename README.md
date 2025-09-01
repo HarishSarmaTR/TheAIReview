@@ -11,14 +11,16 @@
 
 The tool is available in multiple versions:
 
-- **V2.1.6 (Latest)** - Modern UI with comprehensive improvements and bug fixes
-  - Fixed Unicode display issues for better PowerShell compatibility
-  - Enhanced update notification UI with custom dialogs
-  - Separated Thomson Reuters/UltraTax branding for generic use
-  - Resolved function naming conflicts causing runtime errors
-  - Eliminated unwanted "Line N/A" comments from AI reviews
-  - Comprehensive usage tracking and administrative features
-  - Improved AI review quality with targeted feedback
+- **V2.1.7 (Latest - SECURITY UPDATE)** - Critical security fixes and 64-bit compatibility
+  - 🔒 CRITICAL SECURITY FIX: Removed exposed tokens and enhanced credential handling
+  - ✅ Fixed 64-bit compatibility - resolves "Unsupported 16-bit Application" errors
+  - 🛡️ Enhanced security with proper .gitignore and credential protection
+  - 📖 Updated GitHub token setup guide with step-by-step visual instructions
+  - 🔧 Fixed Unicode display issues for better PowerShell compatibility
+  - 🎨 Enhanced update notification UI with custom dialogs
+  - 📊 Comprehensive usage tracking and administrative features
+  - 🤖 Improved AI review quality with targeted feedback
+- **V2.1.6** - Previous version (superseded by security update)
 - **V2.1.0** - Modern UI with improved features and Claude 4
 - **v1.0.1** - Original stable version with core functionality
 
@@ -80,10 +82,23 @@ pip install PyGithub requests
 #### Generate a GitHub Token:
 - Navigate to the developer settings on GitHub and create a token. Please choose the "Classic token" option.
 
+#### Follow These Steps (Visual Guide):
+
+**Step 1: Access Developer Settings**
+![GitHub Token Setup Step 1](images/docs/Gt_1.png)
+
+**Step 2: Create Personal Access Token**
+![GitHub Token Setup Step 2](images/docs/Gt_2.png)
+
+**Step 3: Configure Token Permissions**
+![GitHub Token Setup Step 3](images/docs/Gt_3.png)
+
 #### Ensure the Following Options are Selected:
-![image](https://github.com/user-attachments/assets/c035e1ed-87e5-4a3e-b93c-1472c32559ee)
-![image](https://github.com/user-attachments/assets/7a2c765c-09fd-4d70-b319-67614893f4dd)
-![image](https://github.com/user-attachments/assets/777acef3-f7de-4efa-81e7-337c559bab69)
+- ✅ **repo** (Full control of private repositories)
+- ✅ **write:discussion** (Write access to team discussions)  
+- ✅ **read:discussion** (Read access to team discussions)
+- ✅ **write:packages** (Write packages to GitHub Package Registry)
+- ✅ **read:packages** (Read packages from GitHub Package Registry)
 
 ---
 
@@ -142,6 +157,16 @@ pip install PyGithub requests
 - 🔹 Error: Authentication failed – Ensure your GitHub token has the correct permissions.
 - 🔹 Error: AI review failed – Check your OpenArena API token and internet connection.
 - 🔹 Comments not appearing on PR? – Verify that the PR number and repository name are correct.
+- 🔹 Error: "Unsupported 16-bit Application" – Download the latest v2.1.6 64-bit version from releases.
+
+## 🔐 Security Notice
+
+⚠️ **IMPORTANT**: This tool uses encrypted local storage for your tokens. Your credentials are:
+- **Encrypted** before being saved locally
+- **Never transmitted** except to GitHub/OpenArena APIs
+- **Automatically cleared** when you uninstall the tool
+
+**Never share your tokens or .exe files that might contain cached credentials.**
 
 For any issues, feel free to open an issue in the repo.
 

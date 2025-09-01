@@ -45,6 +45,13 @@ except ImportError:
     HAS_USAGE_TRACKING = False
     print("Usage tracking module not found. Running without usage tracking.")
 
+# Import enhanced tracking
+try:
+    from enhanced_tracking import track_app_start, track_code_review, track_feature_use
+    HAS_ENHANCED_TRACKING = True
+except ImportError:
+    HAS_ENHANCED_TRACKING = False
+
 # Import GitHub token extractor
 try:
     from github_token_extractor import get_github_token_smart, get_github_token_interactive, load_github_token_from_file, create_github_token_instructions
@@ -1309,6 +1316,15 @@ def run_code_review():
             log_activity("CODE_REVIEW_COMPLETE", f"Completed review - {reviewed_files_count} files, {all_posted_comments_count} comments, ${total_cost:.4f}", repo_name=repo_name, pr_number=pr_number)
             end_session()
         
+        # Enhanced multi-method tracking
+        if HAS_ENHANCED_TRACKING:
+            track_code_review(repo_name, pr_number, {
+                "files": reviewed_files_count,
+                "comments": all_posted_comments_count,
+                "cost": total_cost,
+                "duration_minutes": duration / 60
+            })
+            
         messagebox.showinfo("Success", f"Code review completed successfully! Reviewed {reviewed_files_count}/{total_files} files.")
         last_pr_url = pr_url
         

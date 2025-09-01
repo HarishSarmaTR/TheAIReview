@@ -3586,5 +3586,519 @@
     "reviews_conducted": 0,
     "repositories_accessed": [],
     "pr_numbers_reviewed": []
+  },
+  {
+    "session_id": "dd72073bee21a460",
+    "start_time": "2025-08-26T20:57:42.744130",
+    "app_version": "2.1.7",
+    "app_name": "AI Code Review Tool",
+    "release_date": "2025-08-26",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "192.168.100.113",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-08-26T20:57:42.744130",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175 - Version: 2.1.7",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-26T20:57:42.751141",
+        "type": "[CONFIG] AI settings loaded from file",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-26T20:57:43.151783",
+        "type": "[ADMIN UI] Dev Monitor button visible - admin user detected",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-26T20:57:46.285064",
+        "type": "[INFO] Opened user guide: user_guide_revolutionary.html",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 0,
+    "repositories_accessed": [],
+    "pr_numbers_reviewed": []
+  },
+  {
+    "session_id": "85a7f61daf4ff1de",
+    "start_time": "2025-08-26T20:58:19.165662",
+    "app_version": "2.1.7",
+    "app_name": "AI Code Review Tool",
+    "release_date": "2025-08-26",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "192.168.100.113",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-08-26T20:58:19.165662",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175 - Version: 2.1.7",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-26T20:58:19.172498",
+        "type": "[CONFIG] AI settings loaded from file",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-26T20:58:19.588036",
+        "type": "[ADMIN UI] Dev Monitor button visible - admin user detected",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-26T20:58:23.048527",
+        "type": "[INFO] Opened user guide: user_guide_revolutionary.html",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 0,
+    "repositories_accessed": [],
+    "pr_numbers_reviewed": []
+  },
+  {
+    "session_id": "67280c28a17c84cb",
+    "start_time": "2025-08-26T21:02:56.356525",
+    "app_version": "2.1.7",
+    "app_name": "AI Code Review Tool",
+    "release_date": "2025-08-26",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "192.168.100.113",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-08-26T21:02:56.356525",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175 - Version: 2.1.7",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-26T21:02:56.363532",
+        "type": "[CONFIG] AI settings loaded from file",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-26T21:02:56.770346",
+        "type": "[ADMIN UI] Dev Monitor button visible - admin user detected",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-26T21:03:04.208696",
+        "type": "[INFO] Opened user guide: user_guide_revolutionary.html",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 0,
+    "repositories_accessed": [],
+    "pr_numbers_reviewed": []
+  },
+  {
+    "session_id": "55f1c27ff4f92fed",
+    "start_time": "2025-08-29T15:43:49.482129",
+    "app_version": "2.1.7",
+    "app_name": "AI Code Review Tool",
+    "release_date": "2025-08-26",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "192.168.100.113",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-08-29T15:43:49.482129",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175 - Version: 2.1.7",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:43:49.489688",
+        "type": "[CONFIG] AI settings loaded from file",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:43:49.949469",
+        "type": "[ADMIN UI] Dev Monitor button visible - admin user detected",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:43:57.506138",
+        "type": "[INFO] Opened user guide: user_guide_revolutionary.html",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 0,
+    "repositories_accessed": [],
+    "pr_numbers_reviewed": []
+  },
+  {
+    "session_id": "b782355bb6657241",
+    "start_time": "2025-08-29T15:47:47.491626",
+    "app_version": "2.1.7",
+    "app_name": "AI Code Review Tool",
+    "release_date": "2025-08-26",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "192.168.100.113",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-08-29T15:47:47.491626",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175 - Version: 2.1.7",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:47:47.502299",
+        "type": "[CONFIG] AI settings loaded from file",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:47:48.085601",
+        "type": "[ADMIN UI] Dev Monitor button visible - admin user detected",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:48:16.074525",
+        "type": "[AUTH] Starting TR SSO authentication with user info...",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:48:16.074525",
+        "type": "[BROWSER] Please complete SSO authentication when browser opens...",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:49:13.645024",
+        "type": "? OpenArena token extracted successfully!",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:49:13.659525",
+        "type": "[AUTH] User authenticated: Velavalapalli Harish Sarma",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:49:13.659525",
+        "type": "[WELCOME] Welcome Velavalapalli!",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:49:20.780952",
+        "type": "[SAVE] Token saved to file for future use",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 0,
+    "repositories_accessed": [],
+    "pr_numbers_reviewed": []
+  },
+  {
+    "session_id": "ee647cdd1b9b3107",
+    "start_time": "2025-08-29T15:49:22.084748",
+    "app_version": "2.1.7",
+    "app_name": "AI Code Review Tool",
+    "release_date": "2025-08-26",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "192.168.100.113",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-08-29T15:49:22.084748",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175 - Version: 2.1.7",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:49:22.084748",
+        "type": "[TRACKING] Admin access granted for 6126175",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:49:22.100780",
+        "type": "CODE_REVIEW",
+        "details": "Starting code review for tr/cs-prof_tax-us-cstax-1040ST-NE PR #169",
+        "repo_name": "tr/cs-prof_tax-us-cstax-1040ST-NE",
+        "pr_number": "169"
+      },
+      {
+        "timestamp": "2025-08-29T15:49:29.591736",
+        "type": "CODE_REVIEW",
+        "details": "Starting code review for tr/cs-prof_tax-us-cstax-1040ST-NE PR #169",
+        "repo_name": "tr/cs-prof_tax-us-cstax-1040ST-NE",
+        "pr_number": "169"
+      },
+      {
+        "timestamp": "2025-08-29T15:49:29.625047",
+        "type": "Initializing GitHub client for repo: tr/cs-prof_tax-us-cstax-1040ST-NE, PR: 169",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:49:30.146578",
+        "type": "[ERROR] Error in main function: 404 {\"message\": \"Not Found\", \"documentation_url\": \"https://docs.github.com/rest/repos/repos#get-a-repository\", \"status\": \"404\"}",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:49:30.256628",
+        "type": "SYSTEM_INFO",
+        "details": "No files found in PR to review",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:49:30.272357",
+        "type": "SESSION_END",
+        "details": "User session ended",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 2,
+    "repositories_accessed": [
+      "tr/cs-prof_tax-us-cstax-1040ST-NE"
+    ],
+    "pr_numbers_reviewed": [
+      "169"
+    ],
+    "end_time": "2025-08-29T15:49:30.272357"
+  },
+  {
+    "session_id": "a687a10645d97515",
+    "start_time": "2025-08-29T15:50:06.916144",
+    "app_version": "2.1.7",
+    "app_name": "AI Code Review Tool",
+    "release_date": "2025-08-26",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "192.168.100.113",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-08-29T15:50:06.916144",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175 - Version: 2.1.7",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:50:06.931781",
+        "type": "[TRACKING] Admin access granted for 6126175",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:50:06.931781",
+        "type": "CODE_REVIEW",
+        "details": "Starting code review for tr/cs-prof_tax-us-cstax-1040ST-IL PR #136",
+        "repo_name": "tr/cs-prof_tax-us-cstax-1040ST-IL",
+        "pr_number": "136"
+      },
+      {
+        "timestamp": "2025-08-29T15:50:14.288578",
+        "type": "CODE_REVIEW",
+        "details": "Starting code review for tr/cs-prof_tax-us-cstax-1040ST-IL PR #136",
+        "repo_name": "tr/cs-prof_tax-us-cstax-1040ST-IL",
+        "pr_number": "136"
+      },
+      {
+        "timestamp": "2025-08-29T15:50:14.398585",
+        "type": "Initializing GitHub client for repo: tr/cs-prof_tax-us-cstax-1040ST-IL, PR: 136",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:50:16.465669",
+        "type": "[ERROR] Error in main function: 404 {\"message\": \"Not Found\", \"documentation_url\": \"https://docs.github.com/rest/repos/repos#get-a-repository\", \"status\": \"404\"}",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:50:16.590464",
+        "type": "SYSTEM_INFO",
+        "details": "No files found in PR to review",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-08-29T15:50:16.590464",
+        "type": "SESSION_END",
+        "details": "User session ended",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 2,
+    "repositories_accessed": [
+      "tr/cs-prof_tax-us-cstax-1040ST-IL"
+    ],
+    "pr_numbers_reviewed": [
+      "136"
+    ],
+    "end_time": "2025-08-29T15:50:16.590464"
   }
 ]
