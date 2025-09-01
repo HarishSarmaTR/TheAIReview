@@ -1026,5 +1026,674 @@
     "reviews_conducted": 0,
     "repositories_accessed": [],
     "pr_numbers_reviewed": []
+  },
+  {
+    "session_id": "ae4554eaa63b8cef",
+    "start_time": "2025-09-01T18:27:39.969286",
+    "app_version": "2.1.7",
+    "app_name": "AI Code Review Tool",
+    "release_date": "2025-08-28",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "10.112.78.30",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview\\dist"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-09-01T18:27:39.969286",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175 - Version: 2.1.7",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:27:40.559992",
+        "type": "[ADMIN UI] Dev Monitor button visible - admin user detected",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:28:13.949318",
+        "type": "[AUTH] Starting TR SSO authentication with user info...",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:28:13.949318",
+        "type": "[BROWSER] Please complete SSO authentication when browser opens...",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 0,
+    "repositories_accessed": [],
+    "pr_numbers_reviewed": []
+  },
+  {
+    "session_id": "aa9835f999ff0d8e",
+    "start_time": "2025-09-01T18:29:05.263481",
+    "app_version": "2.1.7",
+    "app_name": "AI Code Review Tool",
+    "release_date": "2025-08-28",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "10.112.78.30",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview\\dist"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-09-01T18:29:05.263481",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175 - Version: 2.1.7",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:05.263481",
+        "type": "[TRACKING] Admin access granted for 6126175",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:05.263481",
+        "type": "CODE_REVIEW",
+        "details": "Starting code review for tr/cs-prof_tax-us-cstax-1040ST-NE PR #171",
+        "repo_name": "tr/cs-prof_tax-us-cstax-1040ST-NE",
+        "pr_number": "171"
+      },
+      {
+        "timestamp": "2025-09-01T18:29:08.278876",
+        "type": "? OpenArena token extracted successfully!",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:08.283625",
+        "type": "[AUTH] User authenticated: Velavalapalli Harish Sarma",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:08.283625",
+        "type": "[WELCOME] Welcome Velavalapalli!",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:09.226336",
+        "type": "[SAVE] Token saved to file for future use",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 1,
+    "repositories_accessed": [
+      "tr/cs-prof_tax-us-cstax-1040ST-NE"
+    ],
+    "pr_numbers_reviewed": [
+      "171"
+    ]
+  },
+  {
+    "session_id": "9aed018492dd9221",
+    "start_time": "2025-09-01T18:29:11.136554",
+    "app_version": "2.1.7",
+    "app_name": "AI Code Review Tool",
+    "release_date": "2025-08-28",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "10.112.78.30",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview\\dist"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-09-01T18:29:11.136554",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175 - Version: 2.1.7",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:11.136554",
+        "type": "[TRACKING] Admin access granted for 6126175",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:11.147313",
+        "type": "CODE_REVIEW",
+        "details": "Starting code review for tr/cs-prof_tax-us-cstax-1040ST-NE PR #171",
+        "repo_name": "tr/cs-prof_tax-us-cstax-1040ST-NE",
+        "pr_number": "171"
+      },
+      {
+        "timestamp": "2025-09-01T18:29:18.217529",
+        "type": "CODE_REVIEW",
+        "details": "Starting code review for tr/cs-prof_tax-us-cstax-1040ST-NE PR #171",
+        "repo_name": "tr/cs-prof_tax-us-cstax-1040ST-NE",
+        "pr_number": "171"
+      },
+      {
+        "timestamp": "2025-09-01T18:29:18.236196",
+        "type": "Initializing GitHub client for repo: tr/cs-prof_tax-us-cstax-1040ST-NE, PR: 171",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:20.377277",
+        "type": "Successfully connected to PR #171.",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:21.308328",
+        "type": "Found 3 files in PR #171.",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:21.313760",
+        "type": "[DEBUG] All files in PR:",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:21.313760",
+        "type": "[DEBUG] 1. inc/1040NE/tool/iNEflst.h",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:21.313760",
+        "type": "[DEBUG] 2. src/calc/NEPTC.cpp",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:21.313760",
+        "type": "[DEBUG] 3. src/calc/__test_NEPTC.cpp",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:21.313760",
+        "type": "Processing file 1/3: inc/1040NE/tool/iNEflst.h",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:21.313760",
+        "type": "[SKIP] Skipping tool file: inc/1040NE/tool/iNEflst.h (tool files don't need code review)",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:21.328437",
+        "type": "Processing file 2/3: src/calc/NEPTC.cpp",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:21.329187",
+        "type": "[INFO] File details - Status: modified, Changes: 8, Additions: 4, Deletions: 4",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:21.329187",
+        "type": "[DEBUG] Modified file processed: 4 lines added, 4 lines removed",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:21.329187",
+        "type": "[DEBUG] Sending line numbers to AI: [37, 38, 39, 40]",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:21.329187",
+        "type": "Found 8 modified lines in src/calc/NEPTC.cpp (4 added/modified, 4 removed)",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:21.329187",
+        "type": "Using api_handler for code review",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.740255",
+        "type": "\ud83e\udd16 OpenArena API Response Status: 200",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.746387",
+        "type": "\ud83d\udcac AI Code Review Feedback received",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.748388",
+        "type": "\ud83d\udcca Claude 4 Sonnet pricing applied: $0.00000",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.750388",
+        "type": "\ud83d\udcca Token usage: 0 tokens (Prompt: 0, Completion: 0)",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.752387",
+        "type": "\ud83d\udcb0 Est. cost: $0.00000",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.754388",
+        "type": "[ESTIMATION] No token data from API. Estimating based on text length.",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.756388",
+        "type": "[ESTIMATION] Estimated tokens - Input: 269, Output: 277",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.759388",
+        "type": "[ESTIMATION] Estimated cost: $0.00496",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.761003",
+        "type": "[DEBUG] Found 7 raw comment lines for src/calc/NEPTC.cpp",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.762044",
+        "type": "[DEBUG] Adding 4 valid comments to all_comments for src/calc/NEPTC.cpp",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.762044",
+        "type": "[DEBUG] No line number found in: Looking at the code changes, I can see this appears to be adding new elements to...",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.762044",
+        "type": "[DEBUG] Extracted line 37 from: Line 37: Potential data inconsistency: The new value 408 added to the 'y' field ...",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.762044",
+        "type": "[DEBUG] Extracted line 39 from: Line 39: Logic error: The array for 'N' field type has 302 appearing out of sequ...",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.762044",
+        "type": "[DEBUG] Extracted line 40 from: Line 40: Potential inconsistency: The new value 535 breaks the established patte...",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.762044",
+        "type": "[GENERATED] Found 4 AI comments for src/calc/NEPTC.cpp (not posted - checkbox unchecked)",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.778580",
+        "type": "Processing file 3/3: src/calc/__test_NEPTC.cpp",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.781608",
+        "type": "[INFO] File details - Status: modified, Changes: 120, Additions: 99, Deletions: 21",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.783607",
+        "type": "[DEBUG] Modified file processed: 99 lines added, 21 lines removed",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.785607",
+        "type": "[DEBUG] Sending line numbers to AI: [19, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 45, 46, 48, 49, 60, 61, 62, 63, 64, 65, 66, 67, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 136]",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.787607",
+        "type": "Found 120 modified lines in src/calc/__test_NEPTC.cpp (99 added/modified, 21 removed)",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:32.790607",
+        "type": "Using api_handler for code review",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.509707",
+        "type": "\ud83e\udd16 OpenArena API Response Status: 200",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.512352",
+        "type": "\ud83d\udcac AI Code Review Feedback received",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.512352",
+        "type": "\ud83d\udcca Claude 4 Sonnet pricing applied: $0.00000",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.512352",
+        "type": "\ud83d\udcca Token usage: 0 tokens (Prompt: 0, Completion: 0)",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.512352",
+        "type": "\ud83d\udcb0 Est. cost: $0.00000",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.512352",
+        "type": "[ESTIMATION] No token data from API. Estimating based on text length.",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.527647",
+        "type": "[ESTIMATION] Estimated tokens - Input: 1585, Output: 124",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.529758",
+        "type": "[ESTIMATION] Estimated cost: $0.00661",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.532755",
+        "type": "[DEBUG] Found 3 raw comment lines for src/calc/__test_NEPTC.cpp",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.534758",
+        "type": "[DEBUG] Adding 2 valid comments to all_comments for src/calc/__test_NEPTC.cpp",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.536755",
+        "type": "[DEBUG] Extracted line 63 from: Line 63: Logic error in array initialization: The IFields array has an inconsist...",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.538757",
+        "type": "[DEBUG] Extracted line 64 from: Line 64: Logic error in array initialization: The LFields array has field refere...",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.540758",
+        "type": "[GENERATED] Found 2 AI comments for src/calc/__test_NEPTC.cpp (not posted - checkbox unchecked)",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.543761",
+        "type": "\n[SKIP SUMMARY] 1 files were skipped:",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.545601",
+        "type": "[SKIP SUMMARY] - Tool files (*/tool/*, */tools/*) are automatically skipped",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.547597",
+        "type": "[SKIP SUMMARY] - Project files (*.vcxproj, *.vcxproj.filters) are skipped",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.550599",
+        "type": "[SKIP SUMMARY] - Files without patch data are skipped",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.552594",
+        "type": "[SKIP SUMMARY] - Files with API errors are skipped but logged",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.554593",
+        "type": "\n[SUMMARY] \ud83c\udfaf AI code review complete. Reviewed 2/3 files. A total of 6 comments were generated (not posted to GitHub - see HTML report).",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.556595",
+        "type": "[DEBUG] Report generation: Found 5 total comments",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.559601",
+        "type": "[REPORT] Generating HTML report with 5 comments...",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.560972",
+        "type": "[REPORT] HTML report saved to: C:\\Users\\6126175\\AppData\\Local\\Temp\\_MEI376762\\reports\\review_report_tr_cs-prof_tax-us-cstax-1040ST-NE_PR171_20250901-182940.html",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.560972",
+        "type": "[REPORT] Opening review report using os.startfile: C:\\Users\\6126175\\AppData\\Local\\Temp\\_MEI376762\\reports\\review_report_tr_cs-prof_tax-us-cstax-1040ST-NE_PR171_20250901-182940.html",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.560972",
+        "type": "[REPORT] HTML report generation completed",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.560972",
+        "type": "[COST] COST SUMMARY",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.560972",
+        "type": "[COST] Total estimated cost: $0.01158 for 2255 tokens",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.576600",
+        "type": "[COST] Breakdown: Input $0.00473 + Output $0.01016",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.578624",
+        "type": "[COST] Claude 4 Sonnet pricing: $0.003/1K input tokens, $0.015/1K output tokens",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.694065",
+        "type": "CODE_REVIEW_COMPLETE",
+        "details": "Completed review - 2 files, 6 comments, $0.0116",
+        "repo_name": "tr/cs-prof_tax-us-cstax-1040ST-NE",
+        "pr_number": "171"
+      },
+      {
+        "timestamp": "2025-09-01T18:29:40.710864",
+        "type": "SESSION_END",
+        "details": "User session ended",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 2,
+    "repositories_accessed": [
+      "tr/cs-prof_tax-us-cstax-1040ST-NE"
+    ],
+    "pr_numbers_reviewed": [
+      "171"
+    ],
+    "end_time": "2025-09-01T18:29:40.710864"
   }
 ]
