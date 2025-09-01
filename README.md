@@ -11,13 +11,13 @@
 
 The tool is available in multiple versions:
 
-- **V2.1.7 (Latest - SECURITY UPDATE)** - Critical security fixes and 64-bit compatibility
-  - 🔒 CRITICAL SECURITY FIX: Removed exposed tokens and enhanced credential handling
-  - ✅ Fixed 64-bit compatibility - resolves "Unsupported 16-bit Application" errors
-  - 🛡️ Enhanced security with proper .gitignore and credential protection
-  - 📖 Updated GitHub token setup guide with step-by-step visual instructions
-  - 🔧 Fixed Unicode display issues for better PowerShell compatibility
-  - 🎨 Enhanced update notification UI with custom dialogs
+- **V2.1.8 (Latest - ENTERPRISE SECURITY EDITION)** - Complete security overhaul with enterprise features
+  - � ENTERPRISE SECURITY: Windows Credential Manager integration for secure token storage
+  - 🛡️ SECURE TOKEN MANAGEMENT: Memory-only token storage with automatic cleanup  
+  - � COMPREHENSIVE SECURITY: Enhanced .gitignore and zero token exposure architecture
+  - ✅ GITGUARDIAN COMPLIANCE: Bulletproof token protection preventing security alerts
+  - � 64-bit Architecture: Enhanced compatibility and performance optimization
+  - 🎨 Enhanced update notification UI with professional custom dialogs
   - 📊 Comprehensive usage tracking and administrative features
   - 🤖 Improved AI review quality with targeted feedback
 - **V2.1.6** - Previous version (superseded by security update)

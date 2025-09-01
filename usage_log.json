@@ -4100,5 +4100,718 @@
       "136"
     ],
     "end_time": "2025-08-29T15:50:16.590464"
+  },
+  {
+    "session_id": "557ba52e8760ef50",
+    "start_time": "2025-09-01T18:41:23.767563",
+    "app_version": "2.1.7",
+    "app_name": "AI Code Review Tool",
+    "release_date": "2025-08-26",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "10.112.78.30",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-09-01T18:41:23.767563",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175 - Version: 2.1.7",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:41:23.776369",
+        "type": "[CONFIG] AI settings loaded from file",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:41:24.190754",
+        "type": "[ADMIN UI] Dev Monitor button visible - admin user detected",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 0,
+    "repositories_accessed": [],
+    "pr_numbers_reviewed": []
+  },
+  {
+    "session_id": "1a509da53370b7e8",
+    "start_time": "2025-09-01T18:43:43.616133",
+    "app_version": "2.1.8",
+    "app_name": "AI Code Review Tool",
+    "release_date": "2025-09-01",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "10.112.78.30",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-09-01T18:43:43.616133",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175 - Version: 2.1.8",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:43:43.624766",
+        "type": "[CONFIG] AI settings loaded from file",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:43:44.069070",
+        "type": "[ADMIN UI] Dev Monitor button visible - admin user detected",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:44:00.538623",
+        "type": "[INFO] Opened user guide: user_guide_revolutionary.html",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 0,
+    "repositories_accessed": [],
+    "pr_numbers_reviewed": []
+  },
+  {
+    "session_id": "6515d76d9d2cf033",
+    "start_time": "2025-09-01T19:45:33.204057",
+    "app_version": "2.1.8",
+    "app_name": "AI Code Review Tool",
+    "release_date": "2025-09-01",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "10.112.78.30",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-09-01T19:45:33.204057",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175 - Version: 2.1.8",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:45:33.211086",
+        "type": "[CONFIG] AI settings loaded from file",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:45:33.624532",
+        "type": "[ADMIN UI] Dev Monitor button visible - admin user detected",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:45:39.675589",
+        "type": "[INFO] Opened user guide: user_guide_revolutionary.html",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 0,
+    "repositories_accessed": [],
+    "pr_numbers_reviewed": []
+  },
+  {
+    "session_id": "e22b9400ffb7c3af",
+    "start_time": "2025-09-01T19:53:20.001734",
+    "app_version": "2.1.8",
+    "app_name": "AI Code Review Tool",
+    "release_date": "2025-09-01",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "10.189.215.252",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-09-01T19:53:20.001734",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175 - Version: 2.1.8",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:53:20.011017",
+        "type": "[CONFIG] AI settings loaded from file",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:53:20.502497",
+        "type": "[ADMIN UI] Dev Monitor button visible - admin user detected",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:53:32.100225",
+        "type": "[THEME] Switched to Light mode",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 0,
+    "repositories_accessed": [],
+    "pr_numbers_reviewed": []
+  },
+  {
+    "session_id": "0c4e59ec8fe4ad6c",
+    "start_time": "2025-09-01T19:54:04.273197",
+    "app_version": "2.1.8",
+    "app_name": "AI Code Review Tool",
+    "release_date": "2025-09-01",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "10.189.215.252",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-09-01T19:54:04.273197",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175 - Version: 2.1.8",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:04.288942",
+        "type": "[TRACKING] Admin access granted for 6126175",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:04.304658",
+        "type": "CODE_REVIEW",
+        "details": "Starting code review for tr/cs-prof_tax-us-cstax-1040ST-IL PR #138",
+        "repo_name": "tr/cs-prof_tax-us-cstax-1040ST-IL",
+        "pr_number": "138"
+      },
+      {
+        "timestamp": "2025-09-01T19:54:09.882345",
+        "type": "CODE_REVIEW",
+        "details": "Starting code review for tr/cs-prof_tax-us-cstax-1040ST-IL PR #138",
+        "repo_name": "tr/cs-prof_tax-us-cstax-1040ST-IL",
+        "pr_number": "138"
+      },
+      {
+        "timestamp": "2025-09-01T19:54:09.927266",
+        "type": "Initializing GitHub client for repo: tr/cs-prof_tax-us-cstax-1040ST-IL, PR: 138",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:12.704963",
+        "type": "Successfully connected to PR #138.",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:14.089906",
+        "type": "Found 2 files in PR #138.",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:14.106135",
+        "type": "[DEBUG] All files in PR:",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:14.121871",
+        "type": "[DEBUG] 1. .gitignore",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:14.138034",
+        "type": "[DEBUG] 2. src/calc/ilschk1.cpp",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:14.138034",
+        "type": "Processing file 1/2: .gitignore",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:14.153774",
+        "type": "[INFO] File details - Status: modified, Changes: 10, Additions: 4, Deletions: 6",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:14.153774",
+        "type": "[DEBUG] Modified file processed: 4 lines added, 6 lines removed",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:14.169411",
+        "type": "[DEBUG] Sending line numbers to AI: [383, 498, 499, 500]",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:14.185023",
+        "type": "Found 10 modified lines in .gitignore (4 added/modified, 6 removed)",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:14.185023",
+        "type": "Using api_handler for code review",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:24.996741",
+        "type": "\ud83e\udd16 OpenArena API Response Status: 200",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:25.012011",
+        "type": "\ud83d\udcac AI Code Review Feedback received",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:25.043677",
+        "type": "\ud83d\udcca Claude 4 Sonnet pricing applied: $0.00000",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:25.060265",
+        "type": "\ud83d\udcca Token usage: 0 tokens (Prompt: 0, Completion: 0)",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:25.075896",
+        "type": "\ud83d\udcb0 Est. cost: $0.00000",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:25.092155",
+        "type": "[ESTIMATION] No token data from API. Estimating based on text length.",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:25.108419",
+        "type": "[ESTIMATION] Estimated tokens - Input: 60, Output: 140",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:25.133598",
+        "type": "[ESTIMATION] Estimated cost: $0.00228",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:25.146067",
+        "type": "[DEBUG] Found 3 raw comment lines for .gitignore",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:25.154581",
+        "type": "[DEBUG] Filtering reduced comments from 3 to 3 for .gitignore",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:25.185853",
+        "type": "[DEBUG] Adding 2 valid comments to all_comments for .gitignore",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:25.201779",
+        "type": "[DEBUG] No line number found in: I cannot review the code you mentioned because the provided context only contain...",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:25.218238",
+        "type": "[DEBUG] No line number found in: To properly review the code changes you mentioned, I would need the actual code ...",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:25.250629",
+        "type": "[GENERATED] Found 2 AI comments for .gitignore (not posted - checkbox unchecked)",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:25.265668",
+        "type": "Processing file 2/2: src/calc/ilschk1.cpp",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:25.281411",
+        "type": "[INFO] File details - Status: modified, Changes: 13, Additions: 12, Deletions: 1",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:25.296939",
+        "type": "[DEBUG] Modified file processed: 12 lines added, 1 lines removed",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:25.312563",
+        "type": "[DEBUG] Sending line numbers to AI: [708, 717, 720, 923, 924, 925, 926, 927, 928, 929, 930, 931]",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:25.328187",
+        "type": "Found 13 modified lines in src/calc/ilschk1.cpp (12 added/modified, 1 removed)",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:25.344221",
+        "type": "Using api_handler for code review",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.580732",
+        "type": "\ud83e\udd16 OpenArena API Response Status: 200",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.596254",
+        "type": "\ud83d\udcac AI Code Review Feedback received",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.611872",
+        "type": "\ud83d\udcca Claude 4 Sonnet pricing applied: $0.00000",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.611872",
+        "type": "\ud83d\udcca Token usage: 0 tokens (Prompt: 0, Completion: 0)",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.629886",
+        "type": "\ud83d\udcb0 Est. cost: $0.00000",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.644619",
+        "type": "[ESTIMATION] No token data from API. Estimating based on text length.",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.654138",
+        "type": "[ESTIMATION] Estimated tokens - Input: 168, Output: 123",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.659157",
+        "type": "[ESTIMATION] Estimated cost: $0.00235",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.669618",
+        "type": "[DEBUG] Found 3 raw comment lines for src/calc/ilschk1.cpp",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.686391",
+        "type": "[DEBUG] Filtering reduced comments from 3 to 3 for src/calc/ilschk1.cpp",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.691704",
+        "type": "[DEBUG] Adding 2 valid comments to all_comments for src/calc/ilschk1.cpp",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.706718",
+        "type": "[DEBUG] Extracted line 928 from: Line 928: Performance issue: Using std::find() with linear search on every itera...",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.706718",
+        "type": "[DEBUG] Used fallback line 708 for comment: Line 924-931: Logic error: The loop iterates from ...",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.722359",
+        "type": "[DEBUG] Extracted line 708 from: Line 924-931: Logic error: The loop iterates from 1 to MaxInShUnit(_IILK1_2) but...",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.722359",
+        "type": "[GENERATED] Found 2 AI comments for src/calc/ilschk1.cpp (not posted - checkbox unchecked)",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.737981",
+        "type": "\n[SUMMARY] \ud83c\udfaf AI code review complete. Reviewed 2/2 files. A total of 4 comments were generated (not posted to GitHub - see HTML report).",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.754123",
+        "type": "[DEBUG] Report generation: Found 2 total comments",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.754123",
+        "type": "[REPORT] Generating HTML report with 2 comments...",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.769634",
+        "type": "[REPORT] HTML report saved to: C:\\Users\\6126175\\TheAIReview\\AIReview\\reports\\review_report_tr_cs-prof_tax-us-cstax-1040ST-IL_PR138_20250901-195432.html",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.795199",
+        "type": "[REPORT] Opening review report using os.startfile: C:\\Users\\6126175\\TheAIReview\\AIReview\\reports\\review_report_tr_cs-prof_tax-us-cstax-1040ST-IL_PR138_20250901-195432.html",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.795199",
+        "type": "[REPORT] HTML report generation completed",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.818095",
+        "type": "[COST] COST SUMMARY",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.819254",
+        "type": "[COST] Total estimated cost: $0.00463 for 491 tokens",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.835972",
+        "type": "[COST] Breakdown: Input $0.00103 + Output $0.00222",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:32.835972",
+        "type": "[COST] Claude 4 Sonnet pricing: $0.003/1K input tokens, $0.015/1K output tokens",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:33.022819",
+        "type": "[SUCCESS] Review report opened in browser",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T19:54:33.038742",
+        "type": "CODE_REVIEW_COMPLETE",
+        "details": "Completed review - 2 files, 4 comments, $0.0046",
+        "repo_name": "tr/cs-prof_tax-us-cstax-1040ST-IL",
+        "pr_number": "138"
+      },
+      {
+        "timestamp": "2025-09-01T19:54:33.038742",
+        "type": "SESSION_END",
+        "details": "User session ended",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 2,
+    "repositories_accessed": [
+      "tr/cs-prof_tax-us-cstax-1040ST-IL"
+    ],
+    "pr_numbers_reviewed": [
+      "138"
+    ],
+    "end_time": "2025-09-01T19:54:33.038742"
   }
 ]

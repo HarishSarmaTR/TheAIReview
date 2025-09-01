@@ -1,3 +1,37 @@
+# 🔒 CRITICAL SECURITY - NEVER COMMIT THESE FILES
+*.env
+.env*
+env.*
+tokens.txt
+token_*
+secure_tokens.*
+secure.key
+encryption.key
+credentials.*
+*.token
+*.secret
+*.jwt
+access_token*
+bearer_token*
+api_key*
+auth_token*
+
+# User data that may contain sensitive information
+user_info.json
+recent_repos.json
+usage_log.json
+last_update_check.json
+update_notifications.json
+feedback_submissions.json
+
+# Build artifacts that may contain embedded credentials  
+build/
+dist/
+*.spec
+__pycache__/
+*.pyc
+*.pyo
+
 # SECURITY - Sensitive files - NEVER COMMIT THESE
 *.env
 .env*

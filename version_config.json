@@ -1,13 +1,15 @@
 {
-    "app_version": "2.1.7",
+    "app_version": "2.1.8",
     "app_name": "AI Code Review Tool",
-    "release_date": "2025-08-26",
+    "release_date": "2025-09-01",
     "major_features": [
+        "ENTERPRISE SECURITY: Windows Credential Manager integration",
+        "SECURE TOKEN MANAGEMENT: Memory-only token storage with automatic cleanup",
+        "COMPREHENSIVE SECURITY: Enhanced .gitignore and token protection",
+        "GITGUARDIAN COMPLIANCE: Zero token exposure architecture",
         "CRITICAL SECURITY FIX: Removed exposed tokens",
         "Fixed 64-bit compatibility issues",
-        "Enhanced security with proper .gitignore",
         "Updated GitHub token setup guide with images",
-        "Fixed Unicode display issues",
         "Enhanced update notification UI",
         "Comprehensive usage tracking",
         "Improved AI review quality"

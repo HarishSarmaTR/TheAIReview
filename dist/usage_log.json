@@ -1695,5 +1695,92 @@
       "171"
     ],
     "end_time": "2025-09-01T18:29:40.710864"
+  },
+  {
+    "session_id": "af9d8d6934874646",
+    "start_time": "2025-09-01T18:36:36.167110",
+    "app_version": "2.1.7",
+    "app_name": "AI Code Review Tool",
+    "release_date": "2025-08-28",
+    "system_info": {
+      "system_user": "6126175",
+      "hostname": "TR-8MF27S3",
+      "ip_address": "10.112.78.30",
+      "platform": "Windows-11-10.0.22631-SP0",
+      "machine": "AMD64",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "python_version": "3.12.4",
+      "working_directory": "C:\\Users\\6126175\\TheAIReview\\dist"
+    },
+    "user_info": {
+      "system_user": "6126175",
+      "sso_user": "",
+      "display_name": "Velavalapalli Harish Sarma",
+      "email": "",
+      "first_name": "Velavalapalli",
+      "last_name": "Harish Sarma"
+    },
+    "access_message": "Admin access granted for 6126175",
+    "activities": [
+      {
+        "timestamp": "2025-09-01T18:36:36.167110",
+        "type": "SYSTEM",
+        "details": "SESSION_START: User session started: 6126175 - Version: 2.1.7",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:36:36.616232",
+        "type": "[ADMIN UI] Dev Monitor button visible - admin user detected",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:36:45.214728",
+        "type": "[AUTH] Starting TR SSO authentication with user info...",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:36:45.214728",
+        "type": "[BROWSER] Please complete SSO authentication when browser opens...",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:37:50.947616",
+        "type": "? OpenArena token extracted successfully!",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:37:50.962134",
+        "type": "[AUTH] User authenticated: Velavalapalli Harish Sarma",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:37:50.964244",
+        "type": "[WELCOME] Welcome Velavalapalli!",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      },
+      {
+        "timestamp": "2025-09-01T18:37:52.317064",
+        "type": "[SAVE] Token saved to file for future use",
+        "details": "",
+        "repo_name": null,
+        "pr_number": null
+      }
+    ],
+    "reviews_conducted": 0,
+    "repositories_accessed": [],
+    "pr_numbers_reviewed": []
   }
 ]

@@ -45,6 +45,21 @@ except ImportError:
     HAS_USAGE_TRACKING = False
     print("Usage tracking module not found. Running without usage tracking.")
 
+# Import secure token management
+try:
+    from secure_token_manager import (
+        get_secure_token_manager, 
+        get_memory_storage, 
+        validate_github_token, 
+        validate_openarena_token,
+        secure_input_token
+    )
+    HAS_SECURE_TOKENS = True
+    print("🔒 Secure token management enabled")
+except ImportError:
+    HAS_SECURE_TOKENS = False
+    print("⚠️ Secure token management not available - using fallback storage")
+
 # Import enhanced tracking
 try:
     from enhanced_tracking import track_app_start, track_code_review, track_feature_use
