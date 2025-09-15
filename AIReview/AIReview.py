@@ -3,7 +3,7 @@
 # FILE: AIReview.py
 
 """
-Author: Velavalapalli Harish Sarma (velavalapalli.harishsarma@thomsonreuters.com)
+Author: Velavalapalli Harish Sarma (velavalapalli.harishsarma@thomsonreuters.com)when 
 """
 
 import tkinter as tk
@@ -14,7 +14,7 @@ import os
 import re
 import requests
 import webbrowser
-import urllib.parse  # For URL encoding email content
+import urllib.parse  # For URL encoding email contentneed icon 
 from github import Github
 import fnmatch
 from cryptography.fernet import Fernet
@@ -45,6 +45,25 @@ except ImportError:
     HAS_USAGE_TRACKING = False
     print("Usage tracking module not found. Running without usage tracking.")
 
+# Import enterprise analytics
+try:
+    from enterprise_analytics import get_analytics, track_app_event, track_review_started, track_review_completed, track_token_extraction, track_feature_access
+    from analytics_dashboard import show_analytics_dashboard
+    from realtime_stats_api import get_stats_api, get_realtime_stats
+    HAS_ENTERPRISE_ANALYTICS = True
+    print("[ANALYTICS] Enterprise analytics module loaded successfully")
+except ImportError:
+    HAS_ENTERPRISE_ANALYTICS = False
+    print("[WARNING] Enterprise analytics module not available")
+
+# Import management report generator
+try:
+    from management_report_generator import generate_management_report
+    HAS_MANAGEMENT_REPORTS = True
+except ImportError:
+    HAS_MANAGEMENT_REPORTS = False
+    print("Management report generator not found. Admin reports unavailable.")
+
 # Import secure token management
 try:
     from secure_token_manager import (
@@ -55,10 +74,10 @@ try:
         secure_input_token
     )
     HAS_SECURE_TOKENS = True
-    print("🔒 Secure token management enabled")
+    print("[SECURE] Secure token management enabled")
 except ImportError:
     HAS_SECURE_TOKENS = False
-    print("⚠️ Secure token management not available - using fallback storage")
+    print("[WARNING] Secure token management not available - using fallback storage")
 
 # Import enhanced tracking
 try:
@@ -157,7 +176,7 @@ def show_usage_report():
             print_log(f"[SECURITY] Unauthorized usage report access attempt by {user_info.get('display_name', 'Unknown')}")
             messagebox.showerror(
                 "Access Denied - Developer Only Feature", 
-                "❌ This feature is restricted to the developer only.\n\n"
+                "[RESTRICTED] This feature is restricted to the developer only.\n\n"
                 "Usage tracking and reporting is for administrative monitoring purposes.\n"
                 "Contact the developer if you need access to usage statistics."
             )
@@ -173,7 +192,7 @@ def show_usage_report():
         
         # Create report window
         report_window = Toplevel(root)
-        report_window.title("🔒 AI Review Tool - Usage Report (Developer Only)")
+        report_window.title("[SECURE] AI Review Tool - Usage Report (Developer Only)")
         report_window.geometry("900x700")
         report_window.configure(bg="#2b2b2b")
         
@@ -183,7 +202,7 @@ def show_usage_report():
         security_frame.pack_propagate(False)
         
         security_label = tk.Label(security_frame, 
-                                 text="🔒 CONFIDENTIAL - DEVELOPER/ADMIN ONLY - DO NOT SHARE", 
+                                 text="[CONFIDENTIAL] DEVELOPER/ADMIN ONLY - DO NOT SHARE", 
                                  bg="#dc3545", fg="white", 
                                  font=("Arial", 10, "bold"))
         security_label.pack(expand=True)
@@ -200,14 +219,14 @@ def show_usage_report():
         text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
         # Format and insert report
-        report_text = f"""🔒 AI REVIEW TOOL - CONFIDENTIAL USAGE REPORT
+        report_text = f"""[SECURE] AI REVIEW TOOL - CONFIDENTIAL USAGE REPORT
 Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} by {user_info.get('display_name', 'Admin')}
 {'='*80}
 
-⚠️  IMPORTANT: This report contains confidential usage data for monitoring purposes.
+[WARNING] IMPORTANT: This report contains confidential usage data for monitoring purposes.
     Do not share this information with unauthorized personnel.
 
-📊 USAGE SUMMARY:
+[ANALYTICS] USAGE SUMMARY:
 {'='*50}
 • Total Sessions: {report.get('total_sessions', 0)}
 • Active Users: {len(report.get('unique_users', []))}
@@ -215,7 +234,7 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} by {user_info.get('dis
 • Repositories Accessed: {len(report.get('repositories_accessed', []))}
 • Versions in Use: {report.get('summary', {}).get('versions_in_use', 0)}
 
-🔄 VERSION DISTRIBUTION:
+[VERSION] DISTRIBUTION:
 {'='*50}"""
         
         # Add version usage information
@@ -228,7 +247,7 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} by {user_info.get('dis
                 users = ', '.join(data.get('users', []))
                 
                 report_text += f"""
-📋 Version: {version}
+[VERSION] {version}
    • Users: {user_count} ({users})
    • Sessions: {sessions}
    • Reviews: {reviews}
@@ -240,7 +259,7 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} by {user_info.get('dis
 
         report_text += f"""
 
-👥 USER ACTIVITY BREAKDOWN:
+[USERS] ACTIVITY BREAKDOWN:
 {'='*50}"""
         
         # Add detailed user activity
@@ -248,7 +267,7 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} by {user_info.get('dis
             for user, activity in report['user_activity'].items():
                 versions_used = ', '.join(activity.get('versions_used', ['Unknown']))
                 report_text += f"""
-📋 User: {activity.get('display_name', user)}
+[USER] {activity.get('display_name', user)}
    • System ID: {user}
    • Sessions: {activity.get('session_count', 0)}
    • Reviews: {activity.get('review_count', 0)}
@@ -261,13 +280,13 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} by {user_info.get('dis
         
         # Add repository usage
         if 'repositories_accessed' in report and report['repositories_accessed']:
-            report_text += f"\n\n📁 REPOSITORY ACCESS LOG:\n{'='*50}\n"
+            report_text += f"\n\n[REPOS] REPOSITORY ACCESS LOG:\n{'='*50}\n"
             for repo in report['repositories_accessed']:
                 report_text += f"• {repo}\n"
         
         # Add recent sessions (last 10 for security)
         if 'recent_sessions' in report and report['recent_sessions']:
-            report_text += f"\n\n🕒 RECENT SESSIONS (Last 10):\n{'='*50}\n"
+            report_text += f"\n\n[SESSIONS] RECENT SESSIONS (Last 10):\n{'='*50}\n"
             for session in report['recent_sessions'][:10]:
                 user = session.get('user', 'Unknown')
                 start_time = session.get('start_time', 'N/A')
@@ -280,7 +299,7 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} by {user_info.get('dis
         report_text += f"""
 
 {'='*80}
-🔒 CONFIDENTIALITY NOTICE:
+[CONFIDENTIALITY] NOTICE:
 This report contains sensitive usage information and should be treated as confidential.
 Access is logged and monitored. Do not distribute without authorization.
 
@@ -295,12 +314,12 @@ Generation time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         button_frame = tk.Frame(report_window, bg="#2b2b2b")
         button_frame.pack(pady=5)
         
-        export_button = tk.Button(button_frame, text="📁 Export Report (Secure)", 
+        export_button = tk.Button(button_frame, text="[EXPORT] Export Report (Secure)", 
                                  command=lambda: export_usage_report_secure(report, user_info),
                                  bg="#FFA500", fg="white", font=("Arial", 10))
         export_button.pack(side=tk.LEFT, padx=5)
         
-        close_button = tk.Button(button_frame, text="🔒 Close", 
+        close_button = tk.Button(button_frame, text="[SECURE] Close", 
                                 command=report_window.destroy,
                                 bg="#DC3545", fg="white", font=("Arial", 10))
         close_button.pack(side=tk.LEFT, padx=5)
@@ -308,6 +327,88 @@ Generation time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
     except Exception as e:
         print_log(f"[ERROR] Failed to generate usage report: {e}")
         messagebox.showerror("Error", f"Failed to generate usage report: {e}")
+
+def generate_executive_report():
+    """Generate executive-level management report"""
+    try:
+        if not HAS_MANAGEMENT_REPORTS:
+            messagebox.showerror("Feature Unavailable", "Management report generator is not available.\nPlease contact the developer.")
+            return
+        
+        # Check admin access
+        user_info = get_authenticated_user_info()
+        if not is_current_user_admin():
+            print_log(f"[SECURITY] Unauthorized executive report access attempt by {user_info.get('display_name', 'Unknown')}")
+            messagebox.showerror(
+                "Access Denied - Admin Only Feature", 
+                "[RESTRICTED] Executive reports are restricted to administrators only.\n\n"
+                "This feature generates management-level analytics for executive review.\n"
+                "Contact your administrator if you need access to these reports."
+            )
+            return
+        
+        print_log(f"[ADMIN] Executive report generation started by: {user_info.get('display_name', 'Unknown')}")
+        
+        # Show progress dialog
+        progress_dialog = tk.Toplevel(root)
+        progress_dialog.title("Generating Executive Report")
+        progress_dialog.geometry("400x150")
+        progress_dialog.configure(bg="#2b2b2b")
+        progress_dialog.transient(root)
+        progress_dialog.grab_set()
+        
+        # Center the dialog
+        progress_dialog.geometry("+%d+%d" % (root.winfo_rootx() + 50, root.winfo_rooty() + 50))
+        
+        progress_label = tk.Label(progress_dialog, text="[PROCESSING] Generating executive usage report...", 
+                                bg="#2b2b2b", fg="white", font=("Arial", 12))
+        progress_label.pack(pady=20)
+        
+        detail_label = tk.Label(progress_dialog, text="[INFO] Analyzing usage patterns and generating insights...", 
+                              bg="#2b2b2b", fg="#cccccc", font=("Arial", 10))
+        detail_label.pack(pady=5)
+        
+        progress_dialog.update()
+        
+        # Generate the report
+        filename = generate_management_report()
+        
+        progress_dialog.destroy()
+        
+        if filename:
+            print_log(f"[SUCCESS] Executive report generated: {filename}")
+            messagebox.showinfo(
+                "Executive Report Generated", 
+                f"[SUCCESS] Management report has been generated successfully!\n\n"
+                f"Report File: {filename}\n\n"
+                f"[INFO] This comprehensive report includes:\n"
+                f"• Executive Summary with Key Metrics\n"
+                f"• User Adoption and Engagement Analytics\n"
+                f"• ROI Analysis and Cost Savings\n"
+                f"• Usage Trends and Patterns\n"
+                f"• Management Recommendations\n\n"
+                f"[CONFIDENTIAL] This report is for management use only."
+            )
+            
+            # Ask if user wants to open the report
+            open_report = messagebox.askyesno(
+                "Open Report?", 
+                f"Would you like to open the executive report now?\n\n"
+                f"File: {filename}"
+            )
+            
+            if open_report:
+                import webbrowser
+                webbrowser.open(filename)
+                print_log(f"[ADMIN] Executive report opened by: {user_info.get('display_name', 'Unknown')}")
+        else:
+            messagebox.showerror("Report Generation Failed", 
+                               "[ERROR] Failed to generate the executive report.\n"
+                               "Please check the console for error details.")
+                               
+    except Exception as e:
+        print_log(f"[ERROR] Failed to generate executive report: {e}")
+        messagebox.showerror("Error", f"Failed to generate executive report: {e}")
 
 def export_usage_report_secure(report_data, user_info):
     """Export usage report with security logging - ADMIN ONLY"""
@@ -339,8 +440,8 @@ def export_usage_report_secure(report_data, user_info):
             print_log(f"[SECURITY] Usage report exported by {user_info.get('display_name', 'Unknown')} to {filename}")
             
             messagebox.showinfo("Export Complete", 
-                              f"✅ Confidential usage report exported to:\n{filename}\n\n"
-                              "⚠️ This file contains sensitive data - handle with care!")
+                              f"[SUCCESS] Confidential usage report exported to:\n{filename}\n\n"
+                              "[WARNING] This file contains sensitive data - handle with care!")
             
     except Exception as e:
         print_log(f"[ERROR] Failed to export secure usage report: {e}")
@@ -371,7 +472,7 @@ def get_authenticated_user_info():
                 
                 print_log(f"+ SSO user info loaded: {user_info['display_name']}")
             else:
-                print_log("ℹ️ No SSO user info found, using system username")
+                print_log("[INFO] No SSO user info found, using system username")
                 user_info['display_name'] = user_info['system_user']
         else:
             # Fallback to system username
@@ -397,7 +498,7 @@ def setup_welcome_section():
     # Welcome message label - compact
     root.welcome_label = customtkinter.CTkLabel(
         welcome_section_frame, 
-        text="Welcome! 👋", 
+        text="Welcome!", 
         font=customtkinter.CTkFont(size=12, weight="bold"),
         text_color="#DC8400"  # Orange color for welcome message
     )
@@ -410,7 +511,7 @@ def setup_welcome_section():
     # Create a compact toggle button
     mode_switch = customtkinter.CTkButton(
         welcome_section_frame,
-        text="🌙" if current_mode == "Dark" else "☀️",
+        text="Dark" if current_mode == "Dark" else "Light",
         command=toggle_dark_mode,
         width=60,
         height=22,
@@ -458,33 +559,33 @@ def update_welcome_message():
 def extract_github_token_interactive():
     """Open GitHub token creation page for manual token setup"""
     try:
-        print_log("🔧 Preparing GitHub token setup with SSO instructions...")
+        print_log("[SETUP] Preparing GitHub token setup with SSO instructions...")
         
         # Show comprehensive pre-setup instructions first
-        pre_instructions = """🔐 GitHub Token Setup Instructions
+        pre_instructions = """[SETUP] GitHub Token Setup Instructions
 
 IMPORTANT: Please follow these steps in order:
 
-📋 STEP 1 - Navigate to Token Settings:
-   🌐 Go to GitHub Settings → Developer settings
-   🔑 Click "Personal access tokens" 
-   📝 Select "Tokens (classic)" (as shown in the red arrow)
+[STEP 1] - Navigate to Token Settings:
+   [WEB] Go to GitHub Settings → Developer settings
+   [TOKEN] Click "Personal access tokens" 
+   [CLASSIC] Select "Tokens (classic)" (as shown in the red arrow)
 
-🆕 STEP 2 - Create Token:
-   ➕ Click "Generate new token (classic)"
-   📝 Note: "AI Review Tool Token"
-   ⏰ Expiration: 90 days (recommended)
-   ✅ Permissions: Check "repo" (Full control of repositories)
+[STEP 2] - Create Token:
+   [NEW] Click "Generate new token (classic)"
+   [NOTE] Note: "AI Review Tool Token"
+   [TIME] Expiration: 90 days (recommended)
+   [CHECK] Permissions: Check "repo" (Full control of repositories)
 
-🔐 STEP 3 - SSO Authorization (CRITICAL):
-   ⚙️ After creating token, you'll see "Configure SSO" button
-   🔗 Click "Configure SSO" next to your organization
-   ✅ Click "Authorize" to grant SSO access
-   ⚠️ Without SSO authorization, the token won't work!
+[STEP 3] - SSO Authorization (CRITICAL):
+   [CONFIG] After creating token, you'll see "Configure SSO" button
+   [SSO] Click "Configure SSO" next to your organization
+   [CHECK] Click "Authorize" to grant SSO access
+   [WARNING] Without SSO authorization, the token won't work!
 
-🔒 STEP 4 - Security:
-   📋 Copy the token immediately (shown only once!)
-   🔐 Store it securely - it will be encrypted locally
+[SECURITY] STEP 4 - Security:
+   [COPY] Copy the token immediately (shown only once!)
+   [SECURE] Store it securely - it will be encrypted locally
 
 Click OK to open GitHub token creation page..."""
         
@@ -519,7 +620,7 @@ Without SSO authorization, your token will not work with organization repositori
         print_log("[INFO] GitHub token setup instructions provided")
         
     except Exception as e:
-        print_log(f"? Error opening GitHub token page: {e}")
+        print_log(f"[ERROR] Error opening GitHub token page: {e}")
         messagebox.showerror("Error", f"Failed to open GitHub token page:\n{e}")
 
 def show_token_creation_dialog():
@@ -529,9 +630,9 @@ def show_token_creation_dialog():
 [IMPORTANT] Token must be SSO-authorized to work with organization repositories!
 
 The setup process includes:
-� Creating a Personal Access Token (classic)
-� Configuring SSO authorization 
-� Authorizing access to your organization
+[TASK] Creating a Personal Access Token (classic)
+[TASK] Configuring SSO authorization 
+[TASK] Authorizing access to your organization
 
 Click OK to open GitHub with detailed step-by-step instructions."""
     
@@ -571,10 +672,14 @@ If you don't have a token, click Cancel and use the "Get" button."""
         if len(token.strip()) >= 40 and token.strip().startswith(('ghp_', 'github_pat_')):
             github_token_entry.delete(0, tk.END)
             github_token_entry.insert(0, token.strip())
-            print_log("? GitHub token entered successfully!")
+            print_log("[SUCCESS] GitHub token entered successfully!")
+            
+            # Track token extraction success
+            if HAS_ENTERPRISE_ANALYTICS:
+                track_token_extraction("github", True)
             
             # Show SSO reminder
-            sso_reminder = """? Token saved successfully!
+            sso_reminder = """[SUCCESS] Token saved successfully!
 
 [SSO] SSO Reminder: If you encounter authentication errors when accessing 
 organization repositories, verify that your token has SSO authorization:
@@ -587,10 +692,10 @@ Your token is now encrypted and stored locally."""
             
             messagebox.showinfo("Token Saved - SSO Reminder", sso_reminder)
         else:
-            print_log("? Invalid GitHub token format")
+            print_log("[ERROR] Invalid GitHub token format")
             messagebox.showerror("Invalid Token", 
                 "The token format appears invalid. GitHub tokens should:\n"
-                "� Be at least 40 characters long\n"
+                "[REQ] Be at least 40 characters long\n"
                 "- Start with 'ghp_' or 'github_pat_'\n\n"
                 "Please check and try again.\n\n"
                 "[NOTE] Don't forget to authorize SSO after creating the token!")
@@ -634,7 +739,7 @@ Your token is now encrypted and stored locally."""
                     if token:
                         github_token_entry.delete(0, tk.END)
                         github_token_entry.insert(0, token)
-                        print_log("? GitHub token retrieved successfully!")
+                        print_log("[SUCCESS] GitHub token retrieved successfully!")
                         messagebox.showinfo("Success", 
                             "GitHub token retrieved and saved successfully!\n\n"
                             "The token has been added to the GitHub Token field.")
@@ -647,7 +752,7 @@ Your token is now encrypted and stored locally."""
                     try:
                         for widget in github_frame.winfo_children():
                             if isinstance(widget, customtkinter.CTkButton):
-                                widget.configure(state="normal", text="Get")
+                                widget.configure(state="normal", text="🔑 Get")
                                 break
                     except:
                         pass
@@ -656,12 +761,12 @@ Your token is now encrypted and stored locally."""
                 
             except Exception as e:
                 def show_error():
-                    log_activity(f"? Error during GitHub token extraction: {e}")
+                    log_activity(f"[ERROR] Error during GitHub token extraction: {e}")
                     messagebox.showerror("Error", f"GitHub token extraction failed:\n{e}")
                     try:
                         for widget in github_frame.winfo_children():
                             if isinstance(widget, customtkinter.CTkButton):
-                                widget.configure(state="normal", text="Get")
+                                widget.configure(state="normal", text="🔑 Get")
                                 break
                     except:
                         pass
@@ -673,7 +778,7 @@ Your token is now encrypted and stored locally."""
         thread.start()
         
     except Exception as e:
-        log_activity(f"? Error starting GitHub token extraction: {e}")
+        log_activity(f"[ERROR] Error starting GitHub token extraction: {e}")
         messagebox.showerror("Error", f"Failed to start GitHub token extraction:\n{e}")
         try:
             for widget in github_frame.winfo_children():
@@ -702,11 +807,15 @@ def extract_openarena_token_with_user_info():
                 token, user_info = get_auth_token_with_user_info(url)
                 
                 # Update UI in main thread
-                def update_ui():
+                def update_ui(): 
                     if token:
                         openarena_token_entry.delete(0, tk.END)
                         openarena_token_entry.insert(0, token)
-                        log_activity("? OpenArena token extracted successfully!")
+                        log_activity("[SUCCESS] OpenArena token extracted successfully!")
+                        
+                        # Track token extraction success
+                        if HAS_ENTERPRISE_ANALYTICS:
+                            track_token_extraction("openarena", True)
                         
                         # Update welcome message with new user info
                         update_welcome_message()
@@ -735,15 +844,16 @@ def extract_openarena_token_with_user_info():
                         messagebox.showerror("Error", "Failed to extract token. Please try manual entry.")
                     
                     # Re-enable button
-                    extract_token_button.configure(state="normal", text="Get-Token")
+                    extract_token_button.configure(state="normal", text="🎫 Get")
                 
                 root.after(0, update_ui)
                 
             except Exception as e:
                 def show_error():
-                    log_activity(f"? Error during extraction: {e}")
-                    messagebox.showerror("Error", f"Extraction failed: {e}")
-                    extract_token_button.configure(state="normal", text="Get-Token")
+                    error_msg = str(e)
+                    log_activity(f"[ERROR] Error during extraction: {error_msg}")
+                    messagebox.showerror("Error", f"Extraction failed: {error_msg}")
+                    extract_token_button.configure(state="normal", text="🎫 Get")
                 
                 root.after(0, show_error)
         
@@ -752,7 +862,7 @@ def extract_openarena_token_with_user_info():
         thread.start()
         
     except Exception as e:
-        log_activity(f"? Error starting extraction: {e}")
+        log_activity(f"[ERROR] Error starting extraction: {e}")
         messagebox.showerror("Error", f"Failed to start extraction: {e}")
         extract_token_button.configure(state="normal", text="Get-Token")
 
@@ -796,7 +906,7 @@ def enhanced_startup_sequence():
                 
             except PermissionError as e:
                 # Access denied - show error and exit
-                print_log(f"? Access Denied: {e}")
+                print_log(f"[ERROR] Access Denied: {e}")
                 messagebox.showerror("Access Denied", 
                     f"You do not have permission to use this tool.\n\n{e}\n\n"
                     "Please contact the administrator for access.")
@@ -1186,7 +1296,7 @@ def run_code_review():
     
     # Enhanced logging for tracking
     print_log(f"[REVIEW START] Repository: {repo_name}, PR: {pr_number}, User: {user_info.get('display_name', 'Unknown')}")
-    print_log("[INFO] ⚠️ Usage monitoring is active for administrative purposes")
+    print_log("[INFO] [WARNING] Usage monitoring is active for administrative purposes")
     
     if HAS_USAGE_TRACKING:
         log_activity("CODE_REVIEW", f"Starting code review for {repo_name} PR #{pr_number}", repo_name=repo_name, pr_number=pr_number)
@@ -1280,11 +1390,11 @@ def run_code_review():
     if progress_bar:
         progress_bar.set(0)
         if progress_percentage_label:
-            progress_percentage_label.configure(text="🔄 Initializing...")
+            progress_percentage_label.configure(text="[INIT] Initializing...")
     if time_taken_label:
-        time_taken_label.configure(text="⏱️ Time: -")
+        time_taken_label.configure(text="[TIME] Time: -")
     if cost_label:
-        cost_label.configure(text="💰 Cost: -")
+        cost_label.configure(text="[COST] Cost: -")
     if view_pr_button:
         view_pr_button.configure(state="disabled")
     if view_report_button:
@@ -1308,23 +1418,23 @@ def run_code_review():
         # Format time as mm:ss min for clarity
         minutes = int(duration // 60)
         seconds = int(duration % 60)
-        time_taken_label.configure(text=f"⏱️ Time: {minutes:02d}:{seconds:02d} min")
+        time_taken_label.configure(text=f"[TIME] Time: {minutes:02d}:{seconds:02d} min")
     if cost_label:
         if total_cost > 0:
-            cost_label.configure(text=f"💰 Cost: ${total_cost:.4f}")
+            cost_label.configure(text=f"[COST] Cost: ${total_cost:.4f}")
         else:
             # Even if API reports 0 cost, provide an estimate based on response length
             if all_posted_comments_count > 0:
                 # Rough estimate: $0.01 per comment as a minimum
                 min_cost = all_posted_comments_count * 0.01
-                cost_label.configure(text=f"💰 Min. Cost: ${min_cost:.4f}")
+                cost_label.configure(text=f"[COST] Min. Cost: ${min_cost:.4f}")
             else:
-                cost_label.configure(text=f"💰 Cost: ${total_cost:.4f}")
+                cost_label.configure(text=f"[COST] Cost: ${total_cost:.4f}")
     review_button.configure(state="normal")
     
     if reviewed_files_count > 0:
         print_log(f"Code review completed. Reviewed {reviewed_files_count}/{total_files} files. Posted {all_posted_comments_count} comments.")
-        status_message.set("Completed ✅")
+        status_message.set("Completed [SUCCESS]")
         
         # Enhanced completion tracking
         if HAS_USAGE_TRACKING:
@@ -1798,7 +1908,7 @@ def determine_severity(comment_content):
         'authenticated bypass', 'privilege escalation', 'data breach',
         'confirmed memory leak', 'proven buffer overflow', 'guaranteed crash'
     ]):
-        return "🚨 Critical"
+        return "[CRITICAL] Critical"
     
     # High priority issues
     elif any(word in content_lower for word in [
@@ -1807,7 +1917,7 @@ def determine_severity(comment_content):
         'segmentation fault', 'deadlock', 'race condition', 'buffer overflow',
         'memory leak', 'potential security', 'potential vulnerability'
     ]):
-        return "⚠️ High"
+        return "[WARNING] High"
     
     # Medium priority issues
     elif any(word in content_lower for word in [
@@ -1815,17 +1925,17 @@ def determine_severity(comment_content):
         'maintainability', 'readability', 'complexity', 'potential issue',
         'potential runtime issue', 'potential bug', 'edge case', 'possible error'
     ]):
-        return "🟡 Medium"
+        return "[MEDIUM] Medium"
     
     # Low priority issues
     elif any(word in content_lower for word in [
         'style', 'convention', 'formatting', 'naming', 'comment',
         'documentation', 'suggestion', 'consider'
     ]):
-        return "🟢 Low"
+        return "[LOW] Low"
     
     # Default to medium if can't categorize
-    return "🟡 Medium"
+    return "[MEDIUM] Medium"
 
 # Post comments on GitHub PR
 def post_comments_on_pr(pr, comments, filename, modified_lines):
@@ -1857,10 +1967,10 @@ def post_comments_on_pr(pr, comments, filename, modified_lines):
             severity = determine_severity(content)
             
             # Enhanced AI comment format with severity
-            ai_comment = f"🤖 **AI Code Review** • {severity}\n\nLine {line_num}: {content.strip()}"
+            ai_comment = f"[AI] **AI Code Review** • {severity}\n\nLine {line_num}: {content.strip()}"
             parsed_comments.append((line_number, ai_comment))
         except ValueError:
-            log_activity(f"❌ Invalid line number format: {line_num}")
+            log_activity(f"[ERROR] Invalid line number format: {line_num}")
             continue
     
     # If no matches were found, try alternative parsing approaches
@@ -2112,7 +2222,7 @@ def create_comments_html_report(comments, pr_url, repo_name, pr_number):
             code_snippet_html = ""
             if comment.get("code_snippet") and comment["code_snippet"].strip():
                 code_snippet_html = f"""
-                <div class="snippet-label">📝 Code Context:</div>
+                <div class="snippet-label">[CODE] Code Context:</div>
                 <div class="code-snippet">{comment["code_snippet"]}</div>"""
             
             html_content += f"""
@@ -2163,7 +2273,7 @@ def create_comments_html_report(comments, pr_url, repo_name, pr_number):
                 webbrowser.open(file_url)
             log_activity(f"[SUCCESS] Review report opened in browser")
         except Exception as open_error:
-            log_activity(f"? Failed to open report with primary method: {open_error}")
+            log_activity(f"[ERROR] Failed to open report with primary method: {open_error}")
             # Fallback: try using webbrowser with different URL formats
             try:
                 # Convert backslashes to forward slashes for URL
@@ -2176,7 +2286,7 @@ def create_comments_html_report(comments, pr_url, repo_name, pr_number):
                 webbrowser.open(file_url)
                 log_activity(f"[SUCCESS] Review report opened in browser (fallback method)")
             except Exception as fallback_error:
-                log_activity(f"? Report opening fallback also failed: {fallback_error}")
+                log_activity(f"[ERROR] Report opening fallback also failed: {fallback_error}")
                 # Don't raise exception here as this is not critical to the main functionality
     
     # Use threading to avoid GIL issues when opening files from GUI context
@@ -2571,7 +2681,7 @@ def main(repo_name, pr_number, post_comments=True):
         
         # Generate summary message based on results
         if post_comments and all_posted_comments_total_count > 0:
-            summary_message = f"✅ AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. A total of {all_posted_comments_total_count} comments were posted to GitHub PR."
+            summary_message = f"[SUCCESS] AI code review complete. Reviewed {reviewed_files_count}/{total_files_in_pr} files. A total of {all_posted_comments_total_count} comments were posted to GitHub PR."
             pr.create_issue_comment(summary_message)
             log_activity(f"\n[SUMMARY] Posted AI summary issue comment on PR #{pr.number}: {summary_message}")
         elif not post_comments and all_posted_comments_total_count > 0:
@@ -2648,7 +2758,7 @@ def toggle_dark_mode():
             )
         else:
             mode_switch.configure(
-                text="☀️ Light", 
+                text="☀️ Light",
                 fg_color=("#DBDBDB", "#ABABAB"),
                 hover_color=("#C7C7C7", "#949494"),
                 text_color="black"
@@ -2752,7 +2862,7 @@ try:
                 continue
     
     if not icon_found:
-        print_log("⚠️ Application icon not found in any location, using default")
+        print_log("[WARNING] Application icon not found in any location, using default")
         # Try alternative method for CustomTkinter
         try:
             # Some systems prefer wm_iconbitmap
@@ -2762,10 +2872,10 @@ try:
                 print_log(f"🎨 Icon set using wm_iconbitmap: {parent_icon}")
                 icon_found = True
         except Exception as wm_error:
-            print_log(f"⚠️ wm_iconbitmap also failed: {wm_error}")
+            print_log(f"[WARNING] wm_iconbitmap also failed: {wm_error}")
             
 except Exception as e:
-    print_log(f"❌ Could not set application icon: {e}")
+    print_log(f"[ERROR] Could not set application icon: {e}")
     # Try one final fallback
     try:
         root.iconbitmap(default="")  # Use system default
@@ -3089,7 +3199,7 @@ def show_ai_settings():
                 token_usage = cost_info.get('token_usage', {})
                 total_tokens = token_usage.get('total_tokens', 0)
                 
-                success_msg = f"✅ AI Connection Test Successful!\n\n"
+                success_msg = f"[SUCCESS] AI Connection Test Successful!\n\n"
                 success_msg += f"Response: {feedback[:100]}{'...' if len(feedback) > 100 else ''}\n\n"
                 success_msg += f"Settings Used:\n"
                 success_msg += f"- Temperature: {temp}\n"
@@ -3097,21 +3207,21 @@ def show_ai_settings():
                 success_msg += f"- Max Tokens: {max_tokens}\n"
                 success_msg += f"- Workflow: {workflow_id[:20]}...\n"
                 if total_tokens > 0:
-                    success_msg += f"🔄️ Tokens Used: {total_tokens}"
+                    success_msg += f"[INFO] Tokens Used: {total_tokens}"
                 
                 messagebox.showinfo("Connection Test Successful", success_msg)
                 
             elif response.status_code == 401:
                 messagebox.showerror("Test Failed", " ⛔ Authentication failed.\n\nThe OpenArena token is invalid or expired.\nPlease check your token.")
             else:
-                messagebox.showerror("Test Failed", f"❌ Connection test failed.\n\nStatus Code: {response.status_code}\nResponse: {response.text[:200]}...")
+                messagebox.showerror("Test Failed", f"[ERROR] Connection test failed.\n\nStatus Code: {response.status_code}\nResponse: {response.text[:200]}...")
 
         except requests.exceptions.Timeout:
             test_btn.configure(text="Test AI Connection", state="normal")
             messagebox.showerror("Test Failed", "⏳ Connection test timed out.\n\nThe AI service may be temporarily unavailable.")
         except Exception as e:
             test_btn.configure(text="Test AI Connection", state="normal")
-            messagebox.showerror("Test Failed", f"❌ Connection test failed.\n\nError: {str(e)}")
+            messagebox.showerror("Test Failed", f"[ERROR] Connection test failed.\n\nError: {str(e)}")
 
     # Update button frame to have 4 columns
     button_frame.grid_columnconfigure(0, weight=1)
@@ -3153,34 +3263,98 @@ def show_help():
     desc_text = customtkinter.CTkTextbox(help_window, height=200)
     desc_text.pack(padx=20, pady=10, fill="both", expand=True)
     
-    help_content = f"""🚀 AI Code Review Tool v{APP_VERSION}
+    # Get real-time usage statistics
+    try:
+        from datetime import datetime, timedelta
+        
+        # Calculate usage stats
+        current_time = datetime.now()
+        usage_stats = get_usage_report()
+        
+        # Parse usage statistics for summary
+        total_reviews = usage_stats.count("Review completed") if usage_stats else 0
+        today_reviews = 0
+        
+        # Try to get more detailed stats from usage log
+        try:
+            if os.path.exists("usage_log.json"):
+                with open("usage_log.json", "r", encoding="utf-8") as f:
+                    import json
+                    log_data = json.load(f)
+                    today_str = current_time.strftime("%Y-%m-%d")
+                    today_reviews = sum(1 for entry in log_data 
+                                      if entry.get("timestamp", "").startswith(today_str) 
+                                      and entry.get("action") == "review_completed")
+                    total_reviews = len([e for e in log_data if e.get("action") == "review_completed"])
+        except:
+            pass
+            
+        # Get current user info
+        user_name = "User"
+        try:
+            if os.path.exists("user_info.json"):
+                with open("user_info.json", "r", encoding="utf-8") as f:
+                    import json
+                    user_data = json.load(f)
+                    user_name = user_data.get("display_name", user_data.get("username", "User"))
+        except:
+            pass
+            
+    except Exception as e:
+        total_reviews = 0
+        today_reviews = 0
+        user_name = "User"
+    
+    help_content = f"""🚀 AI Code Review Tool v{APP_VERSION} - Enterprise Security Edition
 
 ✨ OVERVIEW
 This cutting-edge application provides AI-powered code review for GitHub pull requests using OpenArena's Claude 4 Sonnet model, delivering intelligent insights to enhance code quality and development workflows.
 
+📊 REAL-TIME USAGE STATISTICS (Live)
+👤 Current User: {user_name}
+📈 Total Reviews Completed: {total_reviews}
+📅 Reviews Today: {today_reviews}  
+⏰ Last Updated: {current_time.strftime("%H:%M:%S")}
+🔒 Security Status: Enterprise Protected
+
 🎯 KEY FEATURES
 • 🔍 Automated GitHub PR analysis with smart file detection
-• 🧠 AI-powered code review comments with severity classification
+• 🧠 AI-powered code review comments with severity classification  
 • 🔐 Secure token management with encryption
-• 📊 Beautiful HTML report generation with analytics
+• 📊 Real-time usage analytics and executive reports
 • 🔑 SSO authentication support for enterprise environments
 • ⚙️ Fully customizable AI settings and prompts
+• 🛡️ Enhanced security protocols and credential protection
 
 📋 QUICK START GUIDE
-1. 🔑 Enter your GitHub personal access token
-2. 🎫 Get or enter your OpenArena token  
+1. 🔑 Enter your GitHub personal access token (SSO authorized)
+2. 🎫 Get your OpenArena token via SSO authentication  
 3. 📁 Specify the repository (owner/repo format)
 4. 🔢 Enter the PR number to review
-5. 🚀 Click "Start Review" to begin analysis
+5. 🚀 Click "Start Review" to begin AI analysis
 
-🎯 SMART ANALYSIS
-The tool intelligently analyzes all modified files in your PR and generates contextual AI comments highlighting potential issues, security vulnerabilities, performance improvements, and best practice suggestions.
+🎯 SMART ANALYSIS ENGINE
+The tool intelligently analyzes all modified files in your PR using advanced AI algorithms to generate contextual comments highlighting:
+• 🚨 Security vulnerabilities and risks
+• ⚡ Performance optimization opportunities  
+• 📚 Code quality and best practices
+• 🔧 Maintainability improvements
+• 📝 Documentation suggestions
+
+💼 ENTERPRISE FEATURES
+• 📊 Executive management reporting
+• 📈 Usage tracking and analytics
+• 🔒 Enhanced security protocols
+• 🛡️ Credential protection systems
+• 👥 Multi-user access control
 
 👥 DEVELOPMENT TEAM
-Built with ❤️ by Thomson Reuters • UltraTax Team
+Built with care by Thomson Reuters • UltraTax Team
 © 2025 Thomson Reuters - Licensed for internal use only
 
-🔧 Need help? Use the feedback feature to contact our engineering team!"""
+🆘 SUPPORT & FEEDBACK
+Need help? Use the feedback feature to contact our engineering team!
+📞 Enterprise Support Available 24/7"""
     
     desc_text.insert("1.0", help_content)
     desc_text.configure(state="disabled")
@@ -3539,14 +3713,13 @@ def setup_modern_ui():
                                                placeholder_text="Personal access token...")
     github_token_entry.grid(row=0, column=0, padx=3, pady=3, sticky="ew")
     
-    # Add GitHub token extraction button if module is available
-    if HAS_GITHUB_EXTRACTOR:
-        github_extract_button = customtkinter.CTkButton(github_frame, text="Get", 
-                                                       command=extract_github_token_interactive, 
-                                                       width=50, height=24, corner_radius=6,
-                                                       font=customtkinter.CTkFont(size=11),
-                                                       fg_color="#6f42c1", hover_color="#5a32a3")
-        github_extract_button.grid(row=0, column=1, padx=3, pady=3)
+    # Add GitHub token extraction button - always available
+    github_extract_button = customtkinter.CTkButton(github_frame, text="🔑 Get", 
+                                                   command=extract_github_token_interactive, 
+                                                   width=60, height=24, corner_radius=6,
+                                                   font=customtkinter.CTkFont(size=11),
+                                                   fg_color="#6f42c1", hover_color="#5a32a3")
+    github_extract_button.grid(row=0, column=1, padx=3, pady=3)
     
     # OpenArena Token section with compact design
     openarena_label = customtkinter.CTkLabel(token_frame, text="OpenArena:", font=customtkinter.CTkFont(size=12))
@@ -3560,9 +3733,9 @@ def setup_modern_ui():
                                                   placeholder_text="API token...")
     openarena_token_entry.grid(row=0, column=0, padx=3, pady=3, sticky="ew")
     
-    extract_token_button = customtkinter.CTkButton(openarena_frame, text="Get", 
+    extract_token_button = customtkinter.CTkButton(openarena_frame, text="🎫 Get", 
                                                   command=extract_openarena_token_with_user_info, 
-                                                  width=50, height=24, corner_radius=6,
+                                                  width=60, height=24, corner_radius=6,
                                                   font=customtkinter.CTkFont(size=11),
                                                   fg_color="#28A745", hover_color="#218838")
     extract_token_button.grid(row=0, column=1, padx=3, pady=3)
@@ -3662,7 +3835,7 @@ def setup_modern_ui():
     post_comments_checkbox.grid(row=1, column=0, columnspan=3, padx=6, pady=2, sticky="w")
     
     # Compact action buttons
-    review_button = customtkinter.CTkButton(action_frame, text="🚀 Review", 
+    review_button = customtkinter.CTkButton(action_frame, text="🚀 Start Review", 
                                           command=run_code_review, 
                                           height=28, corner_radius=6,
                                           font=customtkinter.CTkFont(size=12, weight="bold"),
@@ -3712,7 +3885,7 @@ def setup_modern_ui():
     view_frame.grid_columnconfigure(1, weight=1)
     
     # Results section with improved header
-    view_header = customtkinter.CTkLabel(view_frame, text="📊 Results", 
+    view_header = customtkinter.CTkLabel(view_frame, text="📋 Results", 
                                        font=customtkinter.CTkFont(size=12, weight="bold"),
                                        text_color="#0078D7")
     view_header.grid(row=0, column=0, columnspan=2, padx=6, pady=2, sticky="w")
@@ -3739,6 +3912,16 @@ def setup_modern_ui():
                                                      font=customtkinter.CTkFont(size=11),
                                                      fg_color="#DC3545", hover_color="#c82333")
         usage_report_button.grid(row=2, column=0, columnspan=2, padx=3, pady=2, sticky="ew")
+        
+        # Add enterprise analytics dashboard button
+        if HAS_ENTERPRISE_ANALYTICS:
+            analytics_dashboard_button = customtkinter.CTkButton(view_frame, text="🔬 Enterprise Analytics", 
+                                                                command=show_analytics_dashboard,
+                                                                height=24, corner_radius=6,
+                                                                font=customtkinter.CTkFont(size=11),
+                                                                fg_color="#6366f1", hover_color="#5b5fcf")
+            analytics_dashboard_button.grid(row=3, column=0, columnspan=2, padx=3, pady=2, sticky="ew")
+        
         log_activity("[ADMIN UI] Dev Monitor button visible - admin user detected")
     else:
         log_activity("[SECURITY] Dev Monitor button hidden - regular user")
@@ -3784,7 +3967,7 @@ def setup_modern_ui():
     analytics_frame.grid_columnconfigure(2, weight=1)
     
     # Analytics section header with better layout
-    analytics_header = customtkinter.CTkLabel(analytics_frame, text="📈 Review Analytics", 
+    analytics_header = customtkinter.CTkLabel(analytics_frame, text="[ANALYTICS] Review Analytics", 
                                             font=customtkinter.CTkFont(size=12, weight="bold"),
                                             text_color="#0078D7")
     analytics_header.grid(row=0, column=0, columnspan=3, padx=8, pady=(4,1), sticky="")

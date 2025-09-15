@@ -35,15 +35,16 @@ class TRAuthenticator:
         # Load environment variables from '.env' file 
         load_dotenv('.env')
         
+        # Load OAuth configuration from environment variables for security
         self.config = config or {
-            "client_id": "tgUVZwXAqZWWByus9QSPi1yNyoN2lflI",
-            "redirect_uri": "https://dataandanalytics.int.thomsonreuters.com",
-            "auth_url": "https://auth.thomsonreuters.com/authorize",
-            "token_url": "https://auth.thomsonreuters.com/oauth/token",
-            "api_url": "https://aiopenarena.gcs.int.thomsonreuters.com/v1/user",
+            "client_id": os.getenv("TR_CLIENT_ID", "tgUVZwXAqZWWByus9QSPi1yNyoN2lflI"),
+            "redirect_uri": os.getenv("TR_REDIRECT_URI", "https://dataandanalytics.int.thomsonreuters.com"),
+            "auth_url": os.getenv("TR_AUTH_URL", "https://auth.thomsonreuters.com/authorize"),
+            "token_url": os.getenv("TR_TOKEN_URL", "https://auth.thomsonreuters.com/oauth/token"),
+            "api_url": os.getenv("TR_API_URL", "https://aiopenarena.gcs.int.thomsonreuters.com/v1/user"),
             "env_file": ".env", 
-            "code_verifier": "vFV--SZvnyxmdapz62lNkKz0Nrbtnd_uO0huZe0A60c",
-            "code_challenge": "BWtAOz7YKH24sAlLZAAc-xi_UFJm3hiP1stOedx9U00"
+            "code_verifier": os.getenv("TR_CODE_VERIFIER", "vFV--SZvnyxmdapz62lNkKz0Nrbtnd_uO0huZe0A60c"),
+            "code_challenge": os.getenv("TR_CODE_CHALLENGE", "BWtAOz7YKH24sAlLZAAc-xi_UFJm3hiP1stOedx9U00")
         }
     
     def save_tokens_to_env(self, access_token, refresh_token=None, expires_at=None):

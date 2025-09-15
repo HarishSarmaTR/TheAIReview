@@ -1,7 +1,12 @@
 # 🔒 CRITICAL SECURITY - NEVER COMMIT THESE FILES
+# =======================================================
+
+# TOKENS AND CREDENTIALS - HIGHEST PRIORITY
 *.env
 .env*
 env.*
+**/*.env
+**/.env*
 tokens.txt
 token_*
 secure_tokens.*
@@ -15,65 +20,109 @@ access_token*
 bearer_token*
 api_key*
 auth_token*
+github_token.json
+github_pat_*
+ghp_*
+ghs_*
 
-# User data that may contain sensitive information
+# SENSITIVE USER DATA - PERSONAL INFORMATION
 user_info.json
 recent_repos.json
 usage_log.json
 last_update_check.json
 update_notifications.json
 feedback_submissions.json
+enhanced_usage.json
+email_tracking_*.json
 
-# Build artifacts that may contain embedded credentials  
+# APPLICATION DATA THAT MAY CONTAIN SENSITIVE INFO
+ai_settings.json
+access_control.json
+reports/
+backup_executable.ps1
+
+# BUILD ARTIFACTS THAT MAY CONTAIN EMBEDDED CREDENTIALS  
 build/
 dist/
 *.spec
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
 
-# SECURITY - Sensitive files - NEVER COMMIT THESE
-*.env
-.env*
-tokens.txt
-secure_tokens.enc
-secure.key
-encryption.key
-user_info.json
-recent_repos.json
-usage_log.json
-last_update_check.json
-update_notifications.json
+# SECURITY - Additional patterns for token detection
+**/tokens/**
+**/secrets/**
+**/credentials/**
+**/*secret*
+**/*token*
+**/*key*
+**/*password*
 
-# Prerequisites
-*.d
+# Python virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# Precompiled Headers
-*.gch
-*.pch
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
+# Log files
+*.log
+logs/
+**/*.log
 
-# Fortran module files
-*.mod
-*.smod
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
 
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
+# Backup files
+*.bak
+*.backup
+*~
 
-# Executables
-*.exe
-*.out
-*.app
+# Node modules (if any JS tools are used)
+node_modules/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Certificate files
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+*.key
+*.pub
+
+# Configuration files that might contain sensitive data
+config.ini
+config.json
+settings.json
+local_settings.py

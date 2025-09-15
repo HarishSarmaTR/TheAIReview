@@ -14,15 +14,15 @@ def get_version_config():
     except Exception as e:
         # Fallback to hardcoded values if config file is missing
         return {
-            "app_version": "2.1.8",
+            "app_version": "2.2.0",
             "app_name": "AI Code Review Tool",
-            "release_date": "2025-09-01"
+            "release_date": "2025-09-15"
         }
 
 def get_app_version():
     """Get the current application version"""
     config = get_version_config()
-    return config.get("app_version", "2.1.8")
+    return config.get("app_version", "2.2.0")
 
 def get_app_name():
     """Get the application name"""
@@ -32,15 +32,15 @@ def get_app_name():
 def get_release_date():
     """Get the release date"""
     config = get_version_config()
-    return config.get("release_date", "2025-08-28")
+    return config.get("release_date", "2025-09-15")
 
 def get_version_info():
     """Get complete version information"""
     config = get_version_config()
     return {
-        'version': config.get("app_version", "2.1.8"),
+        'version': config.get("app_version", "2.2.0"),
         'name': config.get("app_name", "AI Code Review Tool"),
-        'release_date': config.get("release_date", "2025-08-28"),
+        'release_date': config.get("release_date", "2025-09-15"),
         'features': config.get("major_features", [])
     }
 

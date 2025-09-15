@@ -29,7 +29,7 @@ class GitHubTokenExtractor:
         Check for existing GitHub tokens in common locations
         Returns: token if found, None otherwise
         """
-        print("🔍 Checking for existing GitHub tokens...")
+        print("[SEARCH] Checking for existing GitHub tokens...")
         
         # Check multiple possible locations for tokens
         token_sources = [
@@ -47,17 +47,17 @@ class GitHubTokenExtractor:
             try:
                 token = get_token_func()
                 if token and len(token.strip()) > 10:
-                    print(f"✅ Found GitHub token in: {source_name}")
+                    print(f"[SUCCESS] Found GitHub token in: {source_name}")
                     # Validate the token
                     if self.validate_github_token(token.strip()):
-                        print(f"✅ Token from {source_name} is valid!")
+                        print(f"[SUCCESS] Token from {source_name} is valid!")
                         return token.strip()
                     else:
-                        print(f"❌ Token from {source_name} is invalid")
+                        print(f"[ERROR] Token from {source_name} is invalid")
             except Exception as e:
-                print(f"⚠️ Error checking {source_name}: {e}")
+                print(f"[WARNING] Error checking {source_name}: {e}")
         
-        print("❌ No valid existing GitHub tokens found")
+        print("[ERROR] No valid existing GitHub tokens found")
         return None
     
     def get_token_from_git_config(self):
@@ -90,7 +90,7 @@ class GitHubTokenExtractor:
                                       capture_output=True, text=True, timeout=5)
                 if result.returncode == 0 and 'github.com' in result.stdout:
                     print("📋 Found GitHub credentials in Windows Credential Manager")
-                    print("💡 You may have existing GitHub credentials stored")
+                    print("[INFO] You may have existing GitHub credentials stored")
                     return None  # We can't extract the actual token, but we know it exists
         except Exception:
             pass
@@ -142,7 +142,7 @@ class GitHubTokenExtractor:
             token_url = "https://github.com/settings/tokens/new"
             self.driver.get(token_url)
             
-            print("✅ Browser opened to GitHub token creation page")
+            print("[SUCCESS] Browser opened to GitHub token creation page")
             print("\nPLEASE FOLLOW THESE STEPS:")
             print("1. Log in to GitHub if prompted")
             print("2. Fill in the token details:")
@@ -160,20 +160,20 @@ class GitHubTokenExtractor:
             token = input("\n🔑 Please paste your GitHub Personal Access Token here: ").strip()
             
             if not token:
-                print("❌ No token provided")
+                print("[ERROR] No token provided")
                 return None
             
             # Validate the token
             if self.validate_github_token(token):
-                print("✅ Token validated successfully!")
+                print("[SUCCESS] Token validated successfully!")
                 self.save_github_token(token)
                 return token
             else:
-                print("❌ Token validation failed. Please check the token and try again.")
+                print("[ERROR] Token validation failed. Please check the token and try again.")
                 return None
                 
         except Exception as e:
-            print(f"❌ Error during GitHub token extraction: {e}")
+            print(f"[ERROR] Error during GitHub token extraction: {e}")
             return None
         finally:
             if self.driver:
@@ -191,14 +191,14 @@ class GitHubTokenExtractor:
             
             if response.status_code == 200:
                 user_data = response.json()
-                print(f"✅ Token validated for user: {user_data.get('login', 'Unknown')}")
+                print(f"[SUCCESS] Token validated for user: {user_data.get('login', 'Unknown')}")
                 return True
             else:
-                print(f"❌ Token validation failed: HTTP {response.status_code}")
+                print(f"[ERROR] Token validation failed: HTTP {response.status_code}")
                 return False
                 
         except Exception as e:
-            print(f"❌ Error validating token: {e}")
+            print(f"[ERROR] Error validating token: {e}")
             return False
     
     def save_github_token(self, token):
@@ -217,7 +217,7 @@ class GitHubTokenExtractor:
             return True
             
         except Exception as e:
-            print(f"❌ Error saving GitHub token: {e}")
+            print(f"[ERROR] Error saving GitHub token: {e}")
             return False
 
 def load_github_token_from_file():
@@ -277,10 +277,10 @@ def get_github_token_smart_interactive():
             extractor.save_github_token(token)
             return token
         else:
-            print("❌ Invalid token provided")
+            print("[ERROR] Invalid token provided")
             return None
     else:
-        print("⏭️ Skipping GitHub token setup")
+        print("[SKIP] Skipping GitHub token setup")
         return None
 
 def get_github_token_interactive():
@@ -308,13 +308,13 @@ OPTION 2: Manual Creation
 5. COPY the token immediately (you won't see it again!)
 6. Paste it into the GitHub Token field in this application
 
-⚠️  IMPORTANT SECURITY NOTES:
+[WARNING] IMPORTANT SECURITY NOTES:
 - Keep your token secure and never share it
 - The token grants access to your repositories
 - You can revoke it anytime at: https://github.com/settings/tokens
 - This application stores the token locally and encrypted
 
-✅ REQUIRED PERMISSIONS:
+[REQUIRED] PERMISSIONS:
 - repo: Full control of private repositories
   (This allows the tool to read PR content and post review comments)
 
@@ -326,6 +326,6 @@ if __name__ == "__main__":
     print("=" * 50)
     token = get_github_token_interactive()
     if token:
-        print(f"✅ Successfully extracted GitHub token!")
+        print(f"[SUCCESS] Successfully extracted GitHub token!")
     else:
-        print("❌ Failed to extract GitHub token")
+        print("[ERROR] Failed to extract GitHub token")

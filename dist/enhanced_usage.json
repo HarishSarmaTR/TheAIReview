@@ -17,6 +17,24 @@
         "cost": 0.011577
       },
       "session_id": "ec3370b6"
+    },
+    {
+      "timestamp": "2025-09-15T20:04:56.422116",
+      "event": "CODE_REVIEW",
+      "version": "2.2.0",
+      "app_name": "AI Code Review Tool",
+      "release_date": "2025-09-15",
+      "user": "6126175",
+      "hostname": "TR-50D4Y74",
+      "platform": "Windows-11-10.0.26100-SP0",
+      "details": {
+        "repo": "tr/cs-prof_tax-us-cstax-1040ST-NE",
+        "pr": "178",
+        "files_reviewed": 1,
+        "comments_posted": 5,
+        "cost": 0.015813
+      },
+      "session_id": "4f37f28a"
     }
   ]
 }
